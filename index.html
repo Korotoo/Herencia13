@@ -661,6 +661,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   background: linear-gradient(90deg, var(--border2), transparent);
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -1102,22 +1103,146 @@ let data = {
   nextId: { cat:5, product:9, user:5, mvt:5, log:7, cash:2 },
 };
 
-// ===================== SAUVEGARDE LOCALE =====================
+// ===================== SAUVEGARDE EN LIGNE SUPABASE =====================
 const STORAGE_KEY = 'vault-system-data-v1';
+
+// 1) Crée ton projet Supabase.
+// 2) Colle ici l'URL du projet et la clé publique anon/publishable.
+const SUPABASE_URL = 'COLLE_ICI_TON_URL_SUPABASE';
+const SUPABASE_ANON_KEY = 'COLLE_ICI_TA_CLE_ANON_SUPABASE';
+const SUPABASE_TABLE = 'app_state';
+const SUPABASE_STATE_ID = 'vault';
+
+let supabaseClient = null;
+let applyingRemoteData = false;
+let saveTimer = null;
+
+function hasSupabaseConfig() {
+  return SUPABASE_URL.startsWith('https://') && SUPABASE_ANON_KEY.length > 20;
+}
+
+function cleanDataForSave() {
+  return {
+    ...data,
+    currentUser: null,
+    editingProduct: null,
+    editingUser: null
+  };
+}
+
+function applySavedData(savedData) {
+  if (!savedData) return;
+  data = {
+    ...data,
+    ...savedData,
+    currentUser: data.currentUser || null,
+    editingProduct: null,
+    editingUser: null,
+    nextId: { ...data.nextId, ...(savedData.nextId || {}) }
+  };
+  consolidateMovementsByProduct();
+  consolidateCashMovements();
+}
+
+function initSupabaseClient() {
+  if (!hasSupabaseConfig()) return null;
+  if (!window.supabase || !window.supabase.createClient) {
+    console.error('Supabase JS non chargé');
+    return null;
+  }
+  if (!supabaseClient) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return supabaseClient;
+}
 
 function saveData() {
   try {
-    const dataToSave = {
-      ...data,
-      currentUser: null,
-      editingProduct: null,
-      editingUser: null,
-      editingUser: null
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave()));
   } catch (e) {
     console.error('Erreur sauvegarde locale', e);
   }
+
+  if (applyingRemoteData) return;
+  if (!initSupabaseClient()) return;
+
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveRemoteData, 350);
+}
+
+async function saveRemoteData() {
+  const client = initSupabaseClient();
+  if (!client) return;
+
+  const { error } = await client
+    .from(SUPABASE_TABLE)
+    .upsert({
+      id: SUPABASE_STATE_ID,
+      data: cleanDataForSave(),
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) {
+    console.error('Erreur sauvegarde Supabase', error);
+    toast('Erreur sauvegarde en ligne', 'error');
+  }
+}
+
+async function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) applySavedData(JSON.parse(saved));
+  } catch (e) {
+    console.error('Erreur chargement sauvegarde locale', e);
+  }
+
+  const client = initSupabaseClient();
+  if (!client) return;
+
+  const { data: row, error } = await client
+    .from(SUPABASE_TABLE)
+    .select('data')
+    .eq('id', SUPABASE_STATE_ID)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Erreur chargement Supabase', error);
+    return;
+  }
+
+  if (row && row.data) {
+    applySavedData(row.data);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave())); } catch(e) {}
+  } else {
+    await saveRemoteData();
+  }
+
+  subscribeRemoteData();
+}
+
+function subscribeRemoteData() {
+  const client = initSupabaseClient();
+  if (!client) return;
+
+  client
+    .channel('vault-shared-state')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: SUPABASE_TABLE,
+      filter: `id=eq.${SUPABASE_STATE_ID}`
+    }, payload => {
+      if (!payload.new || !payload.new.data) return;
+      applyingRemoteData = true;
+      const currentUser = data.currentUser;
+      applySavedData(payload.new.data);
+      data.currentUser = currentUser;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave())); } catch(e) {}
+      if (document.getElementById('app').classList.contains('visible')) render();
+      else buildLoginPage();
+      applyingRemoteData = false;
+    })
+    .subscribe();
 }
 
 
@@ -1954,13 +2079,16 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
 });
 
 // INIT
-loadData();
-consolidateMovementsByProduct();
-consolidateCashMovements();
-buildLoginPage();
-// Auto-select first active user
-const firstActiveUser = data.users.find(u => u.active);
-if (firstActiveUser) selectUser(firstActiveUser.id);
+async function initApp() {
+  await loadData();
+  consolidateMovementsByProduct();
+  consolidateCashMovements();
+  buildLoginPage();
+  // Auto-select first active user
+  const firstActiveUser = data.users.find(u => u.active);
+  if (firstActiveUser) selectUser(firstActiveUser.id);
+}
+initApp();
 </script>
 </body>
 </html>
