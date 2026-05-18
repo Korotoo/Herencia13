@@ -1103,22 +1103,32 @@ let data = {
   nextId: { cat:5, product:9, user:5, mvt:5, log:7, cash:2 },
 };
 
-// ===================== SAUVEGARDE EN LIGNE SUPABASE =====================
+// ===================== SAUVEGARDE EN LIGNE SUPABASE TEMPS RÉEL =====================
 const STORAGE_KEY = 'vault-system-data-v1';
 
-// 1) Crée ton projet Supabase.
-// 2) Colle ici l'URL du projet et la clé publique anon/publishable.
+// URL du projet Supabase + clé publique anon/publishable.
+// Important : l'URL doit être celle du projet, sans /rest/v1 à la fin.
+// Le code corrige automatiquement si /rest/v1 est présent.
 const SUPABASE_URL = 'https://kjpeukknffzwkgwdacbu.supabase.co/rest/v1/';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqcGV1a2tuZmZ6d2tnd2RhY2J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDI0MjksImV4cCI6MjA5NDcxODQyOX0.QSZCEb8OvIXF8UMpdrrCDl-tHbWxaCZPqdyfuYEw11Q';
 const SUPABASE_TABLE = 'app_state';
 const SUPABASE_STATE_ID = 'vault';
 
 let supabaseClient = null;
+let realtimeChannel = null;
 let applyingRemoteData = false;
 let saveTimer = null;
+let lastRemoteUpdatedAt = null;
+
+function normalizedSupabaseUrl() {
+  return SUPABASE_URL
+    .trim()
+    .replace(/\/rest\/v1\/?$/i, '')
+    .replace(/\/+$/g, '');
+}
 
 function hasSupabaseConfig() {
-  return SUPABASE_URL.startsWith('https://') && SUPABASE_ANON_KEY.length > 20;
+  return normalizedSupabaseUrl().startsWith('https://') && SUPABASE_ANON_KEY.length > 20;
 }
 
 function cleanDataForSave() {
@@ -1130,30 +1140,61 @@ function cleanDataForSave() {
   };
 }
 
+function restoreCurrentUser(previousUser) {
+  if (!previousUser) {
+    data.currentUser = null;
+    return;
+  }
+  const freshUser = data.users.find(u => u.id === previousUser.id);
+  data.currentUser = freshUser || previousUser;
+}
+
 function applySavedData(savedData) {
   if (!savedData) return;
+
+  const previousUser = data.currentUser;
   data = {
     ...data,
     ...savedData,
-    currentUser: data.currentUser || null,
+    currentUser: previousUser || null,
     editingProduct: null,
     editingUser: null,
     nextId: { ...data.nextId, ...(savedData.nextId || {}) }
   };
+
   consolidateMovementsByProduct();
   consolidateCashMovements();
+  restoreCurrentUser(previousUser);
 }
 
 function initSupabaseClient() {
   if (!hasSupabaseConfig()) return null;
+
   if (!window.supabase || !window.supabase.createClient) {
     console.error('Supabase JS non chargé');
     return null;
   }
+
   if (!supabaseClient) {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = window.supabase.createClient(normalizedSupabaseUrl(), SUPABASE_ANON_KEY, {
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    });
   }
+
   return supabaseClient;
+}
+
+function renderAfterRemoteUpdate() {
+  const app = document.getElementById('app');
+  if (app && app.classList.contains('visible')) {
+    render();
+  } else {
+    buildLoginPage();
+  }
 }
 
 function saveData() {
@@ -1167,28 +1208,64 @@ function saveData() {
   if (!initSupabaseClient()) return;
 
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveRemoteData, 350);
+  saveTimer = setTimeout(saveRemoteData, 150);
 }
 
 async function saveRemoteData() {
   const client = initSupabaseClient();
-  if (!client) return;
+  if (!client || applyingRemoteData) return;
+
+  const payload = {
+    id: SUPABASE_STATE_ID,
+    data: cleanDataForSave(),
+    updated_at: new Date().toISOString()
+  };
 
   const { error } = await client
     .from(SUPABASE_TABLE)
-    .upsert({
-      id: SUPABASE_STATE_ID,
-      data: cleanDataForSave(),
-      updated_at: new Date().toISOString()
-    });
+    .upsert(payload, { onConflict: 'id' });
 
   if (error) {
     console.error('Erreur sauvegarde Supabase', error);
     toast('Erreur sauvegarde en ligne', 'error');
+    return;
   }
+
+  lastRemoteUpdatedAt = payload.updated_at;
+}
+
+async function refreshRemoteData(silent = false) {
+  const client = initSupabaseClient();
+  if (!client) return false;
+
+  const { data: row, error } = await client
+    .from(SUPABASE_TABLE)
+    .select('data, updated_at')
+    .eq('id', SUPABASE_STATE_ID)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Erreur chargement Supabase', error);
+    if (!silent) toast('Erreur chargement en ligne', 'error');
+    return false;
+  }
+
+  if (row && row.data) {
+    applyingRemoteData = true;
+    applySavedData(row.data);
+    lastRemoteUpdatedAt = row.updated_at || null;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave())); } catch(e) {}
+    applyingRemoteData = false;
+    renderAfterRemoteUpdate();
+    return true;
+  }
+
+  await saveRemoteData();
+  return true;
 }
 
 async function loadData() {
+  // Charge d'abord une copie locale pour afficher vite, puis remplace par Supabase.
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) applySavedData(JSON.parse(saved));
@@ -1196,35 +1273,15 @@ async function loadData() {
     console.error('Erreur chargement sauvegarde locale', e);
   }
 
-  const client = initSupabaseClient();
-  if (!client) return;
-
-  const { data: row, error } = await client
-    .from(SUPABASE_TABLE)
-    .select('data')
-    .eq('id', SUPABASE_STATE_ID)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Erreur chargement Supabase', error);
-    return;
-  }
-
-  if (row && row.data) {
-    applySavedData(row.data);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave())); } catch(e) {}
-  } else {
-    await saveRemoteData();
-  }
-
+  await refreshRemoteData(true);
   subscribeRemoteData();
 }
 
 function subscribeRemoteData() {
   const client = initSupabaseClient();
-  if (!client) return;
+  if (!client || realtimeChannel) return;
 
-  client
+  realtimeChannel = client
     .channel('vault-shared-state')
     .on('postgres_changes', {
       event: '*',
@@ -1233,18 +1290,25 @@ function subscribeRemoteData() {
       filter: `id=eq.${SUPABASE_STATE_ID}`
     }, payload => {
       if (!payload.new || !payload.new.data) return;
+
       applyingRemoteData = true;
-      const currentUser = data.currentUser;
       applySavedData(payload.new.data);
-      data.currentUser = currentUser;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave())); } catch(e) {}
-      if (document.getElementById('app').classList.contains('visible')) render();
-      else buildLoginPage();
+      lastRemoteUpdatedAt = payload.new.updated_at || null;
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave()));
+      } catch(e) {}
+
+      renderAfterRemoteUpdate();
       applyingRemoteData = false;
     })
-    .subscribe();
+    .subscribe(status => {
+      console.log('Supabase realtime:', status);
+      if (status === 'SUBSCRIBED') {
+        refreshRemoteData(true);
+      }
+    });
 }
-
 
 function signedMovementQty(movement) {
   if (!movement) return 0;
@@ -1327,25 +1391,6 @@ function consolidateCashMovements() {
   // Le cash doit représenter un seul solde présent, pas un historique cumulé par raison.
   // Les détails d'entrée/sortie restent conservés dans les logs.
   syncCashLine();
-}
-
-function loadData() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
-    const parsed = JSON.parse(saved);
-    data = {
-      ...data,
-      ...parsed,
-      currentUser: null,
-      editingProduct: null,
-      nextId: { ...data.nextId, ...(parsed.nextId || {}) }
-    };
-    consolidateMovementsByProduct();
-    consolidateCashMovements();
-  } catch (e) {
-    console.error('Erreur chargement sauvegarde locale', e);
-  }
 }
 
 function resetSavedData() {
@@ -1501,6 +1546,11 @@ function nav(section, el) {
 
   updatePermissionsUI();
   render();
+
+  // À chaque changement d'onglet, on récupère aussi la dernière version en ligne.
+  if (typeof refreshRemoteData === 'function') {
+    refreshRemoteData(true);
+  }
 }
 
 function render() { updatePermissionsUI(); renderDashboard(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); }
@@ -2076,6 +2126,15 @@ function toast(msg, type='success') {
 
 document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); });
+});
+
+// Quand quelqu'un revient sur l'onglet ou la fenêtre, on resynchronise aussi.
+window.addEventListener('focus', () => {
+  if (typeof refreshRemoteData === 'function') refreshRemoteData(true);
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && typeof refreshRemoteData === 'function') refreshRemoteData(true);
 });
 
 // INIT
