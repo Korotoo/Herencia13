@@ -1340,6 +1340,14 @@ let realtimeChannel = null;
 let applyingRemoteData = false;
 let saveTimer = null;
 let lastRemoteUpdatedAt = null;
+let localRevision = 0;
+let savedRevision = 0;
+let saveInProgress = false;
+let saveQueued = false;
+let remotePollTimer = null;
+let realtimeConnected = false;
+let lastLocalMutationAt = 0;
+const REMOTE_POLL_INTERVAL = 5000;
 
 function normalizedSupabaseUrl() {
   return SUPABASE_URL
@@ -1353,12 +1361,15 @@ function hasSupabaseConfig() {
 }
 
 function cleanDataForSave() {
-  return {
+  const snapshot = {
     ...data,
     currentUser: null,
     editingProduct: null,
     editingUser: null
   };
+
+  // Produit un objet JSON simple : aucune valeur undefined, fonction ou référence spéciale.
+  return JSON.parse(JSON.stringify(snapshot));
 }
 
 function restoreCurrentUser(previousUser) {
@@ -1371,6 +1382,12 @@ function restoreCurrentUser(previousUser) {
 }
 
 function ensureLocationData() {
+  if (!Array.isArray(data.categories)) data.categories = [];
+  if (!Array.isArray(data.products)) data.products = [];
+  if (!Array.isArray(data.users)) data.users = [];
+  if (!Array.isArray(data.movements)) data.movements = [];
+  if (!Array.isArray(data.cashMovements)) data.cashMovements = [];
+  if (!Array.isArray(data.logs)) data.logs = [];
   if (!Array.isArray(data.locations)) data.locations = [];
   if (!data.cashByLocation || typeof data.cashByLocation !== 'object') data.cashByLocation = {};
 
@@ -1475,67 +1492,202 @@ function saveData() {
   }
 
   if (applyingRemoteData) return;
+
+  localRevision += 1;
+  lastLocalMutationAt = Date.now();
+
   if (!initSupabaseClient()) return;
 
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveRemoteData, 150);
+  saveTimer = setTimeout(() => {
+    saveRemoteData();
+  }, 250);
+}
+
+function supabaseErrorMessage(error) {
+  if (!error) return 'Erreur inconnue';
+  return [error.message, error.details, error.hint, error.code]
+    .filter(Boolean)
+    .join(' — ');
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function writeRemoteState(payload) {
+  const client = initSupabaseClient();
+  if (!client) return { error: new Error('Client Supabase indisponible') };
+
+  // UPDATE d'abord : évite de demander un droit INSERT à chaque sauvegarde.
+  const updateResult = await client
+    .from(SUPABASE_TABLE)
+    .update({
+      data: payload.data,
+      updated_at: payload.updated_at
+    })
+    .eq('id', SUPABASE_STATE_ID)
+    .select('id')
+    .maybeSingle();
+
+  if (!updateResult.error && updateResult.data) {
+    return { error: null };
+  }
+
+  // Si la ligne n'existe pas encore, création unique.
+  if (!updateResult.error || updateResult.error.code === 'PGRST116') {
+    const insertResult = await client
+      .from(SUPABASE_TABLE)
+      .insert({
+        id: SUPABASE_STATE_ID,
+        data: payload.data,
+        updated_at: payload.updated_at
+      });
+
+    return { error: insertResult.error || null };
+  }
+
+  return { error: updateResult.error };
 }
 
 async function saveRemoteData() {
   const client = initSupabaseClient();
-  if (!client || applyingRemoteData) return;
+  if (!client || applyingRemoteData) return false;
 
+  if (saveInProgress) {
+    saveQueued = true;
+    return false;
+  }
+
+  saveInProgress = true;
+  const revisionToSave = localRevision;
   const payload = {
     id: SUPABASE_STATE_ID,
     data: cleanDataForSave(),
     updated_at: new Date().toISOString()
   };
 
-  const { error } = await client
-    .from(SUPABASE_TABLE)
-    .upsert(payload, { onConflict: 'id' });
+  let lastError = null;
 
-  if (error) {
-    console.error('Erreur sauvegarde Supabase', error);
-    toast('Erreur sauvegarde en ligne', 'error');
-    return;
+  try {
+    // Trois essais pour supporter les coupures réseau temporaires.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const result = await writeRemoteState(payload);
+      if (!result.error) {
+        savedRevision = Math.max(savedRevision, revisionToSave);
+        lastRemoteUpdatedAt = payload.updated_at;
+        lastError = null;
+        break;
+      }
+
+      lastError = result.error;
+      console.error(`Erreur sauvegarde Supabase (essai ${attempt}/3)`, result.error);
+
+      if (attempt < 3) {
+        await wait(attempt * 700);
+      }
+    }
+
+    if (lastError) {
+      const message = supabaseErrorMessage(lastError);
+      console.error('Échec définitif de sauvegarde Supabase :', message);
+      toast('Sauvegarde locale effectuée — synchronisation en attente', 'error');
+      saveQueued = true;
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erreur réseau pendant la sauvegarde Supabase', error);
+    toast('Sauvegarde locale effectuée — connexion indisponible', 'error');
+    saveQueued = true;
+    return false;
+  } finally {
+    saveInProgress = false;
+
+    // Une modification a eu lieu pendant l'envoi : on renvoie immédiatement la dernière version.
+    if (saveQueued || localRevision > savedRevision) {
+      saveQueued = false;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveRemoteData(), 400);
+    }
   }
+}
 
-  lastRemoteUpdatedAt = payload.updated_at;
+function shouldApplyRemoteRow(row) {
+  if (!row || !row.data) return false;
+
+  const remoteTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+  const knownRemoteTime = lastRemoteUpdatedAt ? new Date(lastRemoteUpdatedAt).getTime() : 0;
+
+  // Ne jamais écraser une modification locale qui attend encore sa sauvegarde.
+  if (saveInProgress || localRevision > savedRevision) return false;
+
+  // Ignore les événements déjà traités.
+  if (remoteTime && knownRemoteTime && remoteTime <= knownRemoteTime) return false;
+
+  return true;
+}
+
+function applyRemoteRow(row) {
+  if (!shouldApplyRemoteRow(row)) return false;
+
+  applyingRemoteData = true;
+  try {
+    applySavedData(row.data);
+    lastRemoteUpdatedAt = row.updated_at || lastRemoteUpdatedAt;
+    localRevision = 0;
+    savedRevision = 0;
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave()));
+    } catch (e) {
+      console.error('Erreur mise en cache locale après synchronisation', e);
+    }
+
+    renderAfterRemoteUpdate();
+    return true;
+  } finally {
+    applyingRemoteData = false;
+  }
 }
 
 async function refreshRemoteData(silent = false) {
   const client = initSupabaseClient();
   if (!client) return false;
 
-  const { data: row, error } = await client
-    .from(SUPABASE_TABLE)
-    .select('data, updated_at')
-    .eq('id', SUPABASE_STATE_ID)
-    .maybeSingle();
+  try {
+    const { data: row, error } = await client
+      .from(SUPABASE_TABLE)
+      .select('data, updated_at')
+      .eq('id', SUPABASE_STATE_ID)
+      .maybeSingle();
 
-  if (error) {
-    console.error('Erreur chargement Supabase', error);
-    if (!silent) toast('Erreur chargement en ligne', 'error');
+    if (error) {
+      console.error('Erreur chargement Supabase', error);
+      if (!silent) toast('Erreur chargement en ligne', 'error');
+      return false;
+    }
+
+    if (row && row.data) {
+      applyRemoteRow(row);
+      return true;
+    }
+
+    // La ligne n'existe pas encore : envoie l'état local initial.
+    localRevision += 1;
+    lastLocalMutationAt = Date.now();
+    await saveRemoteData();
+    return true;
+  } catch (error) {
+    console.error('Erreur réseau chargement Supabase', error);
+    if (!silent) toast('Connexion à la base indisponible', 'error');
     return false;
   }
-
-  if (row && row.data) {
-    applyingRemoteData = true;
-    applySavedData(row.data);
-    lastRemoteUpdatedAt = row.updated_at || null;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave())); } catch(e) {}
-    applyingRemoteData = false;
-    renderAfterRemoteUpdate();
-    return true;
-  }
-
-  await saveRemoteData();
-  return true;
 }
 
 async function loadData() {
-  // Charge d'abord une copie locale pour afficher vite, puis remplace par Supabase.
+  // La copie locale permet au site de démarrer même en cas de coupure réseau.
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) applySavedData(JSON.parse(saved));
@@ -1545,14 +1697,38 @@ async function loadData() {
 
   await refreshRemoteData(true);
   subscribeRemoteData();
+  startRemotePolling();
+}
+
+function startRemotePolling() {
+  clearInterval(remotePollTimer);
+  remotePollTimer = setInterval(() => {
+    // Polling de secours, même si Realtime semble connecté.
+    // Il garantit une actualisation régulière après une reconnexion ou un événement manqué.
+    if (!saveInProgress && localRevision <= savedRevision) {
+      refreshRemoteData(true);
+    }
+
+    // Retente une sauvegarde restée en attente.
+    if (!saveInProgress && localRevision > savedRevision) {
+      saveRemoteData();
+    }
+  }, REMOTE_POLL_INTERVAL);
 }
 
 function subscribeRemoteData() {
   const client = initSupabaseClient();
-  if (!client || realtimeChannel) return;
+  if (!client) return;
+
+  if (realtimeChannel) {
+    try {
+      client.removeChannel(realtimeChannel);
+    } catch (e) {}
+    realtimeChannel = null;
+  }
 
   realtimeChannel = client
-    .channel('vault-shared-state')
+    .channel(`vault-shared-state-${Math.random().toString(36).slice(2)}`)
     .on('postgres_changes', {
       event: '*',
       schema: 'public',
@@ -1560,25 +1736,39 @@ function subscribeRemoteData() {
       filter: `id=eq.${SUPABASE_STATE_ID}`
     }, payload => {
       if (!payload.new || !payload.new.data) return;
-
-      applyingRemoteData = true;
-      applySavedData(payload.new.data);
-      lastRemoteUpdatedAt = payload.new.updated_at || null;
-
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave()));
-      } catch(e) {}
-
-      renderAfterRemoteUpdate();
-      applyingRemoteData = false;
+      applyRemoteRow(payload.new);
     })
     .subscribe(status => {
       console.log('Supabase realtime:', status);
+      realtimeConnected = status === 'SUBSCRIBED';
+
       if (status === 'SUBSCRIBED') {
         refreshRemoteData(true);
       }
+
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        realtimeConnected = false;
+      }
     });
 }
+
+// Synchronisation immédiate au retour sur l'onglet.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    refreshRemoteData(true);
+    if (localRevision > savedRevision) saveRemoteData();
+  }
+});
+
+window.addEventListener('focus', () => {
+  refreshRemoteData(true);
+});
+
+window.addEventListener('online', () => {
+  subscribeRemoteData();
+  refreshRemoteData(true);
+  if (localRevision > savedRevision) saveRemoteData();
+});
 
 function signedMovementQty(movement) {
   if (!movement) return 0;
