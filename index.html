@@ -950,7 +950,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <div class="stat-card c-purple">
             <div class="stat-label"><i class="ti ti-arrows-exchange"></i>Opérations aujourd'hui</div>
             <div class="stat-value" id="dash-moves" style="color:var(--purple)">0</div>
-            <div class="stat-sub">entrées + sorties</div>
+            <div class="stat-sub">stock + cash depuis 00h00</div>
           </div>
         </div>
         <div>
@@ -976,7 +976,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <table>
             <thead>
-              <tr><th>Désignation</th><th>Catégorie</th><th>Qté</th><th>Prix</th><th>Actions</th></tr>
+              <tr><th>Désignation</th><th>Catégorie</th><th>Qté</th><th>Prix unitaire</th><th>Montant total</th><th>Actions</th></tr>
             </thead>
             <tbody id="stock-tbody"></tbody>
           </table>
@@ -1731,7 +1731,15 @@ function renderDashboard() {
   const value = stockValue();
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  const today = data.movements.filter(m => m.date.startsWith(todayStr)).length;
+  // Le journal conserve chaque action réelle, contrairement à la liste des mouvements
+  // qui est regroupée par article. On compte donc les entrées/sorties du journal.
+  const today = data.logs.filter(l => {
+    if (!(l.date || '').startsWith(todayStr)) return false;
+    const plainAction = (l.action || '').replace(/<[^>]*>/g, '').trim();
+    const isStockOperation = l.type === 'stock' && /^(Entrée de|Sortie de)/.test(plainAction);
+    const isCashOperation = l.type === 'cash' && /^(Entrée cash|Sortie cash)/.test(plainAction);
+    return isStockOperation || isCashOperation;
+  }).length;
 
   document.getElementById('dash-total').textContent = total;
   document.getElementById('dash-value').textContent = '$' + value.toLocaleString('fr-FR');
@@ -1783,7 +1791,7 @@ function renderStock() {
   const tbody = document.getElementById('stock-tbody');
 
   if (!products.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><i class="ti ti-search"></i><p>Aucun article trouvé</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><i class="ti ti-search"></i><p>Aucun article trouvé</p></div></td></tr>';
     return;
   }
 
@@ -1794,7 +1802,8 @@ function renderStock() {
       <td><div style="font-weight:600">${p.name}</div><div style="font-size:11px;color:var(--text3);font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em">${p.loc}</div></td>
       <td><span class="badge badge-blue">${cat?cat.name:'—'}</span></td>
       <td style="font-family:var(--font-display);font-size:20px;letter-spacing:0.04em">${p.qty}</td>
-      <td style="color:var(--accent);font-family:var(--font-cond);font-weight:600">$${p.price.toLocaleString('fr-FR')}</td>
+      <td style="color:var(--accent);font-family:var(--font-cond);font-weight:600">$${Number(p.price || 0).toLocaleString('fr-FR')}</td>
+      <td style="color:var(--green);font-family:var(--font-cond);font-weight:700">$${(Number(p.price || 0) * Number(p.qty || 0)).toLocaleString('fr-FR')}</td>
       <td>${canManageInventory() ? `
         <div style="display:flex;gap:6px">
           <button class="btn btn-ghost btn-sm" onclick="editProduct(${p.id})"><i class="ti ti-edit"></i></button>
@@ -2298,6 +2307,24 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); });
 });
 
+// Met automatiquement le compteur journalier à zéro au passage à minuit,
+// même si le site reste ouvert toute la nuit.
+let midnightRefreshTimer = null;
+function scheduleMidnightDashboardReset() {
+  clearTimeout(midnightRefreshTimer);
+  const now = new Date();
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 0, 0);
+  const delay = Math.max(1000, nextMidnight.getTime() - now.getTime() + 250);
+
+  midnightRefreshTimer = setTimeout(() => {
+    if (document.getElementById('app')?.classList.contains('visible')) {
+      renderDashboard();
+    }
+    scheduleMidnightDashboardReset();
+  }, delay);
+}
+
 // Quand quelqu'un revient sur l'onglet ou la fenêtre, on resynchronise aussi.
 window.addEventListener('focus', () => {
   if (typeof refreshRemoteData === 'function') refreshRemoteData(true);
@@ -2316,6 +2343,7 @@ async function initApp() {
   // Auto-select first active user
   const firstActiveUser = data.users.find(u => u.active);
   if (firstActiveUser) selectUser(firstActiveUser.id);
+  scheduleMidnightDashboardReset();
 }
 initApp();
 </script>
