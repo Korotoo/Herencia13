@@ -896,6 +896,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <div class="nav-section">Organisation</div>
       <div class="nav-item" data-section="users" onclick="nav('users', this)"><i class="ti ti-users"></i>Membres</div>
       <div class="nav-item" data-section="categories" onclick="nav('categories', this)"><i class="ti ti-tag"></i>Catégories</div>
+      <div class="nav-item" data-section="locations" onclick="nav('locations', this)"><i class="ti ti-map-pin"></i>Localisations</div>
     </nav>
     <div class="sidebar-footer">
       <div class="current-user">
@@ -952,6 +953,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <div class="stat-value" id="dash-moves" style="color:var(--purple)">0</div>
             <div class="stat-sub">stock + cash depuis 00h00</div>
           </div>
+          <div id="dashboard-location-cards" style="display:contents"></div>
         </div>
         <div>
           <div class="card">
@@ -972,11 +974,14 @@ tr:hover td { background: rgba(255,255,255,0.02); }
               <select class="form-select" style="width:auto;padding:5px 10px;font-family:var(--font-cond);font-size:12px;text-transform:uppercase" id="filter-cat" onchange="renderStock()">
                 <option value="">Toutes catégories</option>
               </select>
+              <select class="form-select" style="width:auto;padding:5px 10px;font-family:var(--font-cond);font-size:12px;text-transform:uppercase" id="filter-location" onchange="renderStock()">
+                <option value="">Toutes localisations</option>
+              </select>
             </div>
           </div>
           <table>
             <thead>
-              <tr><th>Désignation</th><th>Catégorie</th><th>Qté</th><th>Prix unitaire</th><th>Montant total</th><th>Actions</th></tr>
+              <tr><th>Désignation</th><th>Catégorie</th><th>Localisation</th><th>Qté</th><th>Prix unitaire</th><th>Montant total</th><th>Actions</th></tr>
             </thead>
             <tbody id="stock-tbody"></tbody>
           </table>
@@ -996,7 +1001,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             </div>
           </div>
           <table>
-            <thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Qté</th><th>Raison</th><th>Membre</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Qté</th><th>Localisation</th><th>Raison</th><th>Membre</th><th>Actions</th></tr></thead>
             <tbody id="moves-tbody"></tbody>
           </table>
         </div>
@@ -1032,7 +1037,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             </div>
           </div>
           <table>
-            <thead><tr><th>Date</th><th>Type</th><th>Montant</th><th>Raison</th><th>Membre</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Date</th><th>Type</th><th>Montant</th><th>Localisation</th><th>Raison</th><th>Membre</th><th>Actions</th></tr></thead>
             <tbody id="cash-tbody"></tbody>
           </table>
         </div>
@@ -1096,6 +1101,24 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         </div>
       </section>
 
+      <!-- LOCALISATIONS -->
+      <section class="section" id="sec-locations">
+        <div class="card">
+          <div class="card-header">
+            <i class="ti ti-map-pin" style="color:var(--accent)"></i>
+            <span class="card-title">Localisations</span>
+            <span class="card-count" id="locations-count">0</span>
+            <div class="card-actions" id="locations-actions">
+              <button class="btn btn-primary btn-sm" onclick="openLocationModal()"><i class="ti ti-plus"></i> Ajouter</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Nom</th><th>Cash</th><th>Valeur du stock</th><th>Total</th><th>Objets</th><th>Actions</th></tr></thead>
+            <tbody id="locations-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
     </div>
   </main>
 </div>
@@ -1117,7 +1140,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <div class="form-group"><label class="form-label">Quantité</label><input class="form-input" type="number" id="p-qty" placeholder="0" min="0"></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Prix unitaire ($)</label><input class="form-input" type="number" id="p-price" placeholder="0" step="0.01"></div>
-        <div class="form-group"><label class="form-label">Planque / Emplacement</label><input class="form-input" id="p-loc" placeholder="Ex: Planque Nord"></div>
+        <div class="form-group"><label class="form-label">Localisation</label><select class="form-select" id="p-loc"></select></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1141,6 +1164,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="form-group"><label class="form-label">Quantité</label><input class="form-input" type="number" id="mvt-qty" placeholder="1" min="1"></div>
         <div class="form-group"><label class="form-label">Membre</label><select class="form-select" id="mvt-user"></select></div>
       </div>
+      <div class="form-group"><label class="form-label">Localisation</label><select class="form-select" id="mvt-location"></select></div>
       <div class="form-group"><label class="form-label">Raison</label><input class="form-input" id="mvt-reason" placeholder="Ex: Livraison planque"></div>
     </div>
     <div class="modal-footer">
@@ -1213,11 +1237,30 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     </div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Montant ($)</label><input class="form-input" type="number" id="cash-amount" placeholder="0" min="1" step="1"></div>
+      <div class="form-group"><label class="form-label">Localisation</label><select class="form-select" id="cash-location"></select></div>
       <div class="form-group"><label class="form-label">Raison</label><input class="form-input" id="cash-reason" placeholder="Ex: Vente, dépôt, achat matériel…"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-cash')">Annuler</button>
       <button class="btn btn-primary" id="cash-confirm" onclick="saveCashMovement()"><i class="ti ti-check"></i> Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LOCALISATION -->
+<div class="modal-overlay" id="modal-location">
+  <div class="modal" style="width:380px">
+    <div class="modal-header">
+      <i class="ti ti-map-pin" style="color:var(--accent)"></i>
+      <span class="modal-title">NOUVELLE LOCALISATION</span>
+      <button class="modal-close" onclick="closeModal('modal-location')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nom</label><input class="form-input" id="location-name" placeholder="Ex: Sous-sol"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-location')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveLocation()"><i class="ti ti-check"></i> Créer</button>
     </div>
   </div>
 </div>
@@ -1228,6 +1271,14 @@ const PASS = '1234';
 let currentSection = 'dashboard';
 
 let data = {
+  locations: [
+    { id:1, name:'Planque Nord' },
+    { id:2, name:'Entrepôt Vespucci' },
+    { id:3, name:'Planque Sud' },
+    { id:4, name:'Garage Sandy' },
+    { id:5, name:'Garage Davis' }
+  ],
+  cashByLocation: { 1:25000 },
   categories: [
     { id:1, name:'Armes', desc:'Flingues, fusils, équipements offensifs' },
     { id:2, name:'Munitions', desc:'Chargeurs, balles, grenades' },
@@ -1235,14 +1286,14 @@ let data = {
     { id:4, name:'Matos', desc:'Radio, kevlar, équipement divers' },
   ],
   products: [
-    { id:1, name:'Pistolet .50', cat:1, qty:12, price:3500, loc:'Planque Nord' },
-    { id:2, name:'Micro SMG', cat:1, qty:3, price:6500, loc:'Entrepôt Vespucci' },
-    { id:3, name:'Fusil de précision', cat:1, qty:2, price:15000, loc:'Planque Nord' },
-    { id:4, name:'Chargeur 9mm (x50)', cat:2, qty:48, price:400, loc:'Entrepôt Vespucci' },
-    { id:5, name:'Grenade M67', cat:2, qty:0, price:1200, loc:'Planque Sud' },
-    { id:6, name:'Kuruma blindée', cat:3, qty:1, price:525000, loc:'Garage Sandy' },
-    { id:7, name:'Moto Akuma', cat:3, qty:3, price:9000, loc:'Garage Davis' },
-    { id:8, name:'Gilet pare-balles', cat:4, qty:4, price:3000, loc:'Planque Nord' },
+    { id:1, name:'Pistolet .50', cat:1, qty:12, price:3500, loc:'Planque Nord', locationId:1 },
+    { id:2, name:'Micro SMG', cat:1, qty:3, price:6500, loc:'Entrepôt Vespucci', locationId:2 },
+    { id:3, name:'Fusil de précision', cat:1, qty:2, price:15000, loc:'Planque Nord', locationId:1 },
+    { id:4, name:'Chargeur 9mm (x50)', cat:2, qty:48, price:400, loc:'Entrepôt Vespucci', locationId:2 },
+    { id:5, name:'Grenade M67', cat:2, qty:0, price:1200, loc:'Planque Sud', locationId:3 },
+    { id:6, name:'Kuruma blindée', cat:3, qty:1, price:525000, loc:'Garage Sandy', locationId:4 },
+    { id:7, name:'Moto Akuma', cat:3, qty:3, price:9000, loc:'Garage Davis', locationId:5 },
+    { id:8, name:'Gilet pare-balles', cat:4, qty:4, price:3000, loc:'Planque Nord', locationId:1 },
   ],
   users: [
     { id:1, firstname:'Franklin', lastname:'Clinton', email:'franklin@maze-bank.com', role:'boss', active:true, created:'2024-01-10', pwd:'1234' },
@@ -1270,7 +1321,7 @@ let data = {
   currentUser: null,
   editingProduct: null,
   editingUser: null,
-  nextId: { cat:5, product:9, user:5, mvt:5, log:7, cash:2 },
+  nextId: { cat:5, product:9, user:5, mvt:5, log:7, cash:2, location:6 },
 };
 
 // ===================== SAUVEGARDE EN LIGNE SUPABASE TEMPS RÉEL =====================
@@ -1319,6 +1370,54 @@ function restoreCurrentUser(previousUser) {
   data.currentUser = freshUser || previousUser;
 }
 
+function ensureLocationData() {
+  if (!Array.isArray(data.locations)) data.locations = [];
+  if (!data.cashByLocation || typeof data.cashByLocation !== 'object') data.cashByLocation = {};
+
+  const names = new Set(data.locations.map(l => String(l.name || '').trim().toLowerCase()));
+  (data.products || []).forEach(p => {
+    const legacyName = String(p.loc || '').trim();
+    if (legacyName && !names.has(legacyName.toLowerCase())) {
+      const id = data.nextId?.location || (data.locations.reduce((m,l)=>Math.max(m,Number(l.id||0)),0)+1);
+      data.locations.push({ id, name:legacyName });
+      if (!data.nextId) data.nextId = {};
+      data.nextId.location = id + 1;
+      names.add(legacyName.toLowerCase());
+    }
+  });
+
+  if (!data.locations.length) data.locations.push({ id:1, name:'Principal' });
+
+  (data.products || []).forEach(p => {
+    if (!p.locationId) {
+      const found = data.locations.find(l => l.name === p.loc);
+      p.locationId = found ? found.id : data.locations[0].id;
+    }
+    const loc = data.locations.find(l => l.id == p.locationId);
+    p.loc = loc ? loc.name : (p.loc || '—');
+  });
+
+  (data.movements || []).forEach(m => {
+    if (!m.locationId) {
+      const product = data.products.find(p => p.id === m.productId);
+      m.locationId = product?.locationId || data.locations[0].id;
+    }
+  });
+
+  if (!Object.keys(data.cashByLocation).length && Number(data.cashBalance || 0) > 0) {
+    data.cashByLocation[data.locations[0].id] = Number(data.cashBalance || 0);
+  }
+
+  (data.cashMovements || []).forEach(m => {
+    if (!m.locationId) m.locationId = data.locations[0].id;
+  });
+
+  data.cashBalance = Object.values(data.cashByLocation).reduce((s,v)=>s+Number(v||0),0);
+  if (!data.nextId) data.nextId = {};
+  const maxLoc = data.locations.reduce((m,l)=>Math.max(m,Number(l.id||0)),0);
+  data.nextId.location = Math.max(Number(data.nextId.location || 1), maxLoc + 1);
+}
+
 function applySavedData(savedData) {
   if (!savedData) return;
 
@@ -1332,6 +1431,7 @@ function applySavedData(savedData) {
     nextId: { ...data.nextId, ...(savedData.nextId || {}) }
   };
 
+  ensureLocationData();
   consolidateMovementsByProduct();
   consolidateCashMovements();
   restoreCurrentUser(previousUser);
@@ -1489,7 +1589,7 @@ function consolidateMovementsByProduct() {
   const grouped = new Map();
 
   data.movements.forEach(m => {
-    const key = String(m.productId);
+    const key = `${m.productId}:${m.locationId || ''}`;
     const current = grouped.get(key);
     const signedQty = signedMovementQty(m);
 
@@ -1503,6 +1603,7 @@ function consolidateMovementsByProduct() {
       current.date = m.date;
       current.reason = m.reason;
       current.userId = m.userId;
+      current.locationId = m.locationId;
     }
   });
 
@@ -1532,35 +1633,32 @@ function nowStr() {
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 }
 
-function syncCashLine(dateStr = null, userId = null) {
-  const balance = Number(data.cashBalance || 0);
-  const existing = (data.cashMovements || [])[0] || {};
-  const date = dateStr || existing.date || nowStr();
-  const uid = userId !== null ? userId : (existing.userId ?? (data.currentUser ? data.currentUser.id : null));
+function syncCashLines(dateStr = null, userId = null) {
+  ensureLocationData();
+  const previous = new Map((data.cashMovements || []).map(m => [String(m.locationId || ''), m]));
+  const rows = [];
 
-  if (balance <= 0) {
-    data.cashMovements = [];
-    data.cashBalance = 0;
-    return;
-  }
+  data.locations.forEach(loc => {
+    const amount = Math.max(0, Number(data.cashByLocation[loc.id] || 0));
+    if (amount <= 0) return;
+    const old = previous.get(String(loc.id)) || {};
+    rows.push({
+      id: old.id || data.nextId.cash++,
+      type: 'entree',
+      amount,
+      reason: 'Solde cash actuel',
+      userId: userId !== null ? userId : (old.userId ?? (data.currentUser ? data.currentUser.id : null)),
+      locationId: loc.id,
+      date: dateStr || old.date || nowStr()
+    });
+  });
 
-  data.cashMovements = [{
-    id: existing.id || data.nextId.cash++ || 1,
-    type: 'entree',
-    amount: balance,
-    reason: 'Solde cash actuel',
-    userId: uid,
-    date
-  }];
-
-  const maxCashId = data.cashMovements.reduce((max, m) => Math.max(max, Number(m.id || 0)), 0);
-  data.nextId.cash = Math.max(data.nextId.cash || 1, maxCashId + 1);
+  data.cashMovements = rows;
+  data.cashBalance = Object.values(data.cashByLocation).reduce((s,v)=>s+Number(v||0),0);
 }
 
 function consolidateCashMovements() {
-  // Le cash doit représenter un seul solde présent, pas un historique cumulé par raison.
-  // Les détails d'entrée/sortie restent conservés dans les logs.
-  syncCashLine();
+  syncCashLines();
 }
 
 function resetSavedData() {
@@ -1659,7 +1757,7 @@ function canAddCategory() { return isBoss() || isSousChef(); }
 function canAccessSection(section) {
   if (section === 'logs') return canViewLogs();
   if (section === 'cash') return isBoss() || isSousChef();
-  if (section === 'categories') return canViewCategories();
+  if (section === 'categories' || section === 'locations') return canViewCategories();
   if (section === 'mouvements') return !isRecrue();
   return ['dashboard','stock','users'].includes(section);
 }
@@ -1687,13 +1785,15 @@ function updatePermissionsUI() {
   if (usersActions) usersActions.style.display = canRecruit() ? 'flex' : 'none';
   const catsActions = document.getElementById('cats-actions');
   if (catsActions) catsActions.style.display = canAddCategory() ? 'flex' : 'none';
+  const locationsActions = document.getElementById('locations-actions');
+  if (locationsActions) locationsActions.style.display = canAddCategory() ? 'flex' : 'none';
 }
 
 function topbarActionAllowed() {
   if (currentSection === 'stock') return canManageInventory();
   if (currentSection === 'mouvements') return canAddMovement();
   if (currentSection === 'users') return canRecruit();
-  if (currentSection === 'categories') return canAddCategory();
+  if (currentSection === 'categories' || currentSection === 'locations') return canAddCategory();
   if (currentSection === 'cash') return canAddCashMovement();
   return false;
 }
@@ -1708,10 +1808,10 @@ function nav(section, el) {
   if (navEl) navEl.classList.add('active');
   currentSection = section;
 
-  const titles = { dashboard:'TABLEAU DE BORD', stock:'INVENTAIRE', mouvements:'MOUVEMENTS', cash:'CASH', logs:'JOURNAUX', users:'MEMBRES', categories:'CATÉGORIES' };
+  const titles = { dashboard:'TABLEAU DE BORD', stock:'INVENTAIRE', mouvements:'MOUVEMENTS', cash:'CASH', logs:'JOURNAUX', users:'MEMBRES', categories:'CATÉGORIES', locations:'LOCALISATIONS' };
   document.getElementById('page-title').textContent = titles[section] || section.toUpperCase();
 
-  const btnLabels = { users:'Recruter', categories:'Ajouter', stock:'Ajouter article', mouvements:'Mouvement', cash:'Mouvement cash' };
+  const btnLabels = { users:'Recruter', categories:'Ajouter', locations:'Ajouter', stock:'Ajouter article', mouvements:'Mouvement', cash:'Mouvement cash' };
   document.getElementById('topbar-action').innerHTML = `<i class="ti ti-plus"></i> ${btnLabels[section] || 'Ajouter'}`;
 
   updatePermissionsUI();
@@ -1723,7 +1823,7 @@ function nav(section, el) {
   }
 }
 
-function render() { updatePermissionsUI(); renderDashboard(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); }
+function render() { ensureLocationData(); updatePermissionsUI(); renderDashboard(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); renderLocations(); }
 
 // ===================== DASHBOARD =====================
 function renderDashboard() {
@@ -1748,6 +1848,22 @@ function renderDashboard() {
   if (dashGlobal) dashGlobal.textContent = '$' + ((data.cashBalance || 0) + value).toLocaleString('fr-FR');
   document.getElementById('dash-moves').textContent = today;
 
+  const locationCards = document.getElementById('dashboard-location-cards');
+  if (locationCards) {
+    locationCards.innerHTML = data.locations.map((loc, index) => {
+      const cash = Number(data.cashByLocation[loc.id] || 0);
+      const stock = data.products
+        .filter(p => p.locationId == loc.id)
+        .reduce((sum,p) => sum + Number(p.qty||0) * Number(p.price||0), 0);
+      const cls = ['c-gold','c-green','c-purple','c-red'][index % 4];
+      return `<div class="stat-card ${cls}">
+        <div class="stat-label"><i class="ti ti-map-pin-dollar"></i>${loc.name}</div>
+        <div class="stat-value">$${cash.toLocaleString('fr-FR')}</div>
+        <div class="stat-sub">stock $${stock.toLocaleString('fr-FR')} · total $${(cash+stock).toLocaleString('fr-FR')}</div>
+      </div>`;
+    }).join('');
+  }
+
   const recentOps = document.getElementById('dash-recent-logs');
   const moves = [...data.movements].reverse().slice(0, 5);
   if (!moves.length) {
@@ -1765,7 +1881,7 @@ function renderDashboard() {
           </div>
           <div class="log-content">
             <div class="log-action"><strong>${typeLabel}</strong> de ${m.qty} unité(s) — ${product ? product.name : 'Article supprimé'}</div>
-            <div class="log-meta"><span>${user ? `${user.firstname} ${user.lastname}`.trim() : '—'}</span><span>${m.date}</span><span>${m.reason}</span></div>
+            <div class="log-meta"><span>${user ? `${user.firstname} ${user.lastname}`.trim() : '—'}</span><span>${m.date}</span><span><i class="ti ti-map-pin"></i> ${locationName(m.locationId)}</span><span>${m.reason}</span></div>
           </div>
         </div>`;
     }).join('');
@@ -1773,9 +1889,19 @@ function renderDashboard() {
 }
 
 // ===================== STOCK =====================
+function locationName(id) {
+  const loc = data.locations.find(l => l.id == id);
+  return loc ? loc.name : 'Non définie';
+}
+
+function locationOptions(selected = null) {
+  return data.locations.map(l => `<option value="${l.id}" ${String(selected)===String(l.id)?'selected':''}>${l.name}</option>`).join('');
+}
+
 function renderStock() {
   const search = (document.getElementById('global-search')?.value || '').toLowerCase();
   const filterCat = document.getElementById('filter-cat')?.value || '';
+  const filterLocation = document.getElementById('filter-location')?.value || '';
 
   const catSel = document.getElementById('filter-cat');
   if (catSel) {
@@ -1783,15 +1909,22 @@ function renderStock() {
     catSel.innerHTML = '<option value="">Toutes catégories</option>' + data.categories.map(c => `<option value="${c.id}" ${cur==c.id?'selected':''}>${c.name}</option>`).join('');
   }
 
+  const locationSel = document.getElementById('filter-location');
+  if (locationSel) {
+    const curLoc = locationSel.value;
+    locationSel.innerHTML = '<option value="">Toutes localisations</option>' + data.locations.map(l => `<option value="${l.id}" ${curLoc==l.id?'selected':''}>${l.name}</option>`).join('');
+  }
+
   let products = data.products;
   if (filterCat) products = products.filter(p => p.cat == filterCat);
+  if (filterLocation) products = products.filter(p => p.locationId == filterLocation);
   if (search) products = products.filter(p => p.name.toLowerCase().includes(search) || (p.loc || '').toLowerCase().includes(search));
 
   document.getElementById('stock-count').textContent = products.length;
   const tbody = document.getElementById('stock-tbody');
 
   if (!products.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><i class="ti ti-search"></i><p>Aucun article trouvé</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><i class="ti ti-search"></i><p>Aucun article trouvé</p></div></td></tr>';
     return;
   }
 
@@ -1799,8 +1932,9 @@ function renderStock() {
     const cat = data.categories.find(c => c.id === p.cat);
 
     return `<tr>
-      <td><div style="font-weight:600">${p.name}</div><div style="font-size:11px;color:var(--text3);font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em">${p.loc}</div></td>
+      <td><div style="font-weight:600">${p.name}</div></td>
       <td><span class="badge badge-blue">${cat?cat.name:'—'}</span></td>
+      <td><span class="badge badge-amber"><i class="ti ti-map-pin"></i>${locationName(p.locationId)}</span></td>
       <td style="font-family:var(--font-display);font-size:20px;letter-spacing:0.04em">${p.qty}</td>
       <td style="color:var(--accent);font-family:var(--font-cond);font-weight:600">$${Number(p.price || 0).toLocaleString('fr-FR')}</td>
       <td style="color:var(--green);font-family:var(--font-cond);font-weight:700">$${(Number(p.price || 0) * Number(p.qty || 0)).toLocaleString('fr-FR')}</td>
@@ -1828,6 +1962,7 @@ function renderMoves() {
       <td><span class="badge ${isE?'badge-green':'badge-red'}"><i class="ti ti-${isE?'arrow-down':'arrow-up'}"></i>${isE?'ENTRÉE':'SORTIE'}</span></td>
       <td>${product?product.name:'—'}</td>
       <td style="font-family:var(--font-display);font-size:20px;color:${isE?'var(--green)':'var(--red)'}">${isE?'+':'-'}${m.qty}</td>
+      <td><span class="badge badge-amber"><i class="ti ti-map-pin"></i>${locationName(m.locationId)}</span></td>
       <td style="color:var(--text2)">${m.reason}</td>
       <td>${user?(user.firstname+' '+user.lastname).trim():'—'}</td>
       <td>${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="deleteMvt(${m.id})"><i class="ti ti-trash"></i></button>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
@@ -1854,7 +1989,7 @@ function renderCash() {
   const tbody = document.getElementById('cash-tbody');
   const moves = [...data.cashMovements].reverse();
   if (!moves.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><i class="ti ti-cash-off"></i><p>Aucun mouvement cash</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><i class="ti ti-cash-off"></i><p>Aucun mouvement cash</p></div></td></tr>';
     return;
   }
   tbody.innerHTML = moves.map(m => {
@@ -1864,6 +1999,7 @@ function renderCash() {
       <td style="color:var(--text3);font-size:11.5px;font-family:var(--font-cond)">${m.date}</td>
       <td><span class="badge ${isE?'badge-green':'badge-red'}"><i class="ti ti-${isE?'arrow-down':'arrow-up'}"></i>${isE?'ENTRÉE':'SORTIE'}</span></td>
       <td style="font-family:var(--font-display);font-size:22px;color:${isE?'var(--green)':'var(--red)'}">${isE?'+':'-'}$${m.amount.toLocaleString('fr-FR')}</td>
+      <td><span class="badge badge-amber"><i class="ti ti-map-pin"></i>${locationName(m.locationId)}</span></td>
       <td style="color:var(--text2)">${m.reason}</td>
       <td>${user ? `${user.firstname} ${user.lastname}`.trim() : '—'}</td>
       <td>${isBoss() ? `<button class="btn btn-danger btn-sm" onclick="deleteCashMovement(${m.id})"><i class="ti ti-trash"></i></button>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
@@ -1880,6 +2016,7 @@ function openCashModal(type) {
   c.className = `btn ${type === 'entree' ? 'btn-success' : 'btn-danger'}`;
   c.innerHTML = `<i class="ti ti-check"></i> Confirmer ${type === 'entree' ? "l'entrée" : 'la sortie'}`;
   document.getElementById('cash-amount').value = '';
+  document.getElementById('cash-location').innerHTML = locationOptions(data.locations[0]?.id);
   document.getElementById('cash-reason').value = '';
   openModal('modal-cash');
 }
@@ -1889,24 +2026,24 @@ function saveCashMovement() {
 
   const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
   const reason = document.getElementById('cash-reason').value.trim() || 'Non précisé';
+  const locationId = parseInt(document.getElementById('cash-location').value);
   if (amount <= 0) { toast('Montant invalide','error'); return; }
+  if (!locationId) { toast('Choisis une localisation','error'); return; }
 
-  const balanceBefore = Number(data.cashBalance || 0);
+  const balanceBefore = Number(data.cashByLocation[locationId] || 0);
   if (currentCashType === 'sortie' && amount > balanceBefore) {
-    toast(`Cash insuffisant ($${balanceBefore.toLocaleString('fr-FR')} dispo)`, 'error');
+    toast(`Cash insuffisant à ${locationName(locationId)} ($${balanceBefore.toLocaleString('fr-FR')} dispo)`, 'error');
     return;
   }
 
   const delta = currentCashType === 'entree' ? amount : -amount;
-  const newBalance = balanceBefore + delta;
+  data.cashByLocation[locationId] = Math.max(0, balanceBefore + delta);
   const dateStr = nowStr();
-
-  data.cashBalance = Math.max(0, newBalance);
-  syncCashLine(dateStr, data.currentUser ? data.currentUser.id : null);
+  syncCashLines(dateStr, data.currentUser ? data.currentUser.id : null);
 
   const action = currentCashType === 'entree'
-    ? `Entrée cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${reason} <span style="color:var(--text3)">(solde: $${data.cashBalance.toLocaleString('fr-FR')})</span>`
-    : `Sortie cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${reason} <span style="color:var(--text3)">(solde: $${data.cashBalance.toLocaleString('fr-FR')})</span>`;
+    ? `Entrée cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${reason} <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`
+    : `Sortie cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${reason} <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`;
 
   addLog('cash', action, userName());
   toast('Solde cash mis à jour', 'success');
@@ -1921,10 +2058,10 @@ function deleteCashMovement(id) {
   if (!confirm(`Supprimer le solde cash actuel de $${movement.amount.toLocaleString('fr-FR')} ?`)) return;
 
   const oldAmount = movement.amount;
-  data.cashBalance = 0;
-  data.cashMovements = [];
+  data.cashByLocation[movement.locationId] = 0;
+  syncCashLines();
 
-  addLog('cash', `Suppression du solde cash de <strong>$${oldAmount.toLocaleString('fr-FR')}</strong>`, userName());
+  addLog('cash', `Suppression du solde cash de <strong>$${oldAmount.toLocaleString('fr-FR')}</strong> <span style="color:var(--accent)">📍 ${locationName(movement.locationId)}</span>`, userName());
   toast('Solde cash supprimé', 'info');
   render();
 }
@@ -2009,6 +2146,69 @@ function renderCats() {
   }).join('');
 }
 
+// ===================== LOCALISATIONS =====================
+function renderLocations() {
+  const tbody = document.getElementById('locations-tbody');
+  if (!tbody) return;
+  document.getElementById('locations-count').textContent = data.locations.length;
+
+  tbody.innerHTML = data.locations.map(loc => {
+    const cash = Number(data.cashByLocation[loc.id] || 0);
+    const products = data.products.filter(p => p.locationId == loc.id);
+    const stock = products.reduce((s,p) => s + Number(p.qty||0) * Number(p.price||0), 0);
+    const usedInMoves = data.movements.some(m => m.locationId == loc.id);
+    return `<tr>
+      <td><div style="font-weight:600;display:flex;align-items:center;gap:8px;font-family:var(--font-cond);text-transform:uppercase"><i class="ti ti-map-pin" style="color:var(--accent)"></i>${loc.name}</div></td>
+      <td style="color:var(--accent);font-weight:700">$${cash.toLocaleString('fr-FR')}</td>
+      <td style="color:var(--green);font-weight:700">$${stock.toLocaleString('fr-FR')}</td>
+      <td style="font-family:var(--font-display);font-size:20px">$${(cash+stock).toLocaleString('fr-FR')}</td>
+      <td><span class="badge badge-blue">${products.length} article${products.length>1?'s':''}</span></td>
+      <td>${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="deleteLocation(${loc.id})" ${cash>0||products.length||usedInMoves?'title="Cette localisation est utilisée"':''}><i class="ti ti-trash"></i></button>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openLocationModal() {
+  if (!canAddCategory()) { deny(); return; }
+  document.getElementById('location-name').value = '';
+  openModal('modal-location');
+}
+
+function saveLocation() {
+  if (!canAddCategory()) { deny(); return; }
+  const name = document.getElementById('location-name').value.trim();
+  if (!name) { toast('Nom requis','error'); return; }
+  if (data.locations.some(l => l.name.toLowerCase() === name.toLowerCase())) {
+    toast('Cette localisation existe déjà','error'); return;
+  }
+  data.locations.push({ id:data.nextId.location++, name });
+  data.cashByLocation[data.locations[data.locations.length-1].id] = 0;
+  addLog('system', `Localisation créée : <strong>${name}</strong>`, userName());
+  closeModal('modal-location');
+  toast('Localisation créée','success');
+  render();
+}
+
+function deleteLocation(id) {
+  if (!canDelete()) { deny(); return; }
+  const loc = data.locations.find(l => l.id === id);
+  if (!loc) return;
+  const products = data.products.filter(p => p.locationId == id).length;
+  const cash = Number(data.cashByLocation[id] || 0);
+  const usedInMoves = data.movements.some(m => m.locationId == id);
+  if (products || cash > 0 || usedInMoves) {
+    toast('Impossible : localisation encore utilisée','error'); return;
+  }
+  if (data.locations.length <= 1) {
+    toast('Il faut garder au moins une localisation','error'); return;
+  }
+  data.locations = data.locations.filter(l => l.id !== id);
+  delete data.cashByLocation[id];
+  addLog('system', `Localisation supprimée : <strong>${loc.name}</strong>`, userName());
+  toast('Localisation supprimée','info');
+  render();
+}
+
 // ===================== MODALS =====================
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -2019,9 +2219,11 @@ function openAddModal() {
   if (currentSection === 'cash') { openCashModal('entree'); return; }
   if (currentSection === 'users') { openUserModal(); return; }
   if (currentSection === 'categories') { openCatModal(); return; }
+  if (currentSection === 'locations') { openLocationModal(); return; }
   data.editingProduct = null;
   document.getElementById('modal-product-title').textContent = 'AJOUTER UN ARTICLE';
-  ['p-name','p-qty','p-price','p-loc'].forEach(id => document.getElementById(id).value = '');
+  ['p-name','p-qty','p-price'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('p-loc').innerHTML = locationOptions(data.locations[0]?.id);
   const catSel = document.getElementById('p-cat');
   catSel.innerHTML = data.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   openModal('modal-product');
@@ -2036,7 +2238,7 @@ function editProduct(id) {
   document.getElementById('p-name').value = p.name;
   document.getElementById('p-qty').value = p.qty;
   document.getElementById('p-price').value = p.price;
-  document.getElementById('p-loc').value = p.loc;
+  document.getElementById('p-loc').innerHTML = locationOptions(p.locationId);
   const catSel = document.getElementById('p-cat');
   catSel.innerHTML = data.categories.map(c => `<option value="${c.id}" ${c.id===p.cat?'selected':''}>${c.name}</option>`).join('');
   openModal('modal-product');
@@ -2047,17 +2249,18 @@ function saveProduct() {
   const name = document.getElementById('p-name').value.trim();
   const qty = parseInt(document.getElementById('p-qty').value)||0;
   const price = parseFloat(document.getElementById('p-price').value)||0;
-  const loc = document.getElementById('p-loc').value.trim();
+  const locationId = parseInt(document.getElementById('p-loc').value);
+  const loc = locationName(locationId);
   const cat = parseInt(document.getElementById('p-cat').value);
   if (!name) { toast('Nom requis','error'); return; }
 
   if (data.editingProduct) {
     const p = data.products.find(pr => pr.id === data.editingProduct);
-    Object.assign(p, {name,qty,price,loc,cat});
+    Object.assign(p, {name,qty,price,loc,locationId,cat});
     addLog('stock',`Article modifié : <strong>${name}</strong>`, userName());
     toast('Article mis à jour','success');
   } else {
-    data.products.push({ id:data.nextId.product++, name,cat,qty,price,loc });
+    data.products.push({ id:data.nextId.product++, name,cat,qty,price,loc,locationId });
     addLog('stock',`Nouvel article : <strong>${name}</strong>`, userName());
     toast('Article ajouté','success');
   }
@@ -2084,10 +2287,17 @@ function openMvtModal(type) {
   c.className = `btn ${type==='entree'?'btn-success':'btn-danger'}`;
   c.innerHTML = `<i class="ti ti-check"></i> Confirmer ${type==='entree'?'l\'entrée':'la sortie'}`;
 
-  document.getElementById('mvt-product').innerHTML = data.products.map(p => `<option value="${p.id}">${p.name} (stock: ${p.qty})</option>`).join('');
+  const productSelect = document.getElementById('mvt-product');
+  productSelect.innerHTML = data.products.map(p => `<option value="${p.id}">${p.name} (stock: ${p.qty})</option>`).join('');
+  productSelect.onchange = () => {
+    const product = data.products.find(p => p.id == productSelect.value);
+    document.getElementById('mvt-location').innerHTML = locationOptions(product?.locationId || data.locations[0]?.id);
+  };
   const us = data.users.filter(u=>u.active);
   document.getElementById('mvt-user').innerHTML = us.map(u => `<option value="${u.id}" ${data.currentUser&&u.id===data.currentUser.id?'selected':''}>${u.firstname} ${u.lastname}</option>`).join('');
   document.getElementById('mvt-qty').value = '';
+  const firstProduct = data.products[0];
+  document.getElementById('mvt-location').innerHTML = locationOptions(firstProduct?.locationId || data.locations[0]?.id);
   document.getElementById('mvt-reason').value = '';
   openModal('modal-mvt');
 }
@@ -2098,7 +2308,9 @@ function saveMvt() {
   const qty = parseInt(document.getElementById('mvt-qty').value)||0;
   const reason = document.getElementById('mvt-reason').value.trim()||'Non précisé';
   const userId = parseInt(document.getElementById('mvt-user').value);
+  const locationId = parseInt(document.getElementById('mvt-location').value);
   if (qty<=0) { toast('Quantité invalide','error'); return; }
+  if (!locationId) { toast('Choisis une localisation','error'); return; }
 
   const product = data.products.find(p => p.id===productId);
   if (!product) return;
@@ -2113,7 +2325,7 @@ function saveMvt() {
   const stockBefore = product.qty;
   const delta = currentMvtType === 'entree' ? qty : -qty;
   const stockAfter = stockBefore + delta;
-  const existingMovement = data.movements.find(m => m.productId === productId);
+  const existingMovement = data.movements.find(m => m.productId === productId && m.locationId == locationId);
   const newSignedQty = signedMovementQty(existingMovement) + delta;
 
   if (existingMovement) {
@@ -2125,18 +2337,23 @@ function saveMvt() {
       existingMovement.reason = reason;
       existingMovement.userId = userId;
       existingMovement.date = dateStr;
+      existingMovement.locationId = locationId;
     }
   } else if (newSignedQty !== 0) {
-    data.movements.push({ id:data.nextId.mvt++, type:newSignedQty > 0 ? 'entree' : 'sortie', productId, qty:Math.abs(newSignedQty), reason, userId, date:dateStr });
+    data.movements.push({ id:data.nextId.mvt++, type:newSignedQty > 0 ? 'entree' : 'sortie', productId, qty:Math.abs(newSignedQty), reason, userId, locationId, date:dateStr });
   }
 
   product.qty = stockAfter;
+  if (currentMvtType === 'entree') {
+    product.locationId = locationId;
+    product.loc = locationName(locationId);
+  }
 
   const user = data.users.find(u=>u.id===userId);
   const uName = user ? `${user.firstname} ${user.lastname}`.trim() : 'Inconnu';
   const action = currentMvtType==='entree'
-    ? `Entrée de ${qty} unité(s) de <strong>${product.name}</strong> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`
-    : `Sortie de ${qty} unité(s) de <strong>${product.name}</strong> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`;
+    ? `Entrée de ${qty} unité(s) de <strong>${product.name}</strong> <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`
+    : `Sortie de ${qty} unité(s) de <strong>${product.name}</strong> <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`;
 
   addLog('stock', action, uName);
 
@@ -2337,6 +2554,7 @@ document.addEventListener('visibilitychange', () => {
 // INIT
 async function initApp() {
   await loadData();
+  ensureLocationData();
   consolidateMovementsByProduct();
   consolidateCashMovements();
   buildLoginPage();
