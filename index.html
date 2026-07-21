@@ -499,6 +499,245 @@ body {
 .stat-value { font-family: var(--font-display); font-size: 36px; line-height: 1; letter-spacing: 0.02em; }
 .stat-sub { font-size: 11.5px; color: var(--text3); margin-top: 4px; font-family: var(--font-cond); }
 
+/* DASHBOARD REWORK */
+.dashboard-hero {
+  background:
+    radial-gradient(circle at top right, rgba(232,160,32,0.13), transparent 34%),
+    linear-gradient(135deg, var(--bg2), #15120d);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  overflow: hidden;
+  position: relative;
+}
+.dashboard-hero::after {
+  content: '$';
+  position: absolute;
+  right: 18px;
+  bottom: -40px;
+  font-family: var(--font-display);
+  font-size: 150px;
+  color: rgba(255,255,255,0.025);
+  pointer-events: none;
+}
+.dashboard-hero-icon {
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+.dashboard-hero-title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  letter-spacing: 0.06em;
+}
+.dashboard-hero-sub {
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.dashboard-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dashboard-summary-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 15px;
+  min-width: 0;
+}
+.dashboard-summary-card .summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dashboard-summary-card .summary-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--bg4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.dashboard-summary-card .summary-label {
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  margin-top: 12px;
+}
+.dashboard-summary-card .summary-value {
+  font-family: var(--font-display);
+  font-size: 29px;
+  line-height: 1;
+  margin-top: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dashboard-summary-card .summary-note {
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 10px;
+  margin-top: 5px;
+}
+.dashboard-block-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 10px;
+}
+.dashboard-block-title h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.06em;
+}
+.dashboard-block-title span {
+  font-family: var(--font-cond);
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.dashboard-block-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border2), transparent);
+}
+.location-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.location-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  transition: border-color .15s, transform .15s;
+}
+.location-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-1px);
+}
+.location-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.location-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+.location-card-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: 0.05em;
+}
+.location-card-count {
+  margin-left: auto;
+  background: var(--bg4);
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 20px;
+}
+.location-main-total {
+  font-family: var(--font-display);
+  font-size: 32px;
+  color: var(--text);
+  margin-bottom: 13px;
+}
+.location-main-label {
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 4px;
+}
+.location-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.location-breakdown-item {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px;
+}
+.location-breakdown-item .k {
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.location-breakdown-item .v {
+  font-family: var(--font-display);
+  font-size: 18px;
+  margin-top: 3px;
+}
+.dashboard-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+  gap: 16px;
+}
+.dashboard-empty-locations {
+  padding: 25px;
+  text-align: center;
+  color: var(--text3);
+  border: 1px dashed var(--border2);
+  border-radius: 10px;
+  font-family: var(--font-cond);
+}
+
+@media (max-width: 1100px) {
+  .dashboard-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-bottom-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .dashboard-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-hero { align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .dashboard-summary-grid { grid-template-columns: 1fr; }
+  .location-grid { grid-template-columns: 1fr; }
+  .dashboard-hero-title { font-size: 24px; }
+}
+
 /* CARD */
 .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px; }
 
@@ -927,38 +1166,62 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
       <!-- DASHBOARD -->
       <section class="section active" id="sec-dashboard">
-        <div class="stats-grid">
-          <div class="stat-card c-gold">
-            <div class="stat-label"><i class="ti ti-box"></i>Total articles</div>
-            <div class="stat-value" id="dash-total">0</div>
-            <div class="stat-sub">unités en inventaire</div>
+        <div class="dashboard-hero">
+          <div class="dashboard-hero-icon"><i class="ti ti-building-warehouse"></i></div>
+          <div>
+            <div class="dashboard-hero-title">VUE D'ENSEMBLE</div>
+            <div class="dashboard-hero-sub">Situation actuelle du stock, du cash et des localisations</div>
           </div>
-          <div class="stat-card c-green">
-            <div class="stat-label"><i class="ti ti-box"></i>Argent stock</div>
-            <div class="stat-value" id="dash-value">0$</div>
-            <div class="stat-sub">valeur des articles</div>
-          </div>
-          <div class="stat-card c-gold">
-            <div class="stat-label"><i class="ti ti-cash"></i>Cash disponible</div>
-            <div class="stat-value" id="dash-cash">0$</div>
-            <div class="stat-sub">argent liquide</div>
-          </div>
-          <div class="stat-card c-purple">
-            <div class="stat-label"><i class="ti ti-building-bank"></i>Total global</div>
-            <div class="stat-value" id="dash-global">0$</div>
-            <div class="stat-sub">cash + argent stock</div>
-          </div>
-          <div class="stat-card c-purple">
-            <div class="stat-label"><i class="ti ti-arrows-exchange"></i>Opérations aujourd'hui</div>
-            <div class="stat-value" id="dash-moves" style="color:var(--purple)">0</div>
-            <div class="stat-sub">stock + cash depuis 00h00</div>
-          </div>
-          <div id="dashboard-location-cards" style="display:contents"></div>
         </div>
-        <div>
+
+        <div id="dash-total" style="display:none">0</div>
+        <div class="dashboard-summary-grid">
+          <div class="dashboard-summary-card">
+            <div class="summary-top"><div class="summary-icon"><i class="ti ti-packages"></i></div></div>
+            <div class="summary-label">Valeur du stock</div>
+            <div class="summary-value" id="dash-value">0$</div>
+            <div class="summary-note">valeur totale des objets</div>
+          </div>
+          <div class="dashboard-summary-card">
+            <div class="summary-top"><div class="summary-icon"><i class="ti ti-cash"></i></div></div>
+            <div class="summary-label">Cash disponible</div>
+            <div class="summary-value" id="dash-cash">0$</div>
+            <div class="summary-note">toutes localisations</div>
+          </div>
+          <div class="dashboard-summary-card">
+            <div class="summary-top"><div class="summary-icon"><i class="ti ti-building-bank"></i></div></div>
+            <div class="summary-label">Valeur globale</div>
+            <div class="summary-value" id="dash-global">0$</div>
+            <div class="summary-note">cash + valeur du stock</div>
+          </div>
+          <div class="dashboard-summary-card">
+            <div class="summary-top"><div class="summary-icon"><i class="ti ti-arrows-exchange"></i></div></div>
+            <div class="summary-label">Opérations aujourd'hui</div>
+            <div class="summary-value" id="dash-moves">0</div>
+            <div class="summary-note">depuis 00h00</div>
+          </div>
+        </div>
+
+        <div class="dashboard-block-title">
+          <h3>RÉPARTITION PAR LOCALISATION</h3>
+          <span>Cash, stock et valeur totale</span>
+        </div>
+        <div id="dashboard-location-cards" class="location-grid"></div>
+
+        <div class="dashboard-bottom-grid">
           <div class="card">
-            <div class="card-header"><i class="ti ti-history" style="color:var(--accent)"></i><span class="card-title">Dernières Opérations</span></div>
+            <div class="card-header">
+              <i class="ti ti-history" style="color:var(--accent)"></i>
+              <span class="card-title">Dernières opérations de stock</span>
+            </div>
             <div id="dash-recent-logs"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <i class="ti ti-chart-pie" style="color:var(--purple)"></i>
+              <span class="card-title">Résumé rapide</span>
+            </div>
+            <div id="dashboard-quick-summary"></div>
           </div>
         </div>
       </section>
@@ -2049,19 +2312,77 @@ function renderDashboard() {
   document.getElementById('dash-moves').textContent = today;
 
   const locationCards = document.getElementById('dashboard-location-cards');
+  const locationStats = data.locations.map(loc => {
+    const products = data.products.filter(p => p.locationId == loc.id);
+    const units = products.reduce((sum,p) => sum + Number(p.qty || 0), 0);
+    const cash = Number(data.cashByLocation[loc.id] || 0);
+    const stock = products.reduce((sum,p) => sum + Number(p.qty||0) * Number(p.price||0), 0);
+    return { loc, products, units, cash, stock, total: cash + stock };
+  }).sort((a,b) => b.total - a.total);
+
   if (locationCards) {
-    locationCards.innerHTML = data.locations.map((loc, index) => {
-      const cash = Number(data.cashByLocation[loc.id] || 0);
-      const stock = data.products
-        .filter(p => p.locationId == loc.id)
-        .reduce((sum,p) => sum + Number(p.qty||0) * Number(p.price||0), 0);
-      const cls = ['c-gold','c-green','c-purple','c-red'][index % 4];
-      return `<div class="stat-card ${cls}">
-        <div class="stat-label"><i class="ti ti-map-pin-dollar"></i>${loc.name}</div>
-        <div class="stat-value">$${cash.toLocaleString('fr-FR')}</div>
-        <div class="stat-sub">stock $${stock.toLocaleString('fr-FR')} · total $${(cash+stock).toLocaleString('fr-FR')}</div>
+    if (!locationStats.length) {
+      locationCards.innerHTML = `<div class="dashboard-empty-locations">
+        <i class="ti ti-map-pin-off" style="font-size:26px;display:block;margin-bottom:8px"></i>
+        Aucune localisation créée
       </div>`;
-    }).join('');
+    } else {
+      locationCards.innerHTML = locationStats.map(item => `
+        <div class="location-card">
+          <div class="location-card-head">
+            <div class="location-card-icon"><i class="ti ti-map-pin-dollar"></i></div>
+            <div class="location-card-name">${item.loc.name}</div>
+            <div class="location-card-count">${item.products.length} article${item.products.length > 1 ? 's' : ''}</div>
+          </div>
+          <div class="location-main-label">Valeur totale sur place</div>
+          <div class="location-main-total">$${item.total.toLocaleString('fr-FR')}</div>
+          <div class="location-breakdown">
+            <div class="location-breakdown-item">
+              <div class="k">Cash</div>
+              <div class="v" style="color:var(--accent)">$${item.cash.toLocaleString('fr-FR')}</div>
+            </div>
+            <div class="location-breakdown-item">
+              <div class="k">Valeur du stock</div>
+              <div class="v" style="color:var(--green)">$${item.stock.toLocaleString('fr-FR')}</div>
+            </div>
+            <div class="location-breakdown-item">
+              <div class="k">Unités stockées</div>
+              <div class="v">${item.units.toLocaleString('fr-FR')}</div>
+            </div>
+            <div class="location-breakdown-item">
+              <div class="k">Références</div>
+              <div class="v">${item.products.length}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  const quickSummary = document.getElementById('dashboard-quick-summary');
+  if (quickSummary) {
+    const richest = locationStats[0];
+    const emptyLocations = locationStats.filter(item => item.total === 0).length;
+    const activeLocations = locationStats.filter(item => item.total > 0).length;
+    quickSummary.innerHTML = `
+      <div style="padding:14px 16px">
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text3);font-family:var(--font-cond);text-transform:uppercase;font-size:11px">Localisations actives</span>
+          <strong>${activeLocations}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text3);font-family:var(--font-cond);text-transform:uppercase;font-size:11px">Localisations vides</span>
+          <strong>${emptyLocations}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text3);font-family:var(--font-cond);text-transform:uppercase;font-size:11px">Plus grosse valeur</span>
+          <strong style="text-align:right">${richest ? richest.loc.name : '—'}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0">
+          <span style="color:var(--text3);font-family:var(--font-cond);text-transform:uppercase;font-size:11px">Montant principal</span>
+          <strong style="color:var(--accent)">${richest ? '$' + richest.total.toLocaleString('fr-FR') : '$0'}</strong>
+        </div>
+      </div>`;
   }
 
   const recentOps = document.getElementById('dash-recent-logs');
