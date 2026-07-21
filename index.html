@@ -1137,7 +1137,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Catégorie</label><select class="form-select" id="p-cat"></select></div>
       <div class="form-group"><label class="form-label">Désignation</label><input class="form-input" id="p-name" placeholder="Nom de l'article"></div>
-      <div class="form-group"><label class="form-label">Quantité</label><input class="form-input" type="number" id="p-qty" placeholder="0" min="0"></div>
+      <div style="margin-bottom:16px;padding:10px 12px;border:1px solid var(--border);background:var(--bg3);border-radius:var(--radius);color:var(--text3);font-size:12px;font-family:var(--font-cond)">
+        <i class="ti ti-info-circle" style="color:var(--accent)"></i>
+        La quantité commence à 0 et se modifie uniquement depuis les entrées et sorties de stock.
+      </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Prix unitaire ($)</label><input class="form-input" type="number" id="p-price" placeholder="0" step="0.01"></div>
         <div class="form-group"><label class="form-label">Localisation</label><select class="form-select" id="p-loc"></select></div>
@@ -1159,7 +1162,14 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <button class="modal-close" onclick="closeModal('modal-mvt')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label class="form-label">Article</label><select class="form-select" id="mvt-product"></select></div>
+      <div class="form-group">
+        <label class="form-label">Catégorie de l'article</label>
+        <select class="form-select" id="mvt-category" onchange="updateMovementProducts()"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Article</label>
+        <select class="form-select" id="mvt-product" onchange="updateMovementProductLocation()"></select>
+      </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Quantité</label><input class="form-input" type="number" id="mvt-qty" placeholder="1" min="1"></div>
         <div class="form-group"><label class="form-label">Membre</label><select class="form-select" id="mvt-user"></select></div>
@@ -2412,7 +2422,7 @@ function openAddModal() {
   if (currentSection === 'locations') { openLocationModal(); return; }
   data.editingProduct = null;
   document.getElementById('modal-product-title').textContent = 'AJOUTER UN ARTICLE';
-  ['p-name','p-qty','p-price'].forEach(id => document.getElementById(id).value = '');
+  ['p-name','p-price'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('p-loc').innerHTML = locationOptions(data.locations[0]?.id);
   const catSel = document.getElementById('p-cat');
   catSel.innerHTML = data.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
@@ -2426,7 +2436,6 @@ function editProduct(id) {
   data.editingProduct = id;
   document.getElementById('modal-product-title').textContent = 'MODIFIER L\'ARTICLE';
   document.getElementById('p-name').value = p.name;
-  document.getElementById('p-qty').value = p.qty;
   document.getElementById('p-price').value = p.price;
   document.getElementById('p-loc').innerHTML = locationOptions(p.locationId);
   const catSel = document.getElementById('p-cat');
@@ -2437,7 +2446,6 @@ function editProduct(id) {
 function saveProduct() {
   if (!canManageInventory()) { deny(); return; }
   const name = document.getElementById('p-name').value.trim();
-  const qty = parseInt(document.getElementById('p-qty').value)||0;
   const price = parseFloat(document.getElementById('p-price').value)||0;
   const locationId = parseInt(document.getElementById('p-loc').value);
   const loc = locationName(locationId);
@@ -2446,11 +2454,11 @@ function saveProduct() {
 
   if (data.editingProduct) {
     const p = data.products.find(pr => pr.id === data.editingProduct);
-    Object.assign(p, {name,qty,price,loc,locationId,cat});
+    Object.assign(p, {name,price,loc,locationId,cat});
     addLog('stock',`Article modifié : <strong>${name}</strong>`, userName());
     toast('Article mis à jour','success');
   } else {
-    data.products.push({ id:data.nextId.product++, name,cat,qty,price,loc,locationId });
+    data.products.push({ id:data.nextId.product++, name,cat,qty:0,price,loc,locationId });
     addLog('stock',`Nouvel article : <strong>${name}</strong>`, userName());
     toast('Article ajouté','success');
   }
@@ -2469,6 +2477,40 @@ function deleteProduct(id) {
 }
 
 let currentMvtType = 'entree';
+
+function updateMovementProductLocation() {
+  const productSelect = document.getElementById('mvt-product');
+  const product = data.products.find(p => p.id == productSelect.value);
+  const locationSelect = document.getElementById('mvt-location');
+
+  if (!product) {
+    locationSelect.innerHTML = '<option value="">Aucune localisation</option>';
+    return;
+  }
+
+  locationSelect.innerHTML = locationOptions(product.locationId || data.locations[0]?.id);
+}
+
+function updateMovementProducts() {
+  const categoryId = parseInt(document.getElementById('mvt-category').value);
+  const productSelect = document.getElementById('mvt-product');
+  const products = data.products.filter(p => p.cat === categoryId);
+
+  if (!products.length) {
+    productSelect.innerHTML = '<option value="">Aucun article dans cette catégorie</option>';
+    productSelect.disabled = true;
+    document.getElementById('mvt-location').innerHTML = '<option value="">Aucune localisation</option>';
+    return;
+  }
+
+  productSelect.disabled = false;
+  productSelect.innerHTML = products.map(p =>
+    `<option value="${p.id}">${p.name} (stock: ${p.qty})</option>`
+  ).join('');
+
+  updateMovementProductLocation();
+}
+
 function openMvtModal(type) {
   if (!canAddMovement()) { deny(); return; }
   currentMvtType = type;
@@ -2477,17 +2519,22 @@ function openMvtModal(type) {
   c.className = `btn ${type==='entree'?'btn-success':'btn-danger'}`;
   c.innerHTML = `<i class="ti ti-check"></i> Confirmer ${type==='entree'?'l\'entrée':'la sortie'}`;
 
-  const productSelect = document.getElementById('mvt-product');
-  productSelect.innerHTML = data.products.map(p => `<option value="${p.id}">${p.name} (stock: ${p.qty})</option>`).join('');
-  productSelect.onchange = () => {
-    const product = data.products.find(p => p.id == productSelect.value);
-    document.getElementById('mvt-location').innerHTML = locationOptions(product?.locationId || data.locations[0]?.id);
-  };
+  const categorySelect = document.getElementById('mvt-category');
+  const categoriesWithProducts = data.categories.filter(cat =>
+    data.products.some(product => product.cat === cat.id)
+  );
+
+  categorySelect.innerHTML = categoriesWithProducts.length
+    ? categoriesWithProducts.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')
+    : '<option value="">Aucune catégorie disponible</option>';
+
+  categorySelect.disabled = !categoriesWithProducts.length;
+  updateMovementProducts();
+
   const us = data.users.filter(u=>u.active);
   document.getElementById('mvt-user').innerHTML = us.map(u => `<option value="${u.id}" ${data.currentUser&&u.id===data.currentUser.id?'selected':''}>${u.firstname} ${u.lastname}</option>`).join('');
   document.getElementById('mvt-qty').value = '';
-  const firstProduct = data.products[0];
-  document.getElementById('mvt-location').innerHTML = locationOptions(firstProduct?.locationId || data.locations[0]?.id);
+  updateMovementProductLocation();
   document.getElementById('mvt-reason').value = '';
   openModal('modal-mvt');
 }
@@ -2499,6 +2546,7 @@ function saveMvt() {
   const reason = document.getElementById('mvt-reason').value.trim()||'Non précisé';
   const userId = parseInt(document.getElementById('mvt-user').value);
   const locationId = parseInt(document.getElementById('mvt-location').value);
+  if (!productId) { toast('Choisis un article','error'); return; }
   if (qty<=0) { toast('Quantité invalide','error'); return; }
   if (!locationId) { toast('Choisis une localisation','error'); return; }
 
