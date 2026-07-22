@@ -2213,13 +2213,13 @@ function canRecruit() { return isBoss(); }
 function canManageMembers() { return isBoss(); }
 function canEditMembers() { return isBoss(); }
 function canAddMovement() { return isBoss() || isSousChef() || isMembre(); }
-function canAddCashMovement() { return isBoss() || isSousChef(); }
+function canAddCashMovement() { return !!data.currentUser; }
 function canViewLogs() { return isBoss() || isSousChef(); }
 function canViewCategories() { return isBoss() || isSousChef(); }
 function canAddCategory() { return isBoss() || isSousChef(); }
 function canAccessSection(section) {
   if (section === 'logs') return canViewLogs();
-  if (section === 'cash') return isBoss() || isSousChef();
+  if (section === 'cash') return !!data.currentUser;
   if (section === 'categories' || section === 'locations') return canViewCategories();
   if (section === 'mouvements') return !isRecrue();
   return ['dashboard','stock','users'].includes(section);
