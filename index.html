@@ -1139,6 +1139,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   #topbar-action { width: 100%; justify-content: center; }
 }
 
+
+#sec-cash #topbar-action,#sec-mouvements #topbar-action{display:none!important;}
+.section[data-section='cash'] #topbar-action,.section[data-section='mouvements'] #topbar-action{display:none!important;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1227,9 +1230,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <i class="ti ti-search"></i>
         <input type="text" id="global-search" placeholder="Chercher un article…" oninput="renderStock()">
       </div>
-      <button class="btn btn-primary" id="topbar-action" onclick="openAddModal()">
-        <i class="ti ti-plus"></i> Ajouter
-      </button>
+      <button id="topbar-action" style="display:none"></button>
     </header>
 
     <div class="content">
