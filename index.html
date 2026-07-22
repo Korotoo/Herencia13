@@ -2359,10 +2359,11 @@ function updatePermissionsUI() {
 
 function topbarActionAllowed() {
   if (currentSection === 'stock') return canManageInventory();
-  if (currentSection === 'mouvements') return canAddMovement();
   if (currentSection === 'users') return canRecruit();
   if (currentSection === 'categories' || currentSection === 'locations') return canAddCategory();
-  if (currentSection === 'cash') return canAddCashMovement();
+  // Aucun bouton supérieur dans les onglets Mouvements et Cash :
+  // les boutons Entrée / Sortie présents dans les cartes sont suffisants.
+  if (currentSection === 'mouvements' || currentSection === 'cash') return false;
   return false;
 }
 
@@ -2379,8 +2380,15 @@ function nav(section, el) {
   const titles = { dashboard:'TABLEAU DE BORD', stock:'INVENTAIRE', mouvements:'MOUVEMENTS', cash:'CASH', logs:'JOURNAUX', users:'MEMBRES', categories:'CATÉGORIES', locations:'LOCALISATIONS' };
   document.getElementById('page-title').textContent = titles[section] || section.toUpperCase();
 
-  const btnLabels = { users:'Recruter', categories:'Ajouter', locations:'Ajouter', stock:'Ajouter article', mouvements:'Mouvement', cash:'Mouvement cash' };
-  document.getElementById('topbar-action').innerHTML = `<i class="ti ti-plus"></i> ${btnLabels[section] || 'Ajouter'}`;
+  const btnLabels = { users:'Recruter', categories:'Ajouter', locations:'Ajouter', stock:'Ajouter article' };
+  const topbarBtn = document.getElementById('topbar-action');
+  if (topbarBtn) {
+    topbarBtn.innerHTML = `<i class="ti ti-plus"></i> ${btnLabels[section] || 'Ajouter'}`;
+    if (section === 'mouvements' || section === 'cash') {
+      topbarBtn.style.display = 'none';
+      topbarBtn.onclick = null;
+    }
+  }
 
   updatePermissionsUI();
   render();
