@@ -825,15 +825,85 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 /* LOG */
-.log-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
-.log-item:last-child { border-bottom: none; }
-.log-item:hover { background: rgba(255,255,255,0.02); }
-
-.log-icon { width: 28px; height: 28px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.log-content { flex: 1; min-width: 0; }
-.log-action { font-size: 13px; color: var(--text); }
-.log-action strong { color: var(--accent); font-weight: 600; }
-.log-meta { font-size: 11px; color: var(--text3); margin-top: 3px; display: flex; gap: 10px; font-family: var(--font-cond); letter-spacing: 0.03em; }
+.logs-overview {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.log-summary {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:13px;
+  cursor:pointer;
+  transition:.15s;
+}
+.log-summary:hover { border-color:var(--border2); transform:translateY(-1px); }
+.log-summary.active { border-color:var(--log-color); box-shadow:inset 0 0 0 1px var(--log-color); }
+.log-summary-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+.log-summary-icon {
+  width:30px;height:30px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--log-soft);color:var(--log-color);
+}
+.log-summary-number { font-family:var(--font-display);font-size:27px;line-height:1;margin-top:9px; }
+.log-summary-label {
+  color:var(--text3);font-family:var(--font-cond);font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;margin-top:3px;
+}
+.logs-toolbar {
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  padding:12px 14px;background:var(--bg3);border-bottom:1px solid var(--border);
+}
+.logs-search {
+  min-width:220px;flex:1;display:flex;align-items:center;gap:8px;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;
+}
+.logs-search input { width:100%;background:none;border:none;outline:none;color:var(--text);font-family:var(--font); }
+.logs-search i { color:var(--text3); }
+.log-day { border-bottom:1px solid var(--border); }
+.log-day:last-child { border-bottom:none; }
+.log-day-title {
+  display:flex;align-items:center;gap:9px;
+  padding:10px 16px;background:rgba(255,255,255,.018);
+  color:var(--text2);font-family:var(--font-cond);font-size:11px;
+  text-transform:uppercase;letter-spacing:.1em;
+}
+.log-day-count { margin-left:auto;background:var(--bg4);padding:2px 7px;border-radius:20px;color:var(--text3);font-size:10px; }
+.log-item {
+  display:flex;align-items:flex-start;gap:12px;padding:13px 16px;
+  border-top:1px solid var(--border);position:relative;transition:.15s;
+}
+.log-item:hover { background:rgba(255,255,255,0.025); }
+.log-item::before {
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--log-color);
+}
+.log-icon {
+  width:34px;height:34px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;background:var(--log-soft);color:var(--log-color);
+}
+.log-content { flex:1;min-width:0; }
+.log-action { font-size:13px;color:var(--text);line-height:1.45; }
+.log-action strong { color:var(--accent);font-weight:600; }
+.log-meta {
+  font-size:10.5px;color:var(--text3);margin-top:7px;display:flex;align-items:center;
+  gap:8px;flex-wrap:wrap;font-family:var(--font-cond);letter-spacing:.03em;
+}
+.log-user { color:var(--text2);display:inline-flex;align-items:center;gap:4px; }
+.log-time { display:inline-flex;align-items:center;gap:4px; }
+.log-type-label {
+  margin-left:auto;padding:3px 8px;border-radius:20px;background:var(--log-soft);
+  color:var(--log-color);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+}
+.logs-empty-filter { padding:38px 20px;text-align:center;color:var(--text3); }
+@media(max-width:900px){ .logs-overview{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media(max-width:520px){
+  .logs-overview{grid-template-columns:1fr 1fr;}
+  .logs-toolbar{align-items:stretch;}
+  .logs-search{min-width:100%;}
+  .log-type-label{margin-left:0;}
+}
 
 /* GRID */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -1308,21 +1378,55 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
       <!-- JOURNAUX -->
       <section class="section" id="sec-logs">
+        <div class="section-header">
+          <h2>JOURNAL D'ACTIVITÉ</h2>
+          <div class="accent-line"></div>
+        </div>
+
+        <div class="logs-overview" id="logs-overview">
+          <div class="log-summary active" data-log-filter="" onclick="setLogFilter('',this)" style="--log-color:var(--text2);--log-soft:var(--bg4)">
+            <div class="log-summary-head"><div class="log-summary-icon"><i class="ti ti-list-details"></i></div></div>
+            <div class="log-summary-number" id="log-total-all">0</div>
+            <div class="log-summary-label">Toutes les activités</div>
+          </div>
+          <div class="log-summary" data-log-filter="stock" onclick="setLogFilter('stock',this)" style="--log-color:var(--accent);--log-soft:var(--accent-soft)">
+            <div class="log-summary-head"><div class="log-summary-icon"><i class="ti ti-box"></i></div></div>
+            <div class="log-summary-number" id="log-total-stock">0</div>
+            <div class="log-summary-label">Stock & mouvements</div>
+          </div>
+          <div class="log-summary" data-log-filter="cash" onclick="setLogFilter('cash',this)" style="--log-color:var(--green);--log-soft:var(--green-soft)">
+            <div class="log-summary-head"><div class="log-summary-icon"><i class="ti ti-cash"></i></div></div>
+            <div class="log-summary-number" id="log-total-cash">0</div>
+            <div class="log-summary-label">Entrées & sorties cash</div>
+          </div>
+          <div class="log-summary" data-log-filter="user" onclick="setLogFilter('user',this)" style="--log-color:var(--purple);--log-soft:var(--purple-soft)">
+            <div class="log-summary-head"><div class="log-summary-icon"><i class="ti ti-users"></i></div></div>
+            <div class="log-summary-number" id="log-total-user">0</div>
+            <div class="log-summary-label">Membres & organisation</div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header">
-            <i class="ti ti-file-description" style="color:var(--green)"></i>
-            <span class="card-title">Journal d'Activité</span>
+            <i class="ti ti-shield-check" style="color:var(--green)"></i>
+            <span class="card-title">Historique détaillé</span>
             <span class="card-count" id="logs-count">0</span>
             <div class="card-actions">
-              <select class="form-select" style="width:auto;padding:5px 10px;font-family:var(--font-cond);font-size:12px" id="filter-log-type" onchange="renderLogs()">
-                <option value="">Tous types</option>
-                <option value="stock">Stock</option>
-                <option value="user">Membres</option>
-                <option value="system">Système</option>
-                <option value="cash">Cash</option>
-              </select>
-              <button class="btn btn-ghost btn-sm" onclick="clearLogs()"><i class="ti ti-trash"></i> Vider</button>
+              <button class="btn btn-ghost btn-sm" onclick="clearLogs()"><i class="ti ti-trash"></i> Vider le journal</button>
             </div>
+          </div>
+          <div class="logs-toolbar">
+            <div class="logs-search">
+              <i class="ti ti-search"></i>
+              <input id="log-search" type="text" placeholder="Rechercher une action, un membre, une date…" oninput="renderLogs()">
+            </div>
+            <select class="form-select" style="width:auto;min-width:170px;padding:7px 10px;font-family:var(--font-cond);font-size:12px" id="filter-log-type" onchange="syncLogCards();renderLogs()">
+              <option value="">Toutes les catégories</option>
+              <option value="stock">Stock & mouvements</option>
+              <option value="cash">Cash</option>
+              <option value="user">Membres</option>
+              <option value="system">Système</option>
+            </select>
           </div>
           <div id="logs-list"></div>
         </div>
@@ -2589,32 +2693,116 @@ function deleteCashMovement(id) {
 
 
 // ===================== LOGS =====================
-function renderLogs() {
-  const ft = document.getElementById('filter-log-type')?.value || '';
-  let logs = [...data.logs].reverse();
-  if (ft) logs = logs.filter(l => l.type === ft);
-  document.getElementById('logs-count').textContent = logs.length;
+function setLogFilter(type, card) {
+  const select = document.getElementById('filter-log-type');
+  if (select) select.value = type;
+  document.querySelectorAll('.log-summary').forEach(c => c.classList.remove('active'));
+  if (card) card.classList.add('active');
+  renderLogs();
+}
 
-  const colors = { stock:'var(--accent)', user:'var(--purple)', system:'var(--red)', cash:'var(--green)' };
-  const icons = { stock:'ti-box', user:'ti-user', system:'ti-settings', cash:'ti-cash' };
+function syncLogCards() {
+  const type = document.getElementById('filter-log-type')?.value || '';
+  document.querySelectorAll('.log-summary').forEach(c => {
+    c.classList.toggle('active', (c.dataset.logFilter || '') === type);
+  });
+}
+
+function logCategoryConfig(type) {
+  return {
+    stock:  { label:'Stock & mouvements', color:'var(--accent)', soft:'var(--accent-soft)', icon:'ti-box' },
+    cash:   { label:'Cash', color:'var(--green)', soft:'var(--green-soft)', icon:'ti-cash' },
+    user:   { label:'Membres', color:'var(--purple)', soft:'var(--purple-soft)', icon:'ti-users' },
+    system: { label:'Système', color:'var(--red)', soft:'var(--red-soft)', icon:'ti-settings' }
+  }[type] || { label:'Autre', color:'var(--text2)', soft:'var(--bg4)', icon:'ti-dots' };
+}
+
+function cleanLogText(value) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = value || '';
+  return (tmp.textContent || tmp.innerText || '').trim();
+}
+
+function logDateGroup(dateValue) {
+  const raw = String(dateValue || '');
+  const lower = raw.toLowerCase();
+  if (lower.includes("aujourd")) return "Aujourd'hui";
+  if (lower.includes("hier")) return "Hier";
+  const datePart = raw.split(/[,\s]/).find(p => /^\d{2}\/\d{2}\/\d{4}$/.test(p));
+  return datePart || raw.split(' à ')[0] || 'Date inconnue';
+}
+
+function renderLogs() {
+  const type = document.getElementById('filter-log-type')?.value || '';
+  const query = (document.getElementById('log-search')?.value || '').trim().toLowerCase();
+  const allLogs = [...data.logs].reverse();
+
+  const totals = {
+    all: allLogs.length,
+    stock: allLogs.filter(l => l.type === 'stock').length,
+    cash: allLogs.filter(l => l.type === 'cash').length,
+    user: allLogs.filter(l => l.type === 'user').length
+  };
+  const setText = (id, value) => { const el=document.getElementById(id); if(el) el.textContent=value; };
+  setText('log-total-all', totals.all);
+  setText('log-total-stock', totals.stock);
+  setText('log-total-cash', totals.cash);
+  setText('log-total-user', totals.user);
+
+  let logs = allLogs;
+  if (type) logs = logs.filter(l => l.type === type);
+  if (query) {
+    logs = logs.filter(l => {
+      const haystack = `${cleanLogText(l.action)} ${l.user || ''} ${l.date || ''} ${l.type || ''}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }
+
+  setText('logs-count', logs.length);
+  syncLogCards();
 
   const container = document.getElementById('logs-list');
-  if (!logs.length) { container.innerHTML = '<div class="empty"><i class="ti ti-file-off"></i><p>Aucun log</p></div>'; return; }
+  if (!logs.length) {
+    container.innerHTML = `<div class="logs-empty-filter">
+      <i class="ti ti-file-search" style="font-size:32px;opacity:.35;display:block;margin-bottom:9px"></i>
+      <div style="font-family:var(--font-display);font-size:18px;color:var(--text2)">AUCUNE ACTIVITÉ TROUVÉE</div>
+      <div style="font-family:var(--font-cond);font-size:11px;margin-top:4px;text-transform:uppercase;letter-spacing:.08em">
+        Modifie les filtres ou la recherche
+      </div>
+    </div>`;
+    return;
+  }
 
-  container.innerHTML = logs.map(l => `
-    <div class="log-item">
-      <div class="log-icon" style="background:${colors[l.type]||'var(--bg4)'}18">
-        <i class="ti ${icons[l.type]||'ti-dots'}" style="font-size:13px;color:${colors[l.type]||'var(--text3)'}"></i>
+  const groups = {};
+  logs.forEach(log => {
+    const key = logDateGroup(log.date);
+    (groups[key] ||= []).push(log);
+  });
+
+  container.innerHTML = Object.entries(groups).map(([day, items]) => `
+    <div class="log-day">
+      <div class="log-day-title">
+        <i class="ti ti-calendar-event"></i>
+        <span>${day}</span>
+        <span class="log-day-count">${items.length} action${items.length > 1 ? 's' : ''}</span>
       </div>
-      <div class="log-content">
-        <div class="log-action">${l.action}</div>
-        <div class="log-meta">
-          <span>${l.user}</span>
-          <span>${l.date}</span>
-          <span class="badge ${l.type==='stock'?'badge-amber':l.type==='user'?'badge-purple':l.type==='cash'?'badge-green':'badge-red'}" style="font-size:9px">${l.type.toUpperCase()}</span>
-        </div>
-      </div>
-    </div>`).join('');
+      ${items.map(l => {
+        const cfg = logCategoryConfig(l.type);
+        return `
+          <div class="log-item" style="--log-color:${cfg.color};--log-soft:${cfg.soft}">
+            <div class="log-icon"><i class="ti ${cfg.icon}" style="font-size:16px"></i></div>
+            <div class="log-content">
+              <div class="log-action">${l.action}</div>
+              <div class="log-meta">
+                <span class="log-user"><i class="ti ti-user-circle"></i>${l.user || 'Système'}</span>
+                <span class="log-time"><i class="ti ti-clock"></i>${l.date || 'Date inconnue'}</span>
+                <span class="log-type-label">${cfg.label}</span>
+              </div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+  `).join('');
 }
 
 function clearLogs() {
