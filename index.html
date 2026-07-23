@@ -1157,6 +1157,37 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   }
 }
 
+
+.confirm-modal {
+  width: 420px;
+  max-width: calc(100vw - 24px);
+}
+.confirm-message {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-line;
+}
+.confirm-modal .modal-footer {
+  justify-content: flex-end;
+}
+.confirm-modal .btn-danger {
+  background: var(--red);
+  color: #fff;
+}
+.confirm-modal .btn-danger:hover {
+  background: #c83232;
+}
+@media (max-width: 480px) {
+  .confirm-modal .modal-footer {
+    flex-direction: column-reverse;
+  }
+  .confirm-modal .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1508,6 +1539,33 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
 <!-- TOASTS -->
 <div class="toast-container" id="toast-container"></div>
+
+
+<!-- MODALE DE CONFIRMATION PERSONNALISÉE -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal confirm-modal">
+    <div class="modal-header">
+      <i class="ti ti-alert-triangle" style="color:var(--red)"></i>
+      <span class="modal-title">CONFIRMATION</span>
+      <button class="modal-close" type="button" onclick="closeSiteConfirm(false)">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-message" id="confirm-message">
+        Confirmer cette action ?
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" type="button" onclick="closeSiteConfirm(false)">
+        Annuler
+      </button>
+      <button class="btn btn-danger" type="button" id="confirm-validate-btn" onclick="closeSiteConfirm(true)">
+        <i class="ti ti-trash"></i> Supprimer
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL PRODUIT -->
 <div class="modal-overlay" id="modal-product">
@@ -2702,11 +2760,11 @@ function saveCashMovement() {
   render();
 }
 
-function deleteCashMovement(id) {
+async function deleteCashMovement(id) {
   if (!isBoss()) { deny(); return; }
   const movement = data.cashMovements.find(m => sameId(m.id, id));
   if (!movement) { toast('Ligne de cash introuvable', 'error'); return; }
-  if (!window.confirm(`Supprimer le solde cash actuel de $${movement.amount.toLocaleString('fr-FR')} ?`)) return;
+  if (!(await siteConfirm(`Supprimer le solde cash actuel de $${movement.amount.toLocaleString('fr-FR')} ?`))) return;
 
   const oldAmount = movement.amount;
   data.cashByLocation[movement.locationId] = 0;
@@ -2924,7 +2982,7 @@ function saveLocation() {
   render();
 }
 
-function deleteLocation(id) {
+async function deleteLocation(id) {
   if (!canDelete()) { deny(); return; }
   const loc = data.locations.find(l => sameId(l.id, id));
   if (!loc) { toast('Localisation introuvable', 'error'); return; }
@@ -2942,7 +3000,7 @@ function deleteLocation(id) {
     toast('Il faut garder au moins une localisation', 'error');
     return;
   }
-  if (!window.confirm(`Supprimer la localisation "${loc.name}" ?`)) return;
+  if (!(await siteConfirm(`Supprimer la localisation "${loc.name}" ?`))) return;
 
   data.locations = data.locations.filter(l => !sameId(l.id, id));
   if (cashKey !== undefined) delete data.cashByLocation[cashKey];
@@ -2952,6 +3010,44 @@ function deleteLocation(id) {
   render();
 }
 
+
+
+let siteConfirmResolve = null;
+
+function siteConfirm(message, validateLabel = 'Supprimer') {
+  const modal = document.getElementById('modal-confirm');
+  const messageEl = document.getElementById('confirm-message');
+  const validateBtn = document.getElementById('confirm-validate-btn');
+
+  if (!modal || !messageEl || !validateBtn) {
+    return Promise.resolve(false);
+  }
+
+  messageEl.textContent = message;
+  validateBtn.innerHTML = `<i class="ti ti-trash"></i> ${validateLabel}`;
+  modal.classList.add('open');
+
+  return new Promise(resolve => {
+    siteConfirmResolve = resolve;
+  });
+}
+
+function closeSiteConfirm(result) {
+  const modal = document.getElementById('modal-confirm');
+  if (modal) modal.classList.remove('open');
+
+  if (siteConfirmResolve) {
+    const resolve = siteConfirmResolve;
+    siteConfirmResolve = null;
+    resolve(Boolean(result));
+  }
+}
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('modal-confirm')?.classList.contains('open')) {
+    closeSiteConfirm(false);
+  }
+});
 
 // Comparaison d'identifiants compatible avec les nombres et les chaînes
 // (utile lorsque les données reviennent de Supabase).
@@ -3016,11 +3112,11 @@ function saveProduct() {
   render();
 }
 
-function deleteProduct(id) {
+async function deleteProduct(id) {
   if (!canDelete()) { deny(); return; }
   const p = data.products.find(pr => sameId(pr.id, id));
   if (!p) { toast('Article introuvable', 'error'); return; }
-  if (!window.confirm(`Supprimer "${p.name}" ?`)) return;
+  if (!(await siteConfirm(`Supprimer "${p.name}" ?`))) return;
 
   data.products = data.products.filter(pr => !sameId(pr.id, id));
   addLog('stock', `Article supprimé : <strong>${p.name}</strong>`, userName());
@@ -3153,7 +3249,7 @@ function saveMvt() {
 }
 
 
-function deleteMvt(id) {
+async function deleteMvt(id) {
   if (!canDelete()) { deny(); return; }
   const m = data.movements.find(mv => sameId(mv.id, id));
   if (!m) { toast('Mouvement introuvable', 'error'); return; }
@@ -3161,7 +3257,7 @@ function deleteMvt(id) {
   const product = data.products.find(p => sameId(p.id, m.productId));
   const typeLabel = m.type === 'entree' ? 'entrée' : 'sortie';
   const productName = product ? product.name : 'Article supprimé';
-  if (!window.confirm(`Supprimer cette ${typeLabel} de ${m.qty} unité(s) pour "${productName}" ?`)) return;
+  if (!(await siteConfirm(`Supprimer cette ${typeLabel} de ${m.qty} unité(s) pour "${productName}" ?`))) return;
 
   if (product) {
     if (m.type === 'entree') product.qty = Math.max(0, Number(product.qty || 0) - Number(m.qty || 0));
@@ -3251,11 +3347,11 @@ function toggleUserActive(id) {
   render();
 }
 
-function deleteUser(id) {
+async function deleteUser(id) {
   if (!canManageMembers()) { deny(); return; }
   const u = data.users.find(user => sameId(user.id, id));
   if (!u) { toast('Membre introuvable', 'error'); return; }
-  if (!window.confirm(`Exclure définitivement ${u.firstname} ${u.lastname} ?`)) return;
+  if (!(await siteConfirm(`Exclure définitivement ${u.firstname} ${u.lastname} ?`, "Exclure"))) return;
 
   data.users = data.users.filter(user => !sameId(user.id, id));
   addLog('user', `Membre supprimé : <strong>${u.firstname} ${u.lastname}</strong>`, userName());
@@ -3282,7 +3378,7 @@ function saveCat() {
   render();
 }
 
-function deleteCat(id) {
+async function deleteCat(id) {
   if (!canDelete()) { deny(); return; }
   const count = data.products.filter(p => sameId(p.cat, id)).length;
   if (count > 0) {
@@ -3292,7 +3388,7 @@ function deleteCat(id) {
 
   const cat = data.categories.find(c => sameId(c.id, id));
   if (!cat) { toast('Catégorie introuvable', 'error'); return; }
-  if (!window.confirm(`Supprimer la catégorie "${cat.name}" ?`)) return;
+  if (!(await siteConfirm(`Supprimer la catégorie "${cat.name}" ?`))) return;
 
   data.categories = data.categories.filter(c => !sameId(c.id, id));
   addLog('system', `Catégorie supprimée : <strong>${cat.name}</strong>`, userName());
