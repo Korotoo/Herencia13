@@ -1136,12 +1136,27 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .login-stats { grid-template-columns: 1fr; }
   .nav-item { min-width: 72px; font-size: 9.5px; }
   .search-bar { min-width: 100%; }
-  #topbar-action { width: 100%; justify-content: center; }
+  #topbar-action { width: auto; flex: 0 0 auto; justify-content: center; }
 }
 
 
 #sec-cash #topbar-action,#sec-mouvements #topbar-action{display:none!important;}
 .section[data-section='cash'] #topbar-action,.section[data-section='mouvements'] #topbar-action{display:none!important;}
+
+@media (max-width: 480px) {
+  .topbar .search-bar {
+    min-width: 0;
+    width: auto;
+    flex: 1 1 150px;
+  }
+  #topbar-action {
+    min-height: 36px;
+    padding: 8px 10px;
+    position: relative;
+    z-index: 2;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1230,7 +1245,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <i class="ti ti-search"></i>
         <input type="text" id="global-search" placeholder="Chercher un article…" oninput="renderStock()">
       </div>
-      <button id="topbar-action" style="display:none"></button>
+      <button class="btn btn-primary" id="topbar-action" type="button" onclick="openAddModal()" style="display:none"></button>
     </header>
 
     <div class="content">
@@ -2387,6 +2402,8 @@ function nav(section, el) {
     if (section === 'mouvements' || section === 'cash') {
       topbarBtn.style.display = 'none';
       topbarBtn.onclick = null;
+    } else {
+      topbarBtn.onclick = openAddModal;
     }
   }
 
