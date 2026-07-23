@@ -2704,9 +2704,9 @@ function saveCashMovement() {
 
 function deleteCashMovement(id) {
   if (!isBoss()) { deny(); return; }
-  const movement = data.cashMovements.find(m => m.id === id);
-  if (!movement) return;
-  if (!confirm(`Supprimer le solde cash actuel de $${movement.amount.toLocaleString('fr-FR')} ?`)) return;
+  const movement = data.cashMovements.find(m => sameId(m.id, id));
+  if (!movement) { toast('Ligne de cash introuvable', 'error'); return; }
+  if (!window.confirm(`Supprimer le solde cash actuel de $${movement.amount.toLocaleString('fr-FR')} ?`)) return;
 
   const oldAmount = movement.amount;
   data.cashByLocation[movement.locationId] = 0;
@@ -2926,22 +2926,37 @@ function saveLocation() {
 
 function deleteLocation(id) {
   if (!canDelete()) { deny(); return; }
-  const loc = data.locations.find(l => l.id === id);
-  if (!loc) return;
-  const products = data.products.filter(p => p.locationId == id).length;
-  const cash = Number(data.cashByLocation[id] || 0);
-  const usedInMoves = data.movements.some(m => m.locationId == id);
+  const loc = data.locations.find(l => sameId(l.id, id));
+  if (!loc) { toast('Localisation introuvable', 'error'); return; }
+
+  const products = data.products.filter(p => sameId(p.locationId, id)).length;
+  const cashKey = Object.keys(data.cashByLocation || {}).find(key => sameId(key, id));
+  const cash = Number(cashKey !== undefined ? data.cashByLocation[cashKey] : 0);
+  const usedInMoves = data.movements.some(m => sameId(m.locationId, id));
+
   if (products || cash > 0 || usedInMoves) {
-    toast('Impossible : localisation encore utilisée','error'); return;
+    toast('Impossible : localisation encore utilisée', 'error');
+    return;
   }
   if (data.locations.length <= 1) {
-    toast('Il faut garder au moins une localisation','error'); return;
+    toast('Il faut garder au moins une localisation', 'error');
+    return;
   }
-  data.locations = data.locations.filter(l => l.id !== id);
-  delete data.cashByLocation[id];
+  if (!window.confirm(`Supprimer la localisation "${loc.name}" ?`)) return;
+
+  data.locations = data.locations.filter(l => !sameId(l.id, id));
+  if (cashKey !== undefined) delete data.cashByLocation[cashKey];
+
   addLog('system', `Localisation supprimée : <strong>${loc.name}</strong>`, userName());
-  toast('Localisation supprimée','info');
+  toast('Localisation supprimée', 'info');
   render();
+}
+
+
+// Comparaison d'identifiants compatible avec les nombres et les chaînes
+// (utile lorsque les données reviennent de Supabase).
+function sameId(a, b) {
+  return String(a) === String(b);
 }
 
 // ===================== MODALS =====================
@@ -3003,11 +3018,13 @@ function saveProduct() {
 
 function deleteProduct(id) {
   if (!canDelete()) { deny(); return; }
-  const p = data.products.find(pr => pr.id===id);
-  if (!p||!confirm(`Supprimer "${p.name}" ?`)) return;
-  data.products = data.products.filter(pr => pr.id!==id);
-  addLog('stock',`Article supprimé : <strong>${p.name}</strong>`, userName());
-  toast('Article supprimé','info');
+  const p = data.products.find(pr => sameId(pr.id, id));
+  if (!p) { toast('Article introuvable', 'error'); return; }
+  if (!window.confirm(`Supprimer "${p.name}" ?`)) return;
+
+  data.products = data.products.filter(pr => !sameId(pr.id, id));
+  addLog('stock', `Article supprimé : <strong>${p.name}</strong>`, userName());
+  toast('Article supprimé', 'info');
   render();
 }
 
@@ -3138,21 +3155,22 @@ function saveMvt() {
 
 function deleteMvt(id) {
   if (!canDelete()) { deny(); return; }
-  const m = data.movements.find(mv => mv.id === id);
-  if (!m) return;
-  const product = data.products.find(p => p.id === m.productId);
+  const m = data.movements.find(mv => sameId(mv.id, id));
+  if (!m) { toast('Mouvement introuvable', 'error'); return; }
+
+  const product = data.products.find(p => sameId(p.id, m.productId));
   const typeLabel = m.type === 'entree' ? 'entrée' : 'sortie';
   const productName = product ? product.name : 'Article supprimé';
-  if (!confirm(`Supprimer cette ${typeLabel} de ${m.qty} unité(s) pour "${productName}" ?`)) return;
+  if (!window.confirm(`Supprimer cette ${typeLabel} de ${m.qty} unité(s) pour "${productName}" ?`)) return;
 
   if (product) {
-    if (m.type === 'entree') product.qty = Math.max(0, product.qty - m.qty);
-    else product.qty += m.qty;
+    if (m.type === 'entree') product.qty = Math.max(0, Number(product.qty || 0) - Number(m.qty || 0));
+    else product.qty = Number(product.qty || 0) + Number(m.qty || 0);
   }
 
-  data.movements = data.movements.filter(mv => mv.id !== id);
+  data.movements = data.movements.filter(mv => !sameId(mv.id, id));
   addLog('stock', `Mouvement supprimé : <strong>${typeLabel}</strong> de ${m.qty} unité(s) pour <strong>${productName}</strong>`, userName());
-  toast('Mouvement supprimé','info');
+  toast('Mouvement supprimé', 'info');
   render();
 }
 
@@ -3235,11 +3253,13 @@ function toggleUserActive(id) {
 
 function deleteUser(id) {
   if (!canManageMembers()) { deny(); return; }
-  const u = data.users.find(u=>u.id===id);
-  if (!u||!confirm(`Exclure définitivement ${u.firstname} ${u.lastname} ?`)) return;
-  data.users = data.users.filter(u=>u.id!==id);
-  addLog('user',`Membre supprimé : <strong>${u.firstname} ${u.lastname}</strong>`, userName());
-  toast('Membre supprimé','info');
+  const u = data.users.find(user => sameId(user.id, id));
+  if (!u) { toast('Membre introuvable', 'error'); return; }
+  if (!window.confirm(`Exclure définitivement ${u.firstname} ${u.lastname} ?`)) return;
+
+  data.users = data.users.filter(user => !sameId(user.id, id));
+  addLog('user', `Membre supprimé : <strong>${u.firstname} ${u.lastname}</strong>`, userName());
+  toast('Membre supprimé', 'info');
   render();
 }
 
@@ -3264,12 +3284,19 @@ function saveCat() {
 
 function deleteCat(id) {
   if (!canDelete()) { deny(); return; }
-  const count = data.products.filter(p=>p.cat===id).length;
-  if (count>0) { toast(`Impossible : ${count} article(s) dans cette catégorie`,'error'); return; }
-  const cat = data.categories.find(c=>c.id===id);
-  data.categories = data.categories.filter(c=>c.id!==id);
-  addLog('system', `Catégorie supprimée : <strong>${cat ? cat.name : 'Catégorie'}</strong>`, userName());
-  toast('Catégorie supprimée','info');
+  const count = data.products.filter(p => sameId(p.cat, id)).length;
+  if (count > 0) {
+    toast(`Impossible : ${count} article(s) dans cette catégorie`, 'error');
+    return;
+  }
+
+  const cat = data.categories.find(c => sameId(c.id, id));
+  if (!cat) { toast('Catégorie introuvable', 'error'); return; }
+  if (!window.confirm(`Supprimer la catégorie "${cat.name}" ?`)) return;
+
+  data.categories = data.categories.filter(c => !sameId(c.id, id));
+  addLog('system', `Catégorie supprimée : <strong>${cat.name}</strong>`, userName());
+  toast('Catégorie supprimée', 'info');
   render();
 }
 
