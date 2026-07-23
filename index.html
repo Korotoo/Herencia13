@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="vault-build" content="custom-confirm-v2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2302,9 +2303,9 @@ function consolidateCashMovements() {
   syncCashLines();
 }
 
-function resetSavedData() {
+async function resetSavedData() {
   if (!isBoss()) { deny(); return; }
-  if (!confirm('Réinitialiser toutes les données sauvegardées localement ?')) return;
+  if (!(await siteConfirm('Réinitialiser toutes les données sauvegardées localement ?', 'Réinitialiser'))) return;
   localStorage.removeItem(STORAGE_KEY);
   location.reload();
 }
@@ -2889,9 +2890,9 @@ function renderLogs() {
   `).join('');
 }
 
-function clearLogs() {
+async function clearLogs() {
   if (!canDelete()) { deny(); return; }
-  if (!confirm('Effacer tous les logs ?')) return;
+  if (!(await siteConfirm('Effacer tous les logs ?', 'Effacer'))) return;
   data.logs = [];
   addLog('system','Journal effacé',data.currentUser?data.currentUser.firstname:'Système');
   renderLogs();
@@ -3042,6 +3043,13 @@ function closeSiteConfirm(result) {
     resolve(Boolean(result));
   }
 }
+
+
+// Ferme la confirmation en cliquant sur l'arrière-plan sombre.
+document.getElementById('modal-confirm')?.addEventListener('click', event => {
+  if (event.target.id === 'modal-confirm') closeSiteConfirm(false);
+});
+
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && document.getElementById('modal-confirm')?.classList.contains('open')) {
