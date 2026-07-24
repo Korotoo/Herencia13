@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="custom-confirm-v2">
+<meta name="vault-build" content="movement-single-line-runtime-fix-v1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1376,6 +1376,14 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <i class="ti ti-arrows-exchange" style="color:var(--purple)"></i>
             <span class="card-title">Mouvements</span>
             <span class="card-count" id="moves-count">0</span>
+            <div class="card-actions" id="moves-filters">
+              <select class="form-select" style="width:auto;padding:5px 10px;font-family:var(--font-cond);font-size:12px;text-transform:uppercase" id="filter-move-cat" onchange="renderMoves()">
+                <option value="">Toutes catégories</option>
+              </select>
+              <select class="form-select" style="width:auto;padding:5px 10px;font-family:var(--font-cond);font-size:12px;text-transform:uppercase" id="filter-move-location" onchange="renderMoves()">
+                <option value="">Toutes localisations</option>
+              </select>
+            </div>
             <div class="card-actions" id="moves-actions">
               <button class="btn btn-success btn-sm" onclick="openMvtModal('entree')"><i class="ti ti-plus"></i> Entrée</button>
               <button class="btn btn-danger btn-sm" onclick="openMvtModal('sortie')"><i class="ti ti-minus"></i> Sortie</button>
@@ -2228,37 +2236,20 @@ function signedMovementQty(movement) {
 }
 
 function consolidateMovementsByProduct() {
+  // Une seule ligne par article et par localisation.
+  // Si plusieurs anciennes lignes existent, on conserve uniquement la plus récente.
   const grouped = new Map();
+  const movements = Array.isArray(data.movements) ? data.movements : [];
 
-  data.movements.forEach(m => {
-    const key = `${m.productId}:${m.locationId || ''}`;
+  movements.forEach(movement => {
+    const key = `${movement.productId}:${movement.locationId || ''}`;
     const current = grouped.get(key);
-    const signedQty = signedMovementQty(m);
-
-    if (!current) {
-      grouped.set(key, { ...m, _signedQty: signedQty });
-      return;
-    }
-
-    current._signedQty += signedQty;
-    if ((m.date || '') >= (current.date || '')) {
-      current.date = m.date;
-      current.reason = m.reason;
-      current.userId = m.userId;
-      current.locationId = m.locationId;
+    if (!current || String(movement.date || '') >= String(current.date || '')) {
+      grouped.set(key, movement);
     }
   });
 
-  data.movements = Array.from(grouped.values())
-    .filter(m => m._signedQty !== 0)
-    .map(m => {
-      const signedQty = m._signedQty;
-      delete m._signedQty;
-      m.type = signedQty > 0 ? 'entree' : 'sortie';
-      m.qty = Math.abs(signedQty);
-      return m;
-    })
-    .sort((a, b) => a.id - b.id);
+  data.movements = [...grouped.values()];
 }
 
 function signedCashAmount(movement) {
@@ -2275,7 +2266,7 @@ function nowStr() {
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 }
 
-function syncCashLines(dateStr = null, userId = null) {
+function syncCashLines(dateStr = null, userId = null, operationType = null, operationReason = null, changedLocationId = null) {
   ensureLocationData();
   const previous = new Map((data.cashMovements || []).map(m => [String(m.locationId || ''), m]));
   const rows = [];
@@ -2284,14 +2275,15 @@ function syncCashLines(dateStr = null, userId = null) {
     const amount = Math.max(0, Number(data.cashByLocation[loc.id] || 0));
     if (amount <= 0) return;
     const old = previous.get(String(loc.id)) || {};
+    const isChanged = changedLocationId !== null && sameId(loc.id, changedLocationId);
     rows.push({
       id: old.id || data.nextId.cash++,
-      type: 'entree',
+      type: isChanged && operationType ? operationType : (old.type || 'entree'),
       amount,
-      reason: 'Solde cash actuel',
-      userId: userId !== null ? userId : (old.userId ?? (data.currentUser ? data.currentUser.id : null)),
+      reason: isChanged && operationReason ? operationReason : (old.reason || 'Solde cash actuel'),
+      userId: isChanged && userId !== null ? userId : (old.userId ?? (data.currentUser ? data.currentUser.id : null)),
       locationId: loc.id,
-      date: dateStr || old.date || nowStr()
+      date: isChanged && dateStr ? dateStr : (old.date || dateStr || nowStr())
     });
   });
 
@@ -2616,19 +2608,20 @@ function renderStock() {
   const catSel = document.getElementById('filter-cat');
   if (catSel) {
     const cur = catSel.value;
-    catSel.innerHTML = '<option value="">Toutes catégories</option>' + data.categories.map(c => `<option value="${c.id}" ${cur==c.id?'selected':''}>${c.name}</option>`).join('');
+    catSel.innerHTML = '<option value="">Toutes catégories</option>' + [...data.categories].sort((a,b)=>alphaCompare(a.name,b.name)).map(c => `<option value="${c.id}" ${cur==c.id?'selected':''}>${c.name}</option>`).join('');
   }
 
   const locationSel = document.getElementById('filter-location');
   if (locationSel) {
     const curLoc = locationSel.value;
-    locationSel.innerHTML = '<option value="">Toutes localisations</option>' + data.locations.map(l => `<option value="${l.id}" ${curLoc==l.id?'selected':''}>${l.name}</option>`).join('');
+    locationSel.innerHTML = '<option value="">Toutes localisations</option>' + [...data.locations].sort((a,b)=>alphaCompare(a.name,b.name)).map(l => `<option value="${l.id}" ${curLoc==l.id?'selected':''}>${l.name}</option>`).join('');
   }
 
   let products = data.products;
   if (filterCat) products = products.filter(p => p.cat == filterCat);
   if (filterLocation) products = products.filter(p => p.locationId == filterLocation);
   if (search) products = products.filter(p => p.name.toLowerCase().includes(search) || (p.loc || '').toLowerCase().includes(search));
+  products = [...products].sort((a,b) => alphaCompare(a.name, b.name));
 
   document.getElementById('stock-count').textContent = products.length;
   const tbody = document.getElementById('stock-tbody');
@@ -2660,18 +2653,55 @@ function renderStock() {
 
 // ===================== MOUVEMENTS =====================
 function renderMoves() {
-  const moves = [...data.movements].reverse();
+  const catFilter = document.getElementById('filter-move-cat')?.value || '';
+  const locationFilter = document.getElementById('filter-move-location')?.value || '';
+
+  const catSel = document.getElementById('filter-move-cat');
+  if (catSel) {
+    const current = catSel.value;
+    const cats = [...(Array.isArray(data.categories) ? data.categories : [])].sort((a,b) => alphaCompare(a.name, b.name));
+    catSel.innerHTML = '<option value="">Toutes catégories</option>' + cats.map(c => `<option value="${c.id}" ${sameId(current,c.id)?'selected':''}>${c.name}</option>`).join('');
+  }
+
+  const locationSel = document.getElementById('filter-move-location');
+  if (locationSel) {
+    const current = locationSel.value;
+    const locations = [...(Array.isArray(data.locations) ? data.locations : [])].sort((a,b) => alphaCompare(a.name, b.name));
+    locationSel.innerHTML = '<option value="">Toutes localisations</option>' + locations.map(l => `<option value="${l.id}" ${sameId(current,l.id)?'selected':''}>${l.name}</option>`).join('');
+  }
+
+  let moves = [...(Array.isArray(data.movements) ? data.movements : [])];
+  if (catFilter) {
+    moves = moves.filter(m => {
+      const product = data.products.find(p => sameId(p.id, m.productId));
+      return product && sameId(product.cat, catFilter);
+    });
+  }
+  if (locationFilter) moves = moves.filter(m => sameId(m.locationId, locationFilter));
+
+  // Classement alphabétique par article, puis par date récente.
+  moves.sort((a,b) => {
+    const pa = data.products.find(p => sameId(p.id, a.productId))?.name || '';
+    const pb = data.products.find(p => sameId(p.id, b.productId))?.name || '';
+    return alphaCompare(pa, pb) || String(b.date || '').localeCompare(String(a.date || ''));
+  });
+
   document.getElementById('moves-count').textContent = moves.length;
   const tbody = document.getElementById('moves-tbody');
+  if (!moves.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><i class="ti ti-search"></i><p>Aucun mouvement trouvé</p></div></td></tr>';
+    return;
+  }
+
   tbody.innerHTML = moves.map(m => {
-    const product = data.products.find(p => p.id === m.productId);
-    const user = data.users.find(u => u.id === m.userId);
+    const product = data.products.find(p => sameId(p.id, m.productId));
+    const user = data.users.find(u => sameId(u.id, m.userId));
     const isE = m.type === 'entree';
     return `<tr>
       <td style="color:var(--text3);font-size:11.5px;font-family:var(--font-cond)">${m.date}</td>
       <td><span class="badge ${isE?'badge-green':'badge-red'}"><i class="ti ti-${isE?'arrow-down':'arrow-up'}"></i>${isE?'ENTRÉE':'SORTIE'}</span></td>
       <td>${product?product.name:'—'}</td>
-      <td style="font-family:var(--font-display);font-size:20px;color:${isE?'var(--green)':'var(--red)'}">${isE?'+':'-'}${m.qty}</td>
+      <td style="font-family:var(--font-display);font-size:20px;color:${isE?'var(--green)':'var(--red)'}">${isE?'+':'-'}${Number(m.qty || 0)}</td>
       <td><span class="badge badge-amber"><i class="ti ti-map-pin"></i>${locationName(m.locationId)}</span></td>
       <td style="color:var(--text2)">${m.reason}</td>
       <td>${user?(user.firstname+' '+user.lastname).trim():'—'}</td>
@@ -2697,7 +2727,7 @@ function renderCash() {
   document.getElementById('cash-total').textContent = '$' + total.toLocaleString('fr-FR');
   document.getElementById('cash-count').textContent = data.cashMovements.length;
   const tbody = document.getElementById('cash-tbody');
-  const moves = [...data.cashMovements].reverse();
+  const moves = [...data.cashMovements].sort((a,b) => alphaCompare(locationName(a.locationId), locationName(b.locationId)));
   if (!moves.length) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><i class="ti ti-cash-off"></i><p>Aucun mouvement cash</p></div></td></tr>';
     return;
@@ -2708,7 +2738,7 @@ function renderCash() {
     return `<tr>
       <td style="color:var(--text3);font-size:11.5px;font-family:var(--font-cond)">${m.date}</td>
       <td><span class="badge ${isE?'badge-green':'badge-red'}"><i class="ti ti-${isE?'arrow-down':'arrow-up'}"></i>${isE?'ENTRÉE':'SORTIE'}</span></td>
-      <td style="font-family:var(--font-display);font-size:22px;color:${isE?'var(--green)':'var(--red)'}">${isE?'+':'-'}$${m.amount.toLocaleString('fr-FR')}</td>
+      <td style="font-family:var(--font-display);font-size:22px;color:var(--text)">$${Number(m.amount || 0).toLocaleString('fr-FR')}</td>
       <td><span class="badge badge-amber"><i class="ti ti-map-pin"></i>${locationName(m.locationId)}</span></td>
       <td style="color:var(--text2)">${m.reason}</td>
       <td>${user ? `${user.firstname} ${user.lastname}`.trim() : '—'}</td>
@@ -2749,7 +2779,13 @@ function saveCashMovement() {
   const delta = currentCashType === 'entree' ? amount : -amount;
   data.cashByLocation[locationId] = Math.max(0, balanceBefore + delta);
   const dateStr = nowStr();
-  syncCashLines(dateStr, data.currentUser ? data.currentUser.id : null);
+  syncCashLines(
+    dateStr,
+    data.currentUser ? data.currentUser.id : null,
+    currentCashType,
+    reason,
+    locationId
+  );
 
   const action = currentCashType === 'entree'
     ? `Entrée cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${reason} <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`
@@ -3059,6 +3095,15 @@ document.addEventListener('keydown', event => {
 
 // Comparaison d'identifiants compatible avec les nombres et les chaînes
 // (utile lorsque les données reviennent de Supabase).
+
+function alphaCompare(a, b) {
+  return String(a ?? '').localeCompare(
+    String(b ?? ''),
+    'fr',
+    { sensitivity: 'base', numeric: true }
+  );
+}
+
 function sameId(a, b) {
   return String(a) === String(b);
 }
@@ -3079,7 +3124,7 @@ function openAddModal() {
   ['p-name','p-price'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('p-loc').innerHTML = locationOptions(data.locations[0]?.id);
   const catSel = document.getElementById('p-cat');
-  catSel.innerHTML = data.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  catSel.innerHTML = [...data.categories].sort((a,b)=>alphaCompare(a.name,b.name)).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   openModal('modal-product');
 }
 
@@ -3198,43 +3243,50 @@ function openMvtModal(type) {
 function saveMvt() {
   if (!canAddMovement()) { deny(); return; }
   const productId = parseInt(document.getElementById('mvt-product').value);
-  const qty = parseInt(document.getElementById('mvt-qty').value)||0;
-  const reason = document.getElementById('mvt-reason').value.trim()||'Non précisé';
+  const qty = parseInt(document.getElementById('mvt-qty').value) || 0;
+  const reason = document.getElementById('mvt-reason').value.trim() || 'Non précisé';
   const userId = parseInt(document.getElementById('mvt-user').value);
   const locationId = parseInt(document.getElementById('mvt-location').value);
   if (!productId) { toast('Choisis un article','error'); return; }
-  if (qty<=0) { toast('Quantité invalide','error'); return; }
+  if (qty <= 0) { toast('Quantité invalide','error'); return; }
   if (!locationId) { toast('Choisis une localisation','error'); return; }
 
-  const product = data.products.find(p => p.id===productId);
-  if (!product) return;
+  const product = data.products.find(p => sameId(p.id, productId));
+  if (!product) { toast('Article introuvable','error'); return; }
 
-  if (currentMvtType==='sortie' && qty > product.qty) {
+  if (currentMvtType === 'sortie' && qty > Number(product.qty || 0)) {
     toast(`Stock insuffisant (${product.qty} dispo)`, 'error'); return;
   }
 
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-  const stockBefore = product.qty;
+  const dateStr = nowStr();
+  const stockBefore = Number(product.qty || 0);
   const delta = currentMvtType === 'entree' ? qty : -qty;
   const stockAfter = stockBefore + delta;
-  const existingMovement = data.movements.find(m => m.productId === productId && m.locationId == locationId);
-  const newSignedQty = signedMovementQty(existingMovement) + delta;
+
+  // Une seule ligne est conservée par article et par localisation.
+  // La ligne affiche toujours la dernière opération effectuée :
+  // entrée 5 => +5 / ENTRÉE, puis sortie 2 => -2 / SORTIE sur la même ligne.
+  const existingMovement = data.movements.find(m =>
+    sameId(m.productId, productId) && sameId(m.locationId, locationId)
+  );
 
   if (existingMovement) {
-    if (newSignedQty === 0) {
-      data.movements = data.movements.filter(m => m.id !== existingMovement.id);
-    } else {
-      existingMovement.type = newSignedQty > 0 ? 'entree' : 'sortie';
-      existingMovement.qty = Math.abs(newSignedQty);
-      existingMovement.reason = reason;
-      existingMovement.userId = userId;
-      existingMovement.date = dateStr;
-      existingMovement.locationId = locationId;
-    }
-  } else if (newSignedQty !== 0) {
-    data.movements.push({ id:data.nextId.mvt++, type:newSignedQty > 0 ? 'entree' : 'sortie', productId, qty:Math.abs(newSignedQty), reason, userId, locationId, date:dateStr });
+    existingMovement.type = currentMvtType;
+    existingMovement.qty = qty;
+    existingMovement.reason = reason;
+    existingMovement.userId = userId;
+    existingMovement.date = dateStr;
+  } else {
+    data.movements.push({
+      id: data.nextId.mvt++,
+      type: currentMvtType,
+      productId,
+      qty,
+      reason,
+      userId,
+      locationId,
+      date: dateStr
+    });
   }
 
   product.qty = stockAfter;
@@ -3243,15 +3295,14 @@ function saveMvt() {
     product.loc = locationName(locationId);
   }
 
-  const user = data.users.find(u=>u.id===userId);
+  const user = data.users.find(u => sameId(u.id, userId));
   const uName = user ? `${user.firstname} ${user.lastname}`.trim() : 'Inconnu';
-  const action = currentMvtType==='entree'
+  const action = currentMvtType === 'entree'
     ? `Entrée de ${qty} unité(s) de <strong>${product.name}</strong> <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`
     : `Sortie de ${qty} unité(s) de <strong>${product.name}</strong> <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`;
 
   addLog('stock', action, uName);
-
-  toast(currentMvtType==='entree'?'Entrée cumulée':'Sortie déduite','success');
+  toast(currentMvtType === 'entree' ? 'Entrée enregistrée' : 'Sortie enregistrée', 'success');
   closeModal('modal-mvt');
   render();
 }
