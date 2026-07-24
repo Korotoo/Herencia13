@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="movement-single-line-runtime-fix-v1">
+<meta name="vault-build" content="movement-selects-alphabetical-v1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3193,9 +3193,11 @@ function updateMovementProductLocation() {
 }
 
 function updateMovementProducts() {
-  const categoryId = parseInt(document.getElementById('mvt-category').value);
+  const categoryId = document.getElementById('mvt-category').value;
   const productSelect = document.getElementById('mvt-product');
-  const products = data.products.filter(p => p.cat === categoryId);
+  const products = (Array.isArray(data.products) ? data.products : [])
+    .filter(p => sameId(p.cat, categoryId))
+    .sort((a, b) => alphaCompare(a.name, b.name));
 
   if (!products.length) {
     productSelect.innerHTML = '<option value="">Aucun article dans cette catégorie</option>';
@@ -3221,9 +3223,11 @@ function openMvtModal(type) {
   c.innerHTML = `<i class="ti ti-check"></i> Confirmer ${type==='entree'?'l\'entrée':'la sortie'}`;
 
   const categorySelect = document.getElementById('mvt-category');
-  const categoriesWithProducts = data.categories.filter(cat =>
-    data.products.some(product => product.cat === cat.id)
-  );
+  const categoriesWithProducts = (Array.isArray(data.categories) ? data.categories : [])
+    .filter(cat =>
+      (Array.isArray(data.products) ? data.products : []).some(product => sameId(product.cat, cat.id))
+    )
+    .sort((a, b) => alphaCompare(a.name, b.name));
 
   categorySelect.innerHTML = categoriesWithProducts.length
     ? categoriesWithProducts.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')
@@ -3232,7 +3236,7 @@ function openMvtModal(type) {
   categorySelect.disabled = !categoriesWithProducts.length;
   updateMovementProducts();
 
-  const us = data.users.filter(u=>u.active);
+  const us = (Array.isArray(data.users) ? data.users : []).filter(u => u.active).sort((a,b) => alphaCompare(`${a.firstname} ${a.lastname}`, `${b.firstname} ${b.lastname}`));
   document.getElementById('mvt-user').innerHTML = us.map(u => `<option value="${u.id}" ${data.currentUser&&u.id===data.currentUser.id?'selected':''}>${u.firstname} ${u.lastname}</option>`).join('');
   document.getElementById('mvt-qty').value = '';
   updateMovementProductLocation();
