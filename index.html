@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="session-5min-logs-v1">
+<meta name="vault-build" content="los-santos-flight-v1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1189,6 +1189,166 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   }
 }
 
+
+/* ===== ARCADE LOS SANTOS ===== */
+.game-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0,0,0,.88);
+  backdrop-filter: blur(8px);
+}
+.game-overlay.open { display: flex; }
+.game-shell {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  background: #101114;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 80px rgba(0,0,0,.65);
+}
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #15171b;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.game-title {
+  font-family: var(--font-cond);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.game-title span { color: var(--accent); }
+.game-subtitle { color: var(--text3); font-size: 11px; }
+.game-close {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text);
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  font-size: 18px;
+}
+.game-close:hover { color: var(--red); border-color: var(--red); }
+.game-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px;
+  padding: 14px;
+}
+.game-stage-wrap {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: #080b12;
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+}
+#street-flight-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 68vh;
+  cursor: pointer;
+}
+.game-hud {
+  position: absolute;
+  inset: 12px 12px auto;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  font-family: var(--font-cond);
+  font-weight: 800;
+}
+.game-score-live {
+  padding: 6px 10px;
+  background: rgba(0,0,0,.55);
+  border-left: 3px solid var(--accent);
+}
+.game-help {
+  padding: 6px 10px;
+  background: rgba(0,0,0,.55);
+  color: #ddd;
+  font-size: 11px;
+}
+.game-panel {
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  min-height: 300px;
+}
+.game-panel-title {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-cond);
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.game-player {
+  padding: 12px 14px;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+}
+.game-board { padding: 8px; }
+.game-rank-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 7px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.game-rank-row.me { background: var(--accent-soft); }
+.game-rank {
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-weight: 800;
+}
+.game-rank-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-rank-score {
+  color: var(--accent);
+  font-family: var(--font-cond);
+  font-weight: 800;
+}
+.game-board-empty {
+  padding: 26px 12px;
+  color: var(--text3);
+  text-align: center;
+}
+.game-mobile-tip {
+  display: none;
+  padding: 10px 14px;
+  color: var(--text3);
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 820px) {
+  .game-overlay { padding: 0; }
+  .game-shell { width: 100%; height: 100%; max-height: none; }
+  .game-layout { grid-template-columns: 1fr; padding: 8px; }
+  #street-flight-canvas { max-height: none; }
+  .game-panel { min-height: 0; }
+  .game-board { max-height: 210px; overflow: auto; }
+  .game-help { display: none; }
+  .game-mobile-tip { display: block; }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1256,6 +1416,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <div class="nav-item" data-section="users" onclick="nav('users', this)"><i class="ti ti-users"></i>Membres</div>
       <div class="nav-item" data-section="categories" onclick="nav('categories', this)"><i class="ti ti-tag"></i>Catégories</div>
       <div class="nav-item" data-section="locations" onclick="nav('locations', this)"><i class="ti ti-map-pin"></i>Localisations</div>
+      <div class="nav-section">Détente</div>
+      <div class="nav-item" onclick="openStreetFlightGame()"><i class="ti ti-device-gamepad-2"></i>Los Santos Flight</div>
     </nav>
     <div class="sidebar-footer">
       <div class="current-user">
@@ -1547,6 +1709,40 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 </div>
 
 <!-- TOASTS -->
+
+<!-- ===== JEU ARCADE ===== -->
+<div class="game-overlay" id="street-flight-overlay" aria-hidden="true">
+  <div class="game-shell" role="dialog" aria-modal="true" aria-label="Los Santos Flight">
+    <div class="game-header">
+      <i class="ti ti-helicopter" style="font-size:24px;color:var(--accent)"></i>
+      <div>
+        <div class="game-title">LOS SANTOS <span>FLIGHT</span></div>
+        <div class="game-subtitle">Traverse la ville sans percuter les immeubles</div>
+      </div>
+      <button class="game-close" type="button" onclick="closeStreetFlightGame()" title="Fermer le jeu">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+
+    <div class="game-layout">
+      <div class="game-stage-wrap" id="street-flight-stage">
+        <canvas id="street-flight-canvas"></canvas>
+        <div class="game-hud">
+          <div class="game-score-live">SCORE : <span id="street-flight-score">0</span></div>
+          <div class="game-help">ESPACE / CLIC pour voler · ÉCHAP pour fermer</div>
+        </div>
+      </div>
+
+      <aside class="game-panel">
+        <div class="game-panel-title"><i class="ti ti-trophy"></i> CLASSEMENT</div>
+        <div class="game-player">Joueur : <strong id="street-flight-player">—</strong></div>
+        <div class="game-board" id="street-flight-board"></div>
+      </aside>
+    </div>
+    <div class="game-mobile-tip">Touchez l'écran pour faire monter l'hélicoptère.</div>
+  </div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
 
@@ -1842,6 +2038,7 @@ function restoreCurrentUser(previousUser) {
 }
 
 function ensureLocationData() {
+  if (!Array.isArray(data.gameScores)) data.gameScores = [];
   if (!Array.isArray(data.categories)) data.categories = [];
   if (!Array.isArray(data.products)) data.products = [];
   if (!Array.isArray(data.users)) data.users = [];
@@ -2511,6 +2708,7 @@ function doLogin() {
 }
 
 function doLogout(reason = 'manual') {
+  closeStreetFlightGame();
   if (sessionLogoutInProgress) return;
   sessionLogoutInProgress = true;
 
@@ -2537,6 +2735,461 @@ function doLogout(reason = 'manual') {
 
   sessionLogoutInProgress = false;
 }
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+}
+
+
+// ===================== LOS SANTOS FLIGHT =====================
+const streetFlight = {
+  running: false,
+  started: false,
+  gameOver: false,
+  raf: 0,
+  lastTime: 0,
+  width: 960,
+  height: 540,
+  player: { x: 190, y: 270, vy: 0, radius: 17 },
+  obstacles: [],
+  particles: [],
+  score: 0,
+  spawnTimer: 0,
+  cityOffset: 0,
+  inputReady: false
+};
+
+function gameCanvasSetup() {
+  const canvas = document.getElementById('street-flight-canvas');
+  const wrap = document.getElementById('street-flight-stage');
+  if (!canvas || !wrap) return null;
+
+  const rect = wrap.getBoundingClientRect();
+  const cssWidth = Math.max(320, Math.floor(rect.width));
+  const cssHeight = Math.max(220, Math.floor(cssWidth * 9 / 16));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  canvas.style.height = cssHeight + 'px';
+  canvas.width = Math.floor(cssWidth * dpr);
+  canvas.height = Math.floor(cssHeight * dpr);
+
+  const ctx = canvas.getContext('2d', { alpha: false });
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  streetFlight.width = cssWidth;
+  streetFlight.height = cssHeight;
+  return ctx;
+}
+
+function resetStreetFlight() {
+  streetFlight.started = false;
+  streetFlight.gameOver = false;
+  streetFlight.lastTime = 0;
+  streetFlight.score = 0;
+  streetFlight.spawnTimer = 0;
+  streetFlight.cityOffset = 0;
+  streetFlight.obstacles = [];
+  streetFlight.particles = [];
+  streetFlight.player.x = Math.max(90, streetFlight.width * .20);
+  streetFlight.player.y = streetFlight.height * .48;
+  streetFlight.player.vy = 0;
+  const scoreEl = document.getElementById('street-flight-score');
+  if (scoreEl) scoreEl.textContent = '0';
+}
+
+function openStreetFlightGame() {
+  if (!data.currentUser) {
+    toast('Connecte-toi pour jouer', 'error');
+    return;
+  }
+
+  const overlay = document.getElementById('street-flight-overlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.getElementById('street-flight-player').textContent = getCurrentUserName();
+  renderStreetFlightBoard();
+
+  streetFlight.running = true;
+  gameCanvasSetup();
+  resetStreetFlight();
+  bindStreetFlightInputs();
+  cancelAnimationFrame(streetFlight.raf);
+  streetFlight.raf = requestAnimationFrame(streetFlightLoop);
+}
+
+function closeStreetFlightGame() {
+  streetFlight.running = false;
+  cancelAnimationFrame(streetFlight.raf);
+  const overlay = document.getElementById('street-flight-overlay');
+  if (overlay) {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function bindStreetFlightInputs() {
+  if (streetFlight.inputReady) return;
+  streetFlight.inputReady = true;
+
+  const canvas = document.getElementById('street-flight-canvas');
+  const flap = (event) => {
+    if (!streetFlight.running) return;
+    if (event) event.preventDefault();
+    streetFlightFlap();
+  };
+
+  canvas.addEventListener('pointerdown', flap, { passive: false });
+  window.addEventListener('keydown', event => {
+    if (!streetFlight.running) return;
+    if (event.code === 'Escape') {
+      event.preventDefault();
+      closeStreetFlightGame();
+      return;
+    }
+    if (event.code === 'Space' || event.code === 'ArrowUp') {
+      event.preventDefault();
+      streetFlightFlap();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (!streetFlight.running) return;
+    gameCanvasSetup();
+  });
+}
+
+function streetFlightFlap() {
+  if (streetFlight.gameOver) {
+    resetStreetFlight();
+    return;
+  }
+  streetFlight.started = true;
+  streetFlight.player.vy = -Math.max(310, streetFlight.height * .68);
+
+  for (let i = 0; i < 5; i++) {
+    streetFlight.particles.push({
+      x: streetFlight.player.x - 18,
+      y: streetFlight.player.y + (Math.random() - .5) * 10,
+      vx: -60 - Math.random() * 90,
+      vy: (Math.random() - .5) * 40,
+      life: .35 + Math.random() * .25
+    });
+  }
+}
+
+function streetFlightLoop(timestamp) {
+  if (!streetFlight.running) return;
+  const ctx = gameCanvasSetup();
+  if (!ctx) return;
+
+  const dt = streetFlight.lastTime
+    ? Math.min((timestamp - streetFlight.lastTime) / 1000, .033)
+    : 0;
+  streetFlight.lastTime = timestamp;
+
+  updateStreetFlight(dt);
+  drawStreetFlight(ctx);
+  streetFlight.raf = requestAnimationFrame(streetFlightLoop);
+}
+
+function updateStreetFlight(dt) {
+  const g = streetFlight;
+  g.cityOffset = (g.cityOffset + dt * 45) % 220;
+
+  g.particles.forEach(p => {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+  });
+  g.particles = g.particles.filter(p => p.life > 0);
+
+  if (!g.started || g.gameOver) return;
+
+  const gravity = Math.max(760, g.height * 1.55);
+  const speed = Math.max(210, g.width * .31);
+  const obstacleWidth = Math.max(58, g.width * .075);
+  const gapHeight = Math.max(150, g.height * .34);
+
+  g.player.vy += gravity * dt;
+  g.player.y += g.player.vy * dt;
+  g.spawnTimer -= dt;
+
+  if (g.spawnTimer <= 0) {
+    const margin = gapHeight * .62;
+    const minY = margin;
+    const maxY = g.height - margin;
+    const gapY = minY + Math.random() * Math.max(1, maxY - minY);
+    g.obstacles.push({
+      x: g.width + 30,
+      width: obstacleWidth,
+      gapY,
+      gap: gapHeight,
+      passed: false
+    });
+    g.spawnTimer = Math.max(1.15, 1.55 - g.score * .012);
+  }
+
+  for (const obstacle of g.obstacles) {
+    obstacle.x -= speed * dt;
+    if (!obstacle.passed && obstacle.x + obstacle.width < g.player.x) {
+      obstacle.passed = true;
+      g.score += 1;
+      document.getElementById('street-flight-score').textContent = String(g.score);
+    }
+  }
+  g.obstacles = g.obstacles.filter(o => o.x + o.width > -20);
+
+  const r = g.player.radius;
+  if (g.player.y - r <= 0 || g.player.y + r >= g.height) {
+    finishStreetFlight();
+    return;
+  }
+
+  for (const obstacle of g.obstacles) {
+    const overlapX = g.player.x + r > obstacle.x && g.player.x - r < obstacle.x + obstacle.width;
+    if (!overlapX) continue;
+    const gapTop = obstacle.gapY - obstacle.gap / 2;
+    const gapBottom = obstacle.gapY + obstacle.gap / 2;
+    if (g.player.y - r < gapTop || g.player.y + r > gapBottom) {
+      finishStreetFlight();
+      return;
+    }
+  }
+}
+
+function finishStreetFlight() {
+  if (streetFlight.gameOver) return;
+  streetFlight.gameOver = true;
+  saveStreetFlightScore(streetFlight.score);
+}
+
+function saveStreetFlightScore(score) {
+  if (!data.currentUser) return;
+  if (!Array.isArray(data.gameScores)) data.gameScores = [];
+
+  const user = data.currentUser;
+  let row = data.gameScores.find(s => sameId(s.userId, user.id));
+  const now = new Date().toISOString();
+
+  if (!row) {
+    row = {
+      userId: user.id,
+      name: getCurrentUserName(user),
+      bestScore: Math.max(0, score),
+      lastScore: Math.max(0, score),
+      plays: 1,
+      updatedAt: now
+    };
+    data.gameScores.push(row);
+  } else {
+    row.name = getCurrentUserName(user);
+    row.bestScore = Math.max(Number(row.bestScore || 0), score);
+    row.lastScore = score;
+    row.plays = Number(row.plays || 0) + 1;
+    row.updatedAt = now;
+  }
+
+  saveData();
+  renderStreetFlightBoard();
+}
+
+function renderStreetFlightBoard() {
+  const board = document.getElementById('street-flight-board');
+  if (!board) return;
+  const scores = (Array.isArray(data.gameScores) ? data.gameScores : [])
+    .slice()
+    .sort((a, b) =>
+      Number(b.bestScore || 0) - Number(a.bestScore || 0) ||
+      alphaCompare(a.name, b.name)
+    );
+
+  if (!scores.length) {
+    board.innerHTML = '<div class="game-board-empty">Aucun score pour le moment.</div>';
+    return;
+  }
+
+  board.innerHTML = scores.map((row, index) => {
+    const isMe = data.currentUser && sameId(row.userId, data.currentUser.id);
+    return `<div class="game-rank-row ${isMe ? 'me' : ''}">
+      <div class="game-rank">#${index + 1}</div>
+      <div class="game-rank-name" title="${escapeHtml(row.name || 'Joueur')}">${escapeHtml(row.name || 'Joueur')}</div>
+      <div class="game-rank-score">${Number(row.bestScore || 0)}</div>
+    </div>`;
+  }).join('');
+}
+
+function drawStreetFlight(ctx) {
+  const g = streetFlight;
+  const w = g.width;
+  const h = g.height;
+
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#111b35');
+  sky.addColorStop(.60, '#5b2948');
+  sky.addColorStop(1, '#e06d3f');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  // Soleil et brume
+  ctx.globalAlpha = .28;
+  ctx.fillStyle = '#ffbd67';
+  ctx.beginPath();
+  ctx.arc(w * .78, h * .28, h * .11, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Skyline lointaine, calculée sans images pour rester fluide.
+  const baseY = h * .82;
+  for (let layer = 0; layer < 2; layer++) {
+    const blockW = layer ? 72 : 105;
+    const offset = (g.cityOffset * (layer ? 1 : .45)) % blockW;
+    ctx.fillStyle = layer ? '#151720' : '#25213a';
+    for (let x = -blockW - offset; x < w + blockW; x += blockW) {
+      const seed = Math.abs(Math.sin((x + layer * 91) * .027));
+      const bh = h * (.12 + seed * (layer ? .25 : .15));
+      ctx.fillRect(x, baseY - bh, blockW - 5, bh);
+      if (layer) {
+        ctx.fillStyle = 'rgba(255,205,100,.24)';
+        for (let wy = baseY - bh + 14; wy < baseY - 10; wy += 18) {
+          ctx.fillRect(x + 12, wy, 5, 7);
+          ctx.fillRect(x + 34, wy, 5, 7);
+        }
+        ctx.fillStyle = '#151720';
+      }
+    }
+  }
+
+  // Route
+  ctx.fillStyle = '#16171b';
+  ctx.fillRect(0, h * .88, w, h * .12);
+  ctx.strokeStyle = 'rgba(255,215,80,.65)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([28, 22]);
+  ctx.lineDashOffset = -g.cityOffset * 2;
+  ctx.beginPath();
+  ctx.moveTo(0, h * .94);
+  ctx.lineTo(w, h * .94);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Obstacles / immeubles
+  for (const o of g.obstacles) {
+    const topH = o.gapY - o.gap / 2;
+    const bottomY = o.gapY + o.gap / 2;
+    drawLosSantosTower(ctx, o.x, 0, o.width, topH, true);
+    drawLosSantosTower(ctx, o.x, bottomY, o.width, h - bottomY, false);
+  }
+
+  // Particules d'échappement
+  for (const p of g.particles) {
+    ctx.globalAlpha = Math.max(0, p.life * 2);
+    ctx.fillStyle = '#d9d9d9';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3 + p.life * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  drawHelicopter(ctx, g.player.x, g.player.y, g.player.vy);
+
+  if (!g.started) {
+    drawGameMessage(ctx, 'LOS SANTOS FLIGHT', 'Clique ou appuie sur ESPACE pour commencer');
+  } else if (g.gameOver) {
+    drawGameMessage(ctx, 'MISSION ÉCHOUÉE', `Score : ${g.score} · Clique pour rejouer`);
+  }
+}
+
+function drawLosSantosTower(ctx, x, y, width, height, hanging) {
+  if (height <= 0) return;
+  const grad = ctx.createLinearGradient(x, y, x + width, y);
+  grad.addColorStop(0, '#161920');
+  grad.addColorStop(.5, '#333846');
+  grad.addColorStop(1, '#13151b');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, width, height);
+
+  ctx.fillStyle = 'rgba(255,197,82,.48)';
+  const startY = hanging ? Math.max(10, height - 18) : y + 14;
+  const endY = hanging ? height - 8 : y + height - 10;
+  for (let wy = startY; wy < endY; wy += 20) {
+    for (let wx = x + 11; wx < x + width - 8; wx += 18) {
+      ctx.fillRect(wx, wy, 6, 8);
+    }
+  }
+
+  ctx.fillStyle = '#e7a020';
+  if (hanging) ctx.fillRect(x - 5, height - 8, width + 10, 8);
+  else ctx.fillRect(x - 5, y, width + 10, 8);
+}
+
+function drawHelicopter(ctx, x, y, vy) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.max(-.32, Math.min(.42, vy / 900)));
+
+  // Rotor
+  ctx.strokeStyle = '#f2f2f2';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-26, -19);
+  ctx.lineTo(31, -19);
+  ctx.stroke();
+  ctx.fillStyle = '#a9adb5';
+  ctx.fillRect(-2, -18, 4, 10);
+
+  // Queue
+  ctx.strokeStyle = '#222831';
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(-12, 1);
+  ctx.lineTo(-35, -4);
+  ctx.stroke();
+  ctx.fillStyle = '#e7a020';
+  ctx.beginPath();
+  ctx.moveTo(-39, -12);
+  ctx.lineTo(-31, -4);
+  ctx.lineTo(-39, 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Corps
+  ctx.fillStyle = '#e7a020';
+  ctx.beginPath();
+  ctx.ellipse(3, 1, 23, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#26364b';
+  ctx.beginPath();
+  ctx.ellipse(10, -2, 11, 9, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+
+  // Patins
+  ctx.strokeStyle = '#d9d9d9';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-8, 15);
+  ctx.lineTo(-12, 22);
+  ctx.lineTo(18, 22);
+  ctx.moveTo(12, 15);
+  ctx.lineTo(18, 22);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawGameMessage(ctx, title, subtitle) {
+  const w = streetFlight.width;
+  const h = streetFlight.height;
+  ctx.fillStyle = 'rgba(0,0,0,.62)';
+  ctx.fillRect(w * .16, h * .36, w * .68, h * .24);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f2f2f2';
+  ctx.font = `800 ${Math.max(22, w * .035)}px Arial`;
+  ctx.fillText(title, w / 2, h * .45);
+  ctx.fillStyle = '#e7a020';
+  ctx.font = `600 ${Math.max(12, w * .015)}px Arial`;
+  ctx.fillText(subtitle, w / 2, h * .53);
+  ctx.textAlign = 'left';
+}
+
 
 // ===================== PERMISSIONS =====================
 function role() { return data.currentUser ? data.currentUser.role : null; }
