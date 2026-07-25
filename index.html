@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="cash-par-localisation-v5">
+<meta name="vault-build" content="cash-lignes-cumulees-v6">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2464,17 +2464,30 @@ function nowStr() {
 function syncCashLines() {
   ensureLocationData();
 
-  // Migration des anciennes données : les anciennes lignes représentaient
-  // uniquement le solde actuel d'une localisation.
-  if (!data.cashHistoryMigrated) {
-    data.cashMovements = (data.cashMovements || []).map(m => ({
-      ...m,
-      reason: m.reason || 'Solde initial',
-      isInitialBalance: true
-    }));
-    data.cashHistoryMigrated = true;
-  }
+  const latestByLocation = new Map();
 
+  (data.cashMovements || []).forEach(movement => {
+    const locationId = Number(movement.locationId);
+    if (!locationId) return;
+
+    const current = latestByLocation.get(locationId);
+    const movementDate = String(movement.date || '');
+    const currentDate = String(current?.date || '');
+
+    if (
+      !current ||
+      movementDate > currentDate ||
+      (movementDate === currentDate && Number(movement.id || 0) > Number(current.id || 0))
+    ) {
+      latestByLocation.set(locationId, {
+        ...movement,
+        locationId,
+        amount: Number(movement.amount || 0)
+      });
+    }
+  });
+
+  data.cashMovements = Array.from(latestByLocation.values());
   data.cashBalance = Object.values(data.cashByLocation || {})
     .reduce((sum, value) => sum + Number(value || 0), 0);
 }
@@ -3571,6 +3584,7 @@ function stockValue() {
 
 function renderCash() {
   ensureLocationData();
+  syncCashLines();
 
   const balancesContainer = document.getElementById('cash-location-balances');
   if (!balancesContainer) return;
@@ -3580,7 +3594,7 @@ function renderCash() {
   );
 
   balancesContainer.innerHTML = visibleLocations.map((location, index) => {
-    const amount = Number(data.cashByLocation[location.id] || 0);
+    const total = Number(data.cashByLocation[location.id] || 0);
     const colorClass = ['c-gold', 'c-green', 'c-purple'][index % 3];
 
     return `
@@ -3588,8 +3602,8 @@ function renderCash() {
         <div class="stat-label">
           <i class="ti ti-map-pin"></i>${location.name}
         </div>
-        <div class="stat-value">$${amount.toLocaleString('fr-FR')}</div>
-        <div class="stat-sub">cash disponible dans cette localisation</div>
+        <div class="stat-value">$${total.toLocaleString('fr-FR')}</div>
+        <div class="stat-sub">total disponible dans cette localisation</div>
       </div>`;
   }).join('');
 
@@ -3599,42 +3613,44 @@ function renderCash() {
   document.getElementById('cash-count').textContent = data.cashMovements.length;
 
   const tbody = document.getElementById('cash-tbody');
-  const moves = [...data.cashMovements].sort((a, b) => {
+  const lines = [...data.cashMovements].sort((a, b) => {
     const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
     if (dateCompare !== 0) return dateCompare;
     return Number(b.id || 0) - Number(a.id || 0);
   });
 
-  if (!moves.length) {
+  if (!lines.length) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><i class="ti ti-cash-off"></i><p>Aucun mouvement cash</p></div></td></tr>';
     return;
   }
 
-  tbody.innerHTML = moves.map(m => {
-    const user = data.users.find(u => sameId(u.id, m.userId));
-    const isEntry = m.type === 'entree';
+  tbody.innerHTML = lines.map(line => {
+    const user = data.users.find(u => sameId(u.id, line.userId));
+    const isEntry = line.type === 'entree';
+    const sign = isEntry ? '+' : '-';
+    const signedColor = isEntry ? 'var(--green)' : 'var(--red)';
 
     return `<tr>
-      <td style="color:var(--text3);font-size:11.5px;font-family:var(--font-cond)">${m.date || '—'}</td>
+      <td style="color:var(--text3);font-size:11.5px;font-family:var(--font-cond)">${line.date || '—'}</td>
       <td>
         <span class="badge ${isEntry ? 'badge-green' : 'badge-red'}">
           <i class="ti ti-${isEntry ? 'arrow-down' : 'arrow-up'}"></i>
           ${isEntry ? 'ENTRÉE' : 'SORTIE'}
         </span>
       </td>
-      <td style="font-family:var(--font-display);font-size:22px;color:var(--text)">
-        $${Number(m.amount || 0).toLocaleString('fr-FR')}
+      <td style="font-family:var(--font-display);font-size:22px;color:${signedColor}">
+        ${sign}$${Number(line.amount || 0).toLocaleString('fr-FR')}
       </td>
       <td>
         <span class="badge badge-amber">
-          <i class="ti ti-map-pin"></i>${locationName(m.locationId)}
+          <i class="ti ti-map-pin"></i>${locationName(line.locationId)}
         </span>
       </td>
-      <td style="color:var(--text2)">${m.reason || 'Non précisé'}</td>
+      <td style="color:var(--text2)">${line.reason || 'Non précisé'}</td>
       <td>${user ? `${user.firstname} ${user.lastname}`.trim() : '—'}</td>
       <td>
         ${isBoss()
-          ? `<button class="btn btn-danger btn-sm" onclick="deleteCashMovement(${m.id})"><i class="ti ti-trash"></i></button>`
+          ? `<button class="btn btn-danger btn-sm" onclick="deleteCashMovement(${line.id})"><i class="ti ti-trash"></i></button>`
           : '<span class="badge badge-gray">LECTURE</span>'}
       </td>
     </tr>`;
@@ -3687,15 +3703,25 @@ const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
   data.cashByLocation[locationId] = Math.max(0, balanceBefore + delta);
   const dateStr = nowStr();
 
-  data.cashMovements.push({
-    id: data.nextId.cash++,
-    type: currentCashType,
-    amount,
-    reason,
-    userId: data.currentUser ? data.currentUser.id : null,
-    locationId,
-    date: dateStr
-  });
+  const existingLine = data.cashMovements.find(m => sameId(m.locationId, locationId));
+
+  if (existingLine) {
+    existingLine.type = currentCashType;
+    existingLine.amount = amount;
+    existingLine.reason = reason;
+    existingLine.userId = data.currentUser ? data.currentUser.id : null;
+    existingLine.date = dateStr;
+  } else {
+    data.cashMovements.push({
+      id: data.nextId.cash++,
+      type: currentCashType,
+      amount,
+      reason,
+      userId: data.currentUser ? data.currentUser.id : null,
+      locationId,
+      date: dateStr
+    });
+  }
 
   data.cashBalance = Object.values(data.cashByLocation)
     .reduce((sum, value) => sum + Number(value || 0), 0);
@@ -3713,40 +3739,25 @@ const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
 async function deleteCashMovement(id) {
   if (!isBoss()) { deny(); return; }
 
-  const movement = data.cashMovements.find(m => sameId(m.id, id));
-  if (!movement) {
-    toast('Mouvement cash introuvable', 'error');
+  const line = data.cashMovements.find(m => sameId(m.id, id));
+  if (!line) {
+    toast('Ligne cash introuvable', 'error');
     return;
   }
 
   if (!(await siteConfirm(
-    `Supprimer ce mouvement cash de $${Number(movement.amount || 0).toLocaleString('fr-FR')} ?`
+    `Supprimer la ligne de suivi cash de ${locationName(line.locationId)} ? Le total de la localisation sera conservé.`
   ))) return;
 
-  const currentBalance = Number(data.cashByLocation[movement.locationId] || 0);
-  const amount = Number(movement.amount || 0);
-
-  if (movement.type === 'entree') {
-    if (amount > currentBalance) {
-      toast("Impossible de supprimer cette entrée : le solde actuel est insuffisant.", 'error');
-      return;
-    }
-    data.cashByLocation[movement.locationId] = currentBalance - amount;
-  } else {
-    data.cashByLocation[movement.locationId] = currentBalance + amount;
-  }
-
   data.cashMovements = data.cashMovements.filter(m => !sameId(m.id, id));
-  data.cashBalance = Object.values(data.cashByLocation)
-    .reduce((sum, value) => sum + Number(value || 0), 0);
 
   addLog(
     'cash',
-    `Suppression d'un mouvement cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> <span style="color:var(--accent)">📍 ${locationName(movement.locationId)}</span>`,
+    `Suppression de la ligne de suivi cash <span style="color:var(--accent)">📍 ${locationName(line.locationId)}</span> — total conservé`,
     userName()
   );
 
-  toast('Mouvement cash supprimé', 'info');
+  toast('Ligne de suivi supprimée', 'info');
   render();
 }
 
