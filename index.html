@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="dashboard-cash-corrige-v7">
+<meta name="vault-build" content="mouvements-recent-vers-ancien-v8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3601,11 +3601,11 @@ function renderMoves() {
   }
   if (locationFilter) moves = moves.filter(m => sameId(m.locationId, locationFilter));
 
-  // Classement alphabétique par article, puis par date récente.
-  moves.sort((a,b) => {
-    const pa = data.products.find(p => sameId(p.id, a.productId))?.name || '';
-    const pb = data.products.find(p => sameId(p.id, b.productId))?.name || '';
-    return alphaCompare(pa, pb) || String(b.date || '').localeCompare(String(a.date || ''));
+  // Classement uniquement des mouvements : du plus récent au plus ancien.
+  moves.sort((a, b) => {
+    const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+    if (dateCompare !== 0) return dateCompare;
+    return Number(b.id || 0) - Number(a.id || 0);
   });
 
   document.getElementById('moves-count').textContent = moves.length;
