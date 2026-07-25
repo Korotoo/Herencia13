@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="dashboard-dernieres-operations-v4">
+<meta name="vault-build" content="cash-par-localisation-v5">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1561,23 +1561,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
       <!-- CASH -->
       <section class="section" id="sec-cash">
-        <div class="stats-grid">
-          <div class="stat-card c-gold">
-            <div class="stat-label"><i class="ti ti-cash"></i>Cash disponible</div>
-            <div class="stat-value" id="cash-balance">0$</div>
-            <div class="stat-sub">argent liquide</div>
-          </div>
-          <div class="stat-card c-green">
-            <div class="stat-label"><i class="ti ti-box"></i>Valeur du stock</div>
-            <div class="stat-value" id="cash-stock-value">0$</div>
-            <div class="stat-sub">inventaire actuel</div>
-          </div>
-          <div class="stat-card c-purple">
-            <div class="stat-label"><i class="ti ti-building-bank"></i>Total caisse</div>
-            <div class="stat-value" id="cash-total">0$</div>
-            <div class="stat-sub">cash + stock</div>
-          </div>
-        </div>
+        <div class="stats-grid" id="cash-location-balances"></div>
         <div class="card">
           <div class="card-header">
             <i class="ti ti-cash" style="color:var(--accent)"></i>
@@ -2477,29 +2461,22 @@ function nowStr() {
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 }
 
-function syncCashLines(dateStr = null, userId = null, operationType = null, operationReason = null, changedLocationId = null) {
+function syncCashLines() {
   ensureLocationData();
-  const previous = new Map((data.cashMovements || []).map(m => [String(m.locationId || ''), m]));
-  const rows = [];
 
-  data.locations.forEach(loc => {
-    const amount = Math.max(0, Number(data.cashByLocation[loc.id] || 0));
-    if (amount <= 0) return;
-    const old = previous.get(String(loc.id)) || {};
-    const isChanged = changedLocationId !== null && sameId(loc.id, changedLocationId);
-    rows.push({
-      id: old.id || data.nextId.cash++,
-      type: isChanged && operationType ? operationType : (old.type || 'entree'),
-      amount,
-      reason: isChanged && operationReason ? operationReason : (old.reason || 'Solde cash actuel'),
-      userId: isChanged && userId !== null ? userId : (old.userId ?? (data.currentUser ? data.currentUser.id : null)),
-      locationId: loc.id,
-      date: isChanged && dateStr ? dateStr : (old.date || dateStr || nowStr())
-    });
-  });
+  // Migration des anciennes données : les anciennes lignes représentaient
+  // uniquement le solde actuel d'une localisation.
+  if (!data.cashHistoryMigrated) {
+    data.cashMovements = (data.cashMovements || []).map(m => ({
+      ...m,
+      reason: m.reason || 'Solde initial',
+      isInitialBalance: true
+    }));
+    data.cashHistoryMigrated = true;
+  }
 
-  data.cashMovements = rows;
-  data.cashBalance = Object.values(data.cashByLocation).reduce((s,v)=>s+Number(v||0),0);
+  data.cashBalance = Object.values(data.cashByLocation || {})
+    .reduce((sum, value) => sum + Number(value || 0), 0);
 }
 
 function consolidateCashMovements() {
@@ -3593,35 +3570,73 @@ function stockValue() {
 }
 
 function renderCash() {
-  consolidateCashMovements();
-  const stock = stockValue();
-  const balance = data.cashBalance || 0;
-  const total = balance + stock;
-  const balanceEl = document.getElementById('cash-balance');
-  if (!balanceEl) return;
+  ensureLocationData();
+
+  const balancesContainer = document.getElementById('cash-location-balances');
+  if (!balancesContainer) return;
+
+  const visibleLocations = [...data.locations].sort((a, b) =>
+    alphaCompare(a.name || '', b.name || '')
+  );
+
+  balancesContainer.innerHTML = visibleLocations.map((location, index) => {
+    const amount = Number(data.cashByLocation[location.id] || 0);
+    const colorClass = ['c-gold', 'c-green', 'c-purple'][index % 3];
+
+    return `
+      <div class="stat-card ${colorClass}">
+        <div class="stat-label">
+          <i class="ti ti-map-pin"></i>${location.name}
+        </div>
+        <div class="stat-value">$${amount.toLocaleString('fr-FR')}</div>
+        <div class="stat-sub">cash disponible dans cette localisation</div>
+      </div>`;
+  }).join('');
+
   const cashActions = document.getElementById('cash-actions');
   if (cashActions) cashActions.style.display = canAddCashMovement() ? 'flex' : 'none';
-  balanceEl.textContent = '$' + balance.toLocaleString('fr-FR');
-  document.getElementById('cash-stock-value').textContent = '$' + stock.toLocaleString('fr-FR');
-  document.getElementById('cash-total').textContent = '$' + total.toLocaleString('fr-FR');
+
   document.getElementById('cash-count').textContent = data.cashMovements.length;
+
   const tbody = document.getElementById('cash-tbody');
-  const moves = [...data.cashMovements].sort((a,b) => alphaCompare(locationName(a.locationId), locationName(b.locationId)));
+  const moves = [...data.cashMovements].sort((a, b) => {
+    const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+    if (dateCompare !== 0) return dateCompare;
+    return Number(b.id || 0) - Number(a.id || 0);
+  });
+
   if (!moves.length) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><i class="ti ti-cash-off"></i><p>Aucun mouvement cash</p></div></td></tr>';
     return;
   }
+
   tbody.innerHTML = moves.map(m => {
-    const user = data.users.find(u => u.id === m.userId);
-    const isE = m.type === 'entree';
+    const user = data.users.find(u => sameId(u.id, m.userId));
+    const isEntry = m.type === 'entree';
+
     return `<tr>
-      <td style="color:var(--text3);font-size:11.5px;font-family:var(--font-cond)">${m.date}</td>
-      <td><span class="badge ${isE?'badge-green':'badge-red'}"><i class="ti ti-${isE?'arrow-down':'arrow-up'}"></i>${isE?'ENTRÉE':'SORTIE'}</span></td>
-      <td style="font-family:var(--font-display);font-size:22px;color:var(--text)">$${Number(m.amount || 0).toLocaleString('fr-FR')}</td>
-      <td><span class="badge badge-amber"><i class="ti ti-map-pin"></i>${locationName(m.locationId)}</span></td>
-      <td style="color:var(--text2)">${m.reason}</td>
+      <td style="color:var(--text3);font-size:11.5px;font-family:var(--font-cond)">${m.date || '—'}</td>
+      <td>
+        <span class="badge ${isEntry ? 'badge-green' : 'badge-red'}">
+          <i class="ti ti-${isEntry ? 'arrow-down' : 'arrow-up'}"></i>
+          ${isEntry ? 'ENTRÉE' : 'SORTIE'}
+        </span>
+      </td>
+      <td style="font-family:var(--font-display);font-size:22px;color:var(--text)">
+        $${Number(m.amount || 0).toLocaleString('fr-FR')}
+      </td>
+      <td>
+        <span class="badge badge-amber">
+          <i class="ti ti-map-pin"></i>${locationName(m.locationId)}
+        </span>
+      </td>
+      <td style="color:var(--text2)">${m.reason || 'Non précisé'}</td>
       <td>${user ? `${user.firstname} ${user.lastname}`.trim() : '—'}</td>
-      <td>${isBoss() ? `<button class="btn btn-danger btn-sm" onclick="deleteCashMovement(${m.id})"><i class="ti ti-trash"></i></button>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
+      <td>
+        ${isBoss()
+          ? `<button class="btn btn-danger btn-sm" onclick="deleteCashMovement(${m.id})"><i class="ti ti-trash"></i></button>`
+          : '<span class="badge badge-gray">LECTURE</span>'}
+      </td>
     </tr>`;
   }).join('');
 }
@@ -3671,13 +3686,19 @@ const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
   const delta = currentCashType === 'entree' ? amount : -amount;
   data.cashByLocation[locationId] = Math.max(0, balanceBefore + delta);
   const dateStr = nowStr();
-  syncCashLines(
-    dateStr,
-    data.currentUser ? data.currentUser.id : null,
-    currentCashType,
+
+  data.cashMovements.push({
+    id: data.nextId.cash++,
+    type: currentCashType,
+    amount,
     reason,
-    locationId
-  );
+    userId: data.currentUser ? data.currentUser.id : null,
+    locationId,
+    date: dateStr
+  });
+
+  data.cashBalance = Object.values(data.cashByLocation)
+    .reduce((sum, value) => sum + Number(value || 0), 0);
 
   const action = currentCashType === 'entree'
     ? `Entrée cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${reason} <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`
@@ -3691,19 +3712,43 @@ const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
 
 async function deleteCashMovement(id) {
   if (!isBoss()) { deny(); return; }
+
   const movement = data.cashMovements.find(m => sameId(m.id, id));
-  if (!movement) { toast('Ligne de cash introuvable', 'error'); return; }
-  if (!(await siteConfirm(`Supprimer le solde cash actuel de $${movement.amount.toLocaleString('fr-FR')} ?`))) return;
+  if (!movement) {
+    toast('Mouvement cash introuvable', 'error');
+    return;
+  }
 
-  const oldAmount = movement.amount;
-  data.cashByLocation[movement.locationId] = 0;
-  syncCashLines();
+  if (!(await siteConfirm(
+    `Supprimer ce mouvement cash de $${Number(movement.amount || 0).toLocaleString('fr-FR')} ?`
+  ))) return;
 
-  addLog('cash', `Suppression du solde cash de <strong>$${oldAmount.toLocaleString('fr-FR')}</strong> <span style="color:var(--accent)">📍 ${locationName(movement.locationId)}</span>`, userName());
-  toast('Solde cash supprimé', 'info');
+  const currentBalance = Number(data.cashByLocation[movement.locationId] || 0);
+  const amount = Number(movement.amount || 0);
+
+  if (movement.type === 'entree') {
+    if (amount > currentBalance) {
+      toast("Impossible de supprimer cette entrée : le solde actuel est insuffisant.", 'error');
+      return;
+    }
+    data.cashByLocation[movement.locationId] = currentBalance - amount;
+  } else {
+    data.cashByLocation[movement.locationId] = currentBalance + amount;
+  }
+
+  data.cashMovements = data.cashMovements.filter(m => !sameId(m.id, id));
+  data.cashBalance = Object.values(data.cashByLocation)
+    .reduce((sum, value) => sum + Number(value || 0), 0);
+
+  addLog(
+    'cash',
+    `Suppression d'un mouvement cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> <span style="color:var(--accent)">📍 ${locationName(movement.locationId)}</span>`,
+    userName()
+  );
+
+  toast('Mouvement cash supprimé', 'info');
   render();
 }
-
 
 // ===================== LOGS =====================
 function setLogFilter(type, card) {
