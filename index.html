@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="los-santos-flight-v1">
+<meta name="vault-build" content="roles-jefe-segundo-teniente-soldado-visiteur-v1">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -948,9 +948,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
 /* ROLE COLORS */
 .av-boss { background: rgba(232,160,32,0.2); color: var(--accent); }
-.av-sous-chef { background: rgba(232,64,64,0.2); color: var(--red); }
-.av-membre { background: rgba(72,136,232,0.2); color: var(--blue); }
-.av-recrue { background: rgba(90,90,90,0.3); color: var(--text3); }
+.av-segundo { background: rgba(232,64,64,0.2); color: var(--red); }
+.av-teniente { background: rgba(72,136,232,0.2); color: var(--blue); }
+.av-soldado { background: rgba(80,200,120,0.18); color: var(--green); }
+.av-visiteur { background: rgba(90,90,90,0.3); color: var(--text3); }
 
 /* SECTION TITLE ACCENT */
 .section-header {
@@ -1849,9 +1850,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <label class="form-label">Grade</label>
           <select class="form-select" id="u-role">
             <option value="boss">Jefe</option>
-            <option value="sous-chef" selected>Sergento</option>
-            <option value="membre">Membre</option>
-            <option value="recrue">Recrue</option>
+            <option value="segundo" selected>Segundo</option>
+            <option value="teniente">Teniente</option>
+            <option value="soldado">Soldado</option>
+            <option value="visiteur">Visiteur</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Mot de passe</label><input class="form-input" type="password" id="u-pwd" placeholder="••••••••"></div>
@@ -1953,9 +1955,9 @@ let data = {
   ],
   users: [
     { id:1, firstname:'Franklin', lastname:'Clinton', email:'franklin@maze-bank.com', role:'boss', active:true, created:'2024-01-10', pwd:'1234' },
-    { id:2, firstname:'Trevor', lastname:'Philips', email:'trevor@gtamail.com', role:'sous-chef', active:true, created:'2024-01-15', pwd:'1234' },
-    { id:3, firstname:'Michael', lastname:'De Santa', email:'michael@maze-bank.com', role:'membre', active:true, created:'2024-02-05', pwd:'1234' },
-    { id:4, firstname:'Lamar', lastname:'Davis', email:'lamar@gtamail.com', role:'recrue', active:false, created:'2024-04-20', pwd:'1234' },
+    { id:2, firstname:'Trevor', lastname:'Philips', email:'trevor@gtamail.com', role:'segundo', active:true, created:'2024-01-15', pwd:'1234' },
+    { id:3, firstname:'Michael', lastname:'De Santa', email:'michael@maze-bank.com', role:'teniente', active:true, created:'2024-02-05', pwd:'1234' },
+    { id:4, firstname:'Lamar', lastname:'Davis', email:'lamar@gtamail.com', role:'soldado', active:false, created:'2024-04-20', pwd:'1234' },
   ],
   movements: [
     { id:1, type:'entree', productId:1, qty:5, reason:'Livraison Merryweather', userId:2, date:'2025-05-16 09:12' },
@@ -2042,6 +2044,18 @@ function ensureLocationData() {
   if (!Array.isArray(data.categories)) data.categories = [];
   if (!Array.isArray(data.products)) data.products = [];
   if (!Array.isArray(data.users)) data.users = [];
+  const roleMigration = {
+    'sous-chef':'segundo',
+    'sergento':'segundo',
+    'membre':'teniente',
+    'recrue':'soldado'
+  };
+  data.users.forEach(user => {
+    if (roleMigration[user.role]) user.role = roleMigration[user.role];
+  });
+  if (data.currentUser && roleMigration[data.currentUser.role]) {
+    data.currentUser.role = roleMigration[data.currentUser.role];
+  }
   if (!Array.isArray(data.movements)) data.movements = [];
   if (!Array.isArray(data.cashMovements)) data.cashMovements = [];
   if (!Array.isArray(data.logs)) data.logs = [];
@@ -2504,8 +2518,8 @@ let selectedUserId = null;
 
 function buildLoginPage() {
   const container = document.getElementById('login-user-select');
-  const gradeCls = { boss:'av-boss', 'sous-chef':'av-sous-chef', membre:'av-membre', recrue:'av-recrue' };
-  const gradeLabel = { boss:'Jefe', 'sous-chef':'Sergento', membre:'Membre', recrue:'Recrue' };
+  const gradeCls = { boss:'av-boss', segundo:'av-segundo', teniente:'av-teniente', soldado:'av-soldado', visiteur:'av-visiteur' };
+  const gradeLabel = { boss:'Jefe', segundo:'Segundo', teniente:'Teniente', soldado:'Soldado', visiteur:'Visiteur' };
 
   container.innerHTML = data.users.filter(u => u.active).map(u => {
     const initials = (u.firstname[0] + (u.lastname[0] || '')).toUpperCase();
@@ -2546,8 +2560,8 @@ function getCurrentUserName(user = data.currentUser) {
 
 function showLoggedInUser(user) {
   if (!user) return;
-  const gradeCls = { boss:'av-boss', 'sous-chef':'av-sous-chef', membre:'av-membre', recrue:'av-recrue' };
-  const gradeLabel = { boss:'Jefe', 'sous-chef':'Sergento', membre:'Membre', recrue:'Recrue' };
+  const gradeCls = { boss:'av-boss', segundo:'av-segundo', teniente:'av-teniente', soldado:'av-soldado', visiteur:'av-visiteur' };
+  const gradeLabel = { boss:'Jefe', segundo:'Segundo', teniente:'Teniente', soldado:'Soldado', visiteur:'Visiteur' };
   const av = document.getElementById('sidebar-avatar');
   if (av) {
     av.className = 'avatar ' + (gradeCls[user.role] || '');
@@ -3194,27 +3208,36 @@ function drawGameMessage(ctx, title, subtitle) {
 // ===================== PERMISSIONS =====================
 function role() { return data.currentUser ? data.currentUser.role : null; }
 function isBoss() { return role() === 'boss'; }
-function isSousChef() { return role() === 'sous-chef'; }
-function isMembre() { return role() === 'membre'; }
-function isRecrue() { return role() === 'recrue'; }
+function isSegundo() { return role() === 'segundo'; }
+function isTeniente() { return role() === 'teniente'; }
+function isSoldado() { return role() === 'soldado'; }
+function isVisiteur() { return role() === 'visiteur'; }
 function canDelete() { return isBoss(); }
-function canManageInventory() { return isBoss(); }
-function canRecruit() { return isBoss(); }
-function canManageMembers() { return isBoss(); }
-function canEditMembers() { return isBoss(); }
-function canAddMovement() { return isBoss() || isSousChef() || isMembre(); }
-function canAddCashMovement() { return !!data.currentUser; }
-function canViewLogs() { return isBoss() || isSousChef(); }
-function canViewCategories() { return isBoss() || isSousChef(); }
-function canAddCategory() { return isBoss() || isSousChef(); }
-function canAccessSection(section) {
-  if (section === 'logs') return canViewLogs();
-  if (section === 'cash') return !!data.currentUser;
-  if (section === 'categories' || section === 'locations') return canViewCategories();
-  if (section === 'mouvements') return !isRecrue();
-  return ['dashboard','stock','users'].includes(section);
+function canClearLogs() { return isBoss(); }
+function canAddProduct() { return isBoss() || isSegundo() || isTeniente(); }
+function canEditProduct() { return isBoss() || isSegundo(); }
+function canManageInventory() { return canAddProduct(); }
+function canRecruit() { return isBoss() || isSegundo(); }
+function canManageMembers() { return isBoss() || isSegundo(); }
+function canEditMembers() { return isBoss() || isSegundo(); }
+function canAddMovement() { return !!data.currentUser && !isVisiteur(); }
+function canAddCashMovement() { return !!data.currentUser && !isVisiteur(); }
+function canViewLogs() { return !!data.currentUser; }
+function canViewCategories() { return !!data.currentUser; }
+function canAddCategory() { return isBoss() || isSegundo(); }
+function canManageTargetUser(target) {
+  if (!target) return false;
+  if (isBoss()) return true;
+  return isSegundo() && target.role !== 'boss';
 }
-function deny() { toast('Accès refusé pour ton grade', 'error'); }
+function canAssignRole(targetRole) {
+  if (isBoss()) return true;
+  return isSegundo() && targetRole !== 'boss';
+}
+function canAccessSection(section) {
+  return !!data.currentUser && ['dashboard','stock','mouvements','cash','logs','users','categories','locations'].includes(section);
+}
+function deny(message = 'Accès refusé pour ton grade') { toast(message, 'error'); }
 
 function updatePermissionsUI() {
   document.querySelectorAll('.nav-item[data-section]').forEach(item => {
@@ -3243,7 +3266,7 @@ function updatePermissionsUI() {
 }
 
 function topbarActionAllowed() {
-  if (currentSection === 'stock') return canManageInventory();
+  if (currentSection === 'stock') return canAddProduct();
   if (currentSection === 'users') return canRecruit();
   if (currentSection === 'categories' || currentSection === 'locations') return canAddCategory();
   // Aucun bouton supérieur dans les onglets Mouvements et Cash :
@@ -3460,10 +3483,10 @@ function renderStock() {
       <td style="font-family:var(--font-display);font-size:20px;letter-spacing:0.04em">${p.qty}</td>
       <td style="color:var(--accent);font-family:var(--font-cond);font-weight:600">$${Number(p.price || 0).toLocaleString('fr-FR')}</td>
       <td style="color:var(--green);font-family:var(--font-cond);font-weight:700">$${(Number(p.price || 0) * Number(p.qty || 0)).toLocaleString('fr-FR')}</td>
-      <td>${canManageInventory() ? `
+      <td>${canEditProduct() || canDelete() ? `
         <div style="display:flex;gap:6px">
-          <button class="btn btn-ghost btn-sm" onclick="editProduct(${p.id})"><i class="ti ti-edit"></i></button>
-          <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})"><i class="ti ti-trash"></i></button>
+          ${canEditProduct() ? `<button class="btn btn-ghost btn-sm" onclick="editProduct(${p.id})"><i class="ti ti-edit"></i></button>` : ''}
+          ${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})"><i class="ti ti-trash"></i></button>` : ''}
         </div>` : '<span class="badge badge-gray">LECTURE</span>'}
       </td>
     </tr>`;
@@ -3746,7 +3769,7 @@ function renderLogs() {
 }
 
 async function clearLogs() {
-  if (!canDelete()) { deny(); return; }
+  if (!canClearLogs()) { deny(); return; }
   if (!(await siteConfirm('Effacer tous les logs ?', 'Effacer'))) return;
   data.logs = [];
   addLog('system','Journal effacé',data.currentUser?data.currentUser.firstname:'Système');
@@ -3757,9 +3780,9 @@ async function clearLogs() {
 // ===================== USERS =====================
 function renderUsers() {
   document.getElementById('users-count').textContent = data.users.length;
-  const gradeCls = { boss:'av-boss', 'sous-chef':'av-sous-chef', membre:'av-membre', recrue:'av-recrue' };
-  const gradeLabel = { boss:'Jefe', 'sous-chef':'Sergento', membre:'Membre', recrue:'Recrue' };
-  const gradeBadge = { boss:'badge-amber', 'sous-chef':'badge-red', membre:'badge-blue', recrue:'badge-gray' };
+  const gradeCls = { boss:'av-boss', segundo:'av-segundo', teniente:'av-teniente', soldado:'av-soldado', visiteur:'av-visiteur' };
+  const gradeLabel = { boss:'Jefe', segundo:'Segundo', teniente:'Teniente', soldado:'Soldado', visiteur:'Visiteur' };
+  const gradeBadge = { boss:'badge-amber', segundo:'badge-red', teniente:'badge-blue', soldado:'badge-green', visiteur:'badge-gray' };
 
   document.getElementById('users-tbody').innerHTML = data.users.map(u => {
     const initials = (u.firstname[0]+(u.lastname[0]||'')).toUpperCase();
@@ -3772,10 +3795,10 @@ function renderUsers() {
       <td><span class="badge ${gradeBadge[u.role]||'badge-gray'}">${gradeLabel[u.role]||u.role}</span></td>
       <td style="color:var(--text3);font-size:12px;font-family:var(--font-cond)">${u.created}</td>
       <td><span class="badge ${u.active?'badge-green':'badge-gray'}">${u.active?'ACTIF':'EXCLU'}</span></td>
-      <td>${canManageMembers() ? `<div style="display:flex;gap:6px">
+      <td>${canManageMembers() && canManageTargetUser(u) ? `<div style="display:flex;gap:6px">
         <button class="btn btn-ghost btn-sm" onclick="editUser(${u.id})" title="Modifier"><i class="ti ti-edit"></i> Modifier</button>
         <button class="btn btn-ghost btn-sm" onclick="toggleUserActive(${u.id})" title="${u.active?'Exclure':'Réintégrer'}">${u.active?'<i class="ti ti-user-off"></i> Exclure':'<i class="ti ti-user-check"></i> Réintégrer'}</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})" title="Supprimer"><i class="ti ti-trash"></i> Supprimer</button>
+        ${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})" title="Supprimer"><i class="ti ti-trash"></i> Supprimer</button>` : ''}
       </div>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
     </tr>`;
   }).join('');
@@ -3948,7 +3971,7 @@ function openAddModal() {
 }
 
 function editProduct(id) {
-  if (!canManageInventory()) { deny(); return; }
+  if (!canEditProduct()) { deny(); return; }
   const p = data.products.find(pr => pr.id === id);
   if (!p) return;
   data.editingProduct = id;
@@ -3962,7 +3985,11 @@ function editProduct(id) {
 }
 
 function saveProduct() {
-  if (!canManageInventory()) { deny(); return; }
+  if (data.editingProduct) {
+    if (!canEditProduct()) { deny(); return; }
+  } else if (!canAddProduct()) {
+    deny(); return;
+  }
   const name = document.getElementById('p-name').value.trim();
   const price = parseFloat(document.getElementById('p-price').value)||0;
   const locationId = parseInt(document.getElementById('p-loc').value);
@@ -4159,12 +4186,23 @@ function setUserModalMode(mode) {
   if (btn) btn.innerHTML = isEdit ? '<i class="ti ti-check"></i> Enregistrer' : '<i class="ti ti-check"></i> Recruter';
 }
 
+function refreshAssignableRoles(selectedRole = 'soldado') {
+  const select = document.getElementById('u-role');
+  if (!select) return;
+  const roles = isBoss()
+    ? [['boss','Jefe'],['segundo','Segundo'],['teniente','Teniente'],['soldado','Soldado'],['visiteur','Visiteur']]
+    : [['segundo','Segundo'],['teniente','Teniente'],['soldado','Soldado'],['visiteur','Visiteur']];
+  select.innerHTML = roles.map(([value,label]) =>
+    `<option value="${value}" ${value === selectedRole ? 'selected' : ''}>${label}</option>`
+  ).join('');
+}
+
 function openUserModal() {
   if (!canRecruit()) { deny(); return; }
   data.editingUser = null;
   setUserModalMode('add');
   ['u-firstname','u-lastname','u-email','u-pwd'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('u-role').value='membre';
+  refreshAssignableRoles('soldado');
   openModal('modal-user');
 }
 
@@ -4172,12 +4210,13 @@ function editUser(id) {
   if (!canEditMembers()) { deny(); return; }
   const u = data.users.find(user => user.id === id);
   if (!u) return;
+  if (!canManageTargetUser(u)) { deny('Un Segundo ne peut pas modifier un Jefe'); return; }
   data.editingUser = id;
   setUserModalMode('edit');
   document.getElementById('u-firstname').value = u.firstname || '';
   document.getElementById('u-lastname').value = u.lastname || '';
   document.getElementById('u-email').value = u.email || '';
-  document.getElementById('u-role').value = u.role || 'membre';
+  refreshAssignableRoles(u.role || 'soldado');
   document.getElementById('u-pwd').value = '';
   document.getElementById('u-pwd').placeholder = 'Laisser vide pour garder le mot de passe';
   openModal('modal-user');
@@ -4192,10 +4231,12 @@ function saveUser() {
   const role = document.getElementById('u-role').value;
   const pwdInput = document.getElementById('u-pwd').value;
   if (!firstname||!email) { toast('Prénom et email requis','error'); return; }
+  if (!canAssignRole(role)) { deny('Un Segundo ne peut pas attribuer le grade Jefe'); return; }
 
   if (data.editingUser) {
     const u = data.users.find(user => user.id === data.editingUser);
     if (!u) return;
+    if (!canManageTargetUser(u)) { deny('Un Segundo ne peut pas modifier un Jefe'); return; }
     const oldName = `${u.firstname} ${u.lastname}`.trim();
     u.firstname = firstname;
     u.lastname = lastname;
@@ -4223,6 +4264,7 @@ function toggleUserActive(id) {
   if (!canManageMembers()) { deny(); return; }
   const u = data.users.find(u=>u.id===id);
   if (!u) return;
+  if (!canManageTargetUser(u)) { deny('Un Segundo ne peut pas exclure un Jefe'); return; }
   u.active = !u.active;
   addLog('user',`Membre ${u.active?'réintégré':'exclu'} : <strong>${u.firstname} ${u.lastname}</strong>`, userName());
   toast(`Membre ${u.active?'réintégré':'exclu'}`,'info');
@@ -4230,7 +4272,7 @@ function toggleUserActive(id) {
 }
 
 async function deleteUser(id) {
-  if (!canManageMembers()) { deny(); return; }
+  if (!canDelete()) { deny('Seul le Jefe peut supprimer définitivement un membre'); return; }
   const u = data.users.find(user => sameId(user.id, id));
   if (!u) { toast('Membre introuvable', 'error'); return; }
   if (!(await siteConfirm(`Exclure définitivement ${u.firstname} ${u.lastname} ?`, "Exclure"))) return;
