@@ -1497,6 +1497,11 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             </div>
             <div id="dash-recent-logs"></div>
           </div>
+<div class="card">
+  <div class="card-header"><h3><i class="ti ti-cash"></i> Dernières opérations de cash</h3></div>
+  <div id="dash-recent-cash"></div>
+</div>
+
           <div class="card">
             <div class="card-header">
               <i class="ti ti-chart-pie" style="color:var(--purple)"></i>
@@ -3461,6 +3466,28 @@ function renderDashboard() {
 function locationName(id) {
   const loc = data.locations.find(l => l.id == id);
   return loc ? loc.name : 'Non définie';
+
+  const cashBox=document.getElementById('dash-recent-cash');
+  if(cashBox){
+    const ops=[...(data.cashMovements||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||((b.id||0)-(a.id||0))).slice(0,5);
+    if(!ops.length){
+      cashBox.innerHTML='<div class="empty"><i class="ti ti-cash-off"></i><p>Aucune opération</p></div>';
+    }else{
+      cashBox.innerHTML=ops.map(o=>{
+        const u=(data.users||[]).find(x=>sameId(x.id,o.userId));
+        const plus=o.type==='entree';
+        return `<div class="log-item">
+          <div class="log-icon" style="background:${plus?'var(--green-soft)':'var(--red-soft)'}">
+            <i class="ti ti-${plus?'plus':'minus'}" style="color:${plus?'var(--green)':'var(--red)'}"></i>
+          </div>
+          <div class="log-content">
+            <div class="log-action"><strong style="color:${plus?'var(--green)':'var(--red)'}">${plus?'+':'-'}$${Number(o.amount||0).toLocaleString('fr-FR')}</strong> — ${locationName(o.locationId)}</div>
+            <div class="log-meta"><span>${u?`${u.firstname} ${u.lastname}`:'—'}</span><span>${o.date||''}</span></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
 }
 
 function locationOptions(selected = null) {
