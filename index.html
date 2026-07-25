@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="visiteur-cash-bloque-v3">
+<meta name="vault-build" content="dashboard-dernieres-operations-v4">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3426,23 +3426,41 @@ function renderDashboard() {
   }
 
   const recentOps = document.getElementById('dash-recent-logs');
-  const moves = [...data.movements].reverse().slice(0, 5);
-  if (!moves.length) {
+
+  // Les mouvements sont regroupés par article dans la page Mouvements.
+  // Pour afficher les vraies dernières opérations, le tableau de bord utilise
+  // le journal, qui conserve chaque entrée et chaque sortie séparément.
+  const recentStockOperations = (Array.isArray(data.logs) ? data.logs : [])
+    .filter(log => {
+      if (log.type !== 'stock') return false;
+      const plainAction = String(log.action || '').replace(/<[^>]*>/g, '').trim();
+      return /^(Entrée de|Sortie de)/.test(plainAction);
+    })
+    .sort((a, b) => {
+      const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+      if (dateCompare !== 0) return dateCompare;
+      return Number(b.id || 0) - Number(a.id || 0);
+    })
+    .slice(0, 5);
+
+  if (!recentStockOperations.length) {
     recentOps.innerHTML = '<div class="empty"><i class="ti ti-arrows-exchange"></i><p>Aucune opération</p></div>';
   } else {
-    recentOps.innerHTML = moves.map(m => {
-      const product = data.products.find(p => p.id === m.productId);
-      const user = data.users.find(u => u.id === m.userId);
-      const isE = m.type === 'entree';
-      const typeLabel = isE ? 'ENTRÉE' : 'SORTIE';
+    recentOps.innerHTML = recentStockOperations.map(log => {
+      const plainAction = String(log.action || '').replace(/<[^>]*>/g, '').trim();
+      const isEntry = /^Entrée de/.test(plainAction);
+
       return `
         <div class="log-item">
-          <div class="log-icon" style="background:${isE ? 'var(--green-soft)' : 'var(--red-soft)'}">
-            <i class="ti ti-${isE ? 'arrow-down' : 'arrow-up'}" style="font-size:13px;color:${isE ? 'var(--green)' : 'var(--red)'}"></i>
+          <div class="log-icon" style="background:${isEntry ? 'var(--green-soft)' : 'var(--red-soft)'}">
+            <i class="ti ti-${isEntry ? 'arrow-down' : 'arrow-up'}" style="font-size:13px;color:${isEntry ? 'var(--green)' : 'var(--red)'}"></i>
           </div>
           <div class="log-content">
-            <div class="log-action"><strong>${typeLabel}</strong> de ${m.qty} unité(s) — ${product ? product.name : 'Article supprimé'}</div>
-            <div class="log-meta"><span>${user ? `${user.firstname} ${user.lastname}`.trim() : '—'}</span><span>${m.date}</span><span><i class="ti ti-map-pin"></i> ${locationName(m.locationId)}</span><span>${m.reason}</span></div>
+            <div class="log-action">${log.action || 'Opération de stock'}</div>
+            <div class="log-meta">
+              <span><i class="ti ti-user"></i> ${log.user || 'Système'}</span>
+              <span><i class="ti ti-clock"></i> ${log.date || '—'}</span>
+            </div>
           </div>
         </div>`;
     }).join('');
