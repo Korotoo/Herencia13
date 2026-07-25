@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="roles-permissions-corrigees-v2">
+<meta name="vault-build" content="visiteur-cash-bloque-v3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3206,12 +3206,17 @@ function drawGameMessage(ctx, title, subtitle) {
 
 
 // ===================== PERMISSIONS =====================
-function role() { return data.currentUser ? data.currentUser.role : null; }
+function role() {
+  if (!data.currentUser) return null;
+  const freshUser = (data.users || []).find(u => sameId(u.id, data.currentUser.id));
+  const rawRole = freshUser?.role ?? data.currentUser.role ?? '';
+  return String(rawRole).trim().toLowerCase();
+}
 function isBoss() { return role() === 'boss'; }
 function isSegundo() { return role() === 'segundo'; }
 function isTeniente() { return role() === 'teniente'; }
 function isSoldado() { return role() === 'soldado'; }
-function isVisiteur() { return role() === 'visiteur'; }
+function isVisiteur() { return ['visiteur','visitor'].includes(role()); }
 function canDelete() { return isBoss(); }
 function canClearLogs() { return isBoss(); }
 function canAddProduct() { return isBoss() || isSegundo() || isTeniente(); }
@@ -3263,6 +3268,8 @@ function updatePermissionsUI() {
   if (topbarAction) topbarAction.style.display = topbarActionAllowed() ? 'inline-flex' : 'none';
   const movesActions = document.getElementById('moves-actions');
   if (movesActions) movesActions.style.display = canAddMovement() ? 'flex' : 'none';
+  const cashActions = document.getElementById('cash-actions');
+  if (cashActions) cashActions.style.display = canAddCashMovement() ? 'flex' : 'none';
   const usersActions = document.getElementById('users-actions');
   if (usersActions) usersActions.style.display = canRecruit() ? 'flex' : 'none';
   const catsActions = document.getElementById('cats-actions');
@@ -3574,6 +3581,8 @@ function renderCash() {
   const total = balance + stock;
   const balanceEl = document.getElementById('cash-balance');
   if (!balanceEl) return;
+  const cashActions = document.getElementById('cash-actions');
+  if (cashActions) cashActions.style.display = canAddCashMovement() ? 'flex' : 'none';
   balanceEl.textContent = '$' + balance.toLocaleString('fr-FR');
   document.getElementById('cash-stock-value').textContent = '$' + stock.toLocaleString('fr-FR');
   document.getElementById('cash-total').textContent = '$' + total.toLocaleString('fr-FR');
@@ -3601,9 +3610,11 @@ function renderCash() {
 
 let currentCashType = 'entree';
 function openCashModal(type) {
- if (!canAddCashMovement()) { deny('Le grade Visiteur est en lecture seule'); return; }
-   if (!canAddCashMovement()) { deny(); return; }
-  currentCashType = type;
+  if (!canAddCashMovement()) {
+    deny('Le grade Visiteur ne peut faire aucune entrée ni sortie de cash');
+    return;
+  }
+currentCashType = type;
   document.getElementById('modal-cash-title').textContent = type === 'entree' ? "ENTRÉE D'ARGENT" : "SORTIE D'ARGENT";
   const c = document.getElementById('cash-confirm');
   c.className = `btn ${type === 'entree' ? 'btn-success' : 'btn-danger'}`;
@@ -3615,13 +3626,23 @@ function openCashModal(type) {
 }
 
 function saveCashMovement() {
-  if (!canAddCashMovement()) { deny(); return; }
+  if (!canAddCashMovement()) {
+    deny('Le grade Visiteur ne peut faire aucune entrée ni sortie de cash');
+    closeModal('modal-cash');
+    return;
+  }
 
-  const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
+const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
   const reason = document.getElementById('cash-reason').value.trim() || 'Non précisé';
   const locationId = parseInt(document.getElementById('cash-location').value);
   if (amount <= 0) { toast('Montant invalide','error'); return; }
   if (!locationId) { toast('Choisis une localisation','error'); return; }
+
+  if (isVisiteur()) {
+    deny('Le grade Visiteur ne peut faire aucune entrée ni sortie de cash');
+    closeModal('modal-cash');
+    return;
+  }
 
   const balanceBefore = Number(data.cashByLocation[locationId] || 0);
   if (currentCashType === 'sortie' && amount > balanceBefore) {
