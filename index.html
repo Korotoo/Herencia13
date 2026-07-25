@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="roles-jefe-segundo-teniente-soldado-visiteur-v1">
+<meta name="vault-build" content="roles-permissions-corrigees-v2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3235,7 +3235,13 @@ function canAssignRole(targetRole) {
   return isSegundo() && targetRole !== 'boss';
 }
 function canAccessSection(section) {
-  return !!data.currentUser && ['dashboard','stock','mouvements','cash','logs','users','categories','locations'].includes(section);
+  if (!data.currentUser) return false;
+
+  if (['logs','categories','locations'].includes(section)) {
+    return isBoss() || isSegundo();
+  }
+
+  return ['dashboard','stock','mouvements','cash','users'].includes(section);
 }
 function deny(message = 'Accès refusé pour ton grade') { toast(message, 'error'); }
 
@@ -3277,6 +3283,10 @@ function topbarActionAllowed() {
 
 // ===================== NAV =====================
 function nav(section, el) {
+  if (!canAccessSection(section)) {
+    deny('Cette section est réservée au Segundo et au Jefe');
+    return;
+  }
   if (!canAccessSection(section)) { deny(); return; }
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -3591,7 +3601,8 @@ function renderCash() {
 
 let currentCashType = 'entree';
 function openCashModal(type) {
-  if (!canAddCashMovement()) { deny(); return; }
+ if (!canAddCashMovement()) { deny('Le grade Visiteur est en lecture seule'); return; }
+   if (!canAddCashMovement()) { deny(); return; }
   currentCashType = type;
   document.getElementById('modal-cash-title').textContent = type === 'entree' ? "ENTRÉE D'ARGENT" : "SORTIE D'ARGENT";
   const c = document.getElementById('cash-confirm');
