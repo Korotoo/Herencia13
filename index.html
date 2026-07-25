@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="mouvements-recent-vers-ancien-v8">
+<meta name="vault-build" content="anti-dedoublement-v8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1350,6 +1350,14 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .game-mobile-tip { display: block; }
 }
 
+
+/* ===== CORRECTIF ANTI-DÉDOUBLEMENT ===== */
+body.logged-in #login-page { display: none !important; }
+body.logged-in #app { display: flex !important; }
+body:not(.logged-in) #app { display: none !important; }
+.section:not(.active) { display: none !important; }
+.section.active { display: block !important; }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -2671,6 +2679,8 @@ function restoreSession() {
   const session = readStoredSession();
   if (!session || Number(session.expiresAt || 0) <= Date.now()) {
     clearStoredSession();
+    document.body.classList.remove('logged-in');
+    document.getElementById('app')?.classList.remove('visible');
     return false;
   }
 
@@ -2683,6 +2693,7 @@ function restoreSession() {
   data.currentUser = user;
   selectedUserId = user.id;
   showLoggedInUser(user);
+  document.body.classList.add('logged-in');
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   extendSession();
@@ -2711,6 +2722,7 @@ function doLogin() {
   showLoggedInUser(user);
   addLog('user', `Connexion de <strong>${getCurrentUserName(user)}</strong>`, getCurrentUserName(user));
 
+  document.body.classList.add('logged-in');
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('app').classList.add('visible');
 
@@ -2740,6 +2752,7 @@ function doLogout(reason = 'manual') {
   selectedUserId = null;
   const pwd = document.getElementById('login-pwd');
   if (pwd) pwd.value = '';
+  document.body.classList.remove('logged-in');
   document.getElementById('login-page').style.display = 'flex';
   document.getElementById('app').classList.remove('visible');
   buildLoginPage();
@@ -3292,9 +3305,13 @@ function nav(section, el) {
     return;
   }
   if (!canAccessSection(section)) { deny(); return; }
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => {
+    s.classList.toggle('active', s.id === 'sec-' + section);
+  });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('sec-' + section).classList.add('active');
+  const targetSection = document.getElementById('sec-' + section);
+  if (!targetSection) return;
+  targetSection.classList.add('active');
   const navEl = el || document.querySelector(`.nav-item[data-section="${section}"]`);
   if (navEl) navEl.classList.add('active');
   currentSection = section;
