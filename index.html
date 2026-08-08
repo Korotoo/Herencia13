@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="agenda-france-time-v10">
+<meta name="vault-build" content="agenda-france-time-v11-forced-selector">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2075,9 +2075,12 @@ body:not(.logged-in) #app { display: none !important; }
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label class="form-label">Date en France</label><input class="form-input" type="date" id="agenda-date" lang="fr-FR"></div>
-        <div class="form-group"><label class="form-label">Heure française</label><input class="form-input" type="time" id="agenda-time" lang="fr-FR"></div>
+        <div class="form-group">
+          <label class="form-label" for="agenda-time">Heure française (Paris)</label>
+          <select class="form-select" id="agenda-time" aria-describedby="agenda-time-zone-help"></select>
+        </div>
       </div>
-      <div class="agenda-visibility-help" style="margin-top:-8px;margin-bottom:16px"><i class="ti ti-clock"></i> Fuseau Europe/Paris — passage heure d’été / heure d’hiver automatique.</div>
+      <div class="agenda-visibility-help" id="agenda-time-zone-help" style="margin-top:-8px;margin-bottom:16px"><i class="ti ti-clock"></i> Toutes les heures proposées et enregistrées sont obligatoirement celles de la France (Europe/Paris), quel que soit le fuseau de l’appareil.</div>
       <div class="form-group">
         <label class="form-label">Raison du rendez-vous</label>
         <textarea class="form-input" id="agenda-reason" rows="3" maxlength="300" placeholder="Ex : Réunion préparation opération"></textarea>
@@ -3751,6 +3754,27 @@ function parisDefaultAppointmentDateTime() {
   };
 }
 
+function populateFrenchAppointmentTimes(selectedTime) {
+  const timeSelect = document.getElementById('agenda-time');
+  if (!timeSelect) return;
+
+  const normalizedSelection = /^\d{2}:\d{2}$/.test(String(selectedTime || ''))
+    ? String(selectedTime)
+    : '12:00';
+  const options = [];
+
+  // Sélecteur contrôlé par le site : aucun fuseau local du navigateur n'est utilisé.
+  for (let totalMinutes = 0; totalMinutes < 24 * 60; totalMinutes += 15) {
+    const hour = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+    const minute = String(totalMinutes % 60).padStart(2, '0');
+    const value = `${hour}:${minute}`;
+    options.push(`<option value="${value}" ${value === normalizedSelection ? 'selected' : ''}>${hour} h ${minute} — heure française</option>`);
+  }
+
+  timeSelect.innerHTML = options.join('');
+  if (!timeSelect.value) timeSelect.value = normalizedSelection;
+}
+
 function parisWallClockToDate(dateKey, timeValue = '00:00') {
   const dateMatch = String(dateKey).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const timeMatch = String(timeValue).match(/^(\d{2}):(\d{2})$/);
@@ -3924,7 +3948,7 @@ function openAgendaModal(prefillDate = agendaSelectedDate) {
   const dateInput = document.getElementById('agenda-date');
   dateInput.min = parisDateKey(new Date());
   dateInput.value = /^\d{4}-\d{2}-\d{2}$/.test(prefillDate) ? prefillDate : frenchDefault.date;
-  document.getElementById('agenda-time').value = frenchDefault.time;
+  populateFrenchAppointmentTimes(frenchDefault.time);
   document.getElementById('agenda-reason').value = '';
   document.getElementById('agenda-with').value = '';
   document.getElementById('agenda-member-list').innerHTML = data.users
