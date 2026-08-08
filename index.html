@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="anti-dedoublement-v8">
+<meta name="vault-build" content="agenda-realtime-v9">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1350,6 +1350,258 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .game-mobile-tip { display: block; }
 }
 
+/* ===== AGENDA TEMPS RÉEL ===== */
+.agenda-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: linear-gradient(120deg, var(--bg2), rgba(232,160,32,.08));
+}
+.agenda-live-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  color: var(--accent);
+  font-size: 24px;
+  border: 1px solid rgba(232,160,32,.28);
+  background: var(--accent-soft);
+}
+.agenda-live-label {
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.agenda-live-time {
+  margin-top: 1px;
+  font-family: var(--font-display);
+  font-size: 31px;
+  line-height: 1;
+  letter-spacing: .04em;
+}
+.agenda-live-date { margin-top: 3px; color: var(--text2); font-size: 12px; text-transform: capitalize; }
+.agenda-access-note {
+  margin-left: auto;
+  max-width: 330px;
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+  text-transform: uppercase;
+}
+.agenda-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, .72fr);
+  gap: 16px;
+  align-items: start;
+}
+.agenda-calendar-card, .agenda-day-panel {
+  border: 1px solid var(--border);
+  background: var(--bg2);
+}
+.agenda-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 62px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.agenda-month-title {
+  margin-right: auto;
+  font-family: var(--font-cond);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.agenda-month-nav {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.agenda-month-nav:hover { color: var(--accent); border-color: rgba(232,160,32,.45); }
+.agenda-today-btn {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--font-cond);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.agenda-today-btn:hover { color: var(--text); background: var(--bg3); }
+.agenda-weekdays, .agenda-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.agenda-weekdays {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.agenda-weekday {
+  padding: 8px 4px;
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.agenda-day {
+  position: relative;
+  min-width: 0;
+  min-height: 104px;
+  padding: 7px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.agenda-day:nth-child(7n) { border-right: 0; }
+.agenda-day:hover { background: var(--bg3); }
+.agenda-day.outside { opacity: .38; }
+.agenda-day.selected { background: rgba(232,160,32,.075); box-shadow: inset 0 0 0 1px rgba(232,160,32,.42); }
+.agenda-day.today .agenda-day-number {
+  display: inline-grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  margin: -2px 0 3px -2px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #121212;
+  font-weight: 800;
+}
+.agenda-day-number { font-family: var(--font-cond); font-size: 12px; font-weight: 700; }
+.agenda-day-events { display: grid; gap: 3px; margin-top: 4px; }
+.agenda-day-event {
+  min-width: 0;
+  padding: 3px 5px;
+  border-left: 2px solid var(--blue);
+  background: var(--blue-soft);
+  color: var(--text2);
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agenda-day-event.leadership { border-color: var(--purple); background: var(--purple-soft); }
+.agenda-more { padding-left: 4px; color: var(--accent); font-family: var(--font-cond); font-size: 9px; font-weight: 700; }
+.agenda-day-panel { position: sticky; top: 76px; }
+.agenda-day-panel-head {
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.agenda-day-panel-kicker {
+  color: var(--accent);
+  font-family: var(--font-cond);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.agenda-day-panel-title { margin-top: 3px; font-family: var(--font-cond); font-size: 18px; font-weight: 800; text-transform: capitalize; }
+.agenda-day-list { display: grid; gap: 10px; max-height: calc(100vh - 245px); padding: 12px; overflow: auto; }
+.agenda-empty { padding: 34px 18px; color: var(--text3); text-align: center; }
+.agenda-empty i { display: block; margin-bottom: 8px; font-size: 28px; }
+.agenda-empty strong { display: block; color: var(--text2); font-family: var(--font-cond); font-size: 14px; text-transform: uppercase; }
+.agenda-event-card {
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  background: var(--bg3);
+}
+.agenda-event-card.leadership { border-left-color: var(--purple); }
+.agenda-event-card.past { opacity: .72; }
+.agenda-event-top { display: flex; align-items: center; gap: 8px; }
+.agenda-event-time { color: var(--accent); font-family: var(--font-display); font-size: 24px; letter-spacing: .04em; }
+.agenda-event-badge {
+  padding: 3px 6px;
+  border: 1px solid rgba(200,112,232,.28);
+  background: var(--purple-soft);
+  color: var(--purple);
+  font-family: var(--font-cond);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.agenda-delete {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+}
+.agenda-delete:hover { color: var(--red); border-color: var(--red); background: var(--red-soft); }
+.agenda-event-reason { margin-top: 8px; color: var(--text); font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.agenda-event-with { margin-top: 5px; color: var(--text2); font-size: 11px; overflow-wrap: anywhere; }
+.agenda-event-with i { color: var(--blue); }
+.agenda-event-author { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--text3); font-size: 10px; }
+.agenda-reactions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.agenda-reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 33px;
+  padding: 6px 8px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  font-family: var(--font-cond);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.agenda-reaction-btn.present.active { color: var(--green); border-color: rgba(80,200,120,.45); background: var(--green-soft); }
+.agenda-reaction-btn.absent.active { color: var(--red); border-color: rgba(232,64,64,.45); background: var(--red-soft); }
+.agenda-response-names { margin-top: 7px; color: var(--text3); font-size: 9px; line-height: 1.4; }
+.agenda-response-names span { color: var(--text2); }
+.agenda-visibility-help { margin-top: 7px; color: var(--text3); font-size: 10px; line-height: 1.4; }
+
+@media (max-width: 980px) {
+  .agenda-layout { grid-template-columns: 1fr; }
+  .agenda-day-panel { position: static; }
+  .agenda-day-list { max-height: none; }
+}
+@media (max-width: 680px) {
+  .agenda-hero { align-items: flex-start; padding: 14px; }
+  .agenda-access-note { display: none; }
+  .agenda-calendar-toolbar { flex-wrap: wrap; }
+  .agenda-month-title { flex: 1 1 calc(100% - 80px); }
+  .agenda-today-btn { order: 3; width: 100%; }
+  .agenda-day { min-height: 76px; padding: 5px 3px; }
+  .agenda-day-event { padding: 2px 3px; font-size: 8px; }
+  .agenda-day-event .agenda-chip-reason { display: none; }
+  .agenda-more { font-size: 8px; }
+}
+
 
 /* ===== CORRECTIF ANTI-DÉDOUBLEMENT ===== */
 body.logged-in #login-page { display: none !important; }
@@ -1416,6 +1668,7 @@ body:not(.logged-in) #app { display: none !important; }
     <nav class="sidebar-nav">
       <div class="nav-section">Quartier Général</div>
       <div class="nav-item active" data-section="dashboard" onclick="nav('dashboard', this)"><i class="ti ti-chart-bar"></i>Tableau de bord</div>
+      <div class="nav-item" data-section="agenda" onclick="nav('agenda', this)"><i class="ti ti-calendar-event"></i>Agenda</div>
       <div class="nav-item" data-section="stock" onclick="nav('stock', this)"><i class="ti ti-box"></i>Inventaire</div>
       <div class="nav-section">Opérations</div>
       <div class="nav-item" data-section="mouvements" onclick="nav('mouvements', this)"><i class="ti ti-arrows-exchange"></i>Mouvements</div>
@@ -1519,6 +1772,45 @@ body:not(.logged-in) #app { display: none !important; }
             </div>
             <div id="dashboard-quick-summary"></div>
           </div>
+        </div>
+      </section>
+
+      <!-- AGENDA -->
+      <section class="section" id="sec-agenda">
+        <div class="agenda-hero">
+          <div class="agenda-live-icon"><i class="ti ti-clock-hour-4"></i></div>
+          <div>
+            <div class="agenda-live-label">Heure réelle</div>
+            <div class="agenda-live-time" id="agenda-live-time">--:--:--</div>
+            <div class="agenda-live-date" id="agenda-live-date">—</div>
+          </div>
+          <div class="agenda-access-note">
+            Tous les rendez-vous publics sont visibles du Soldado au Jefe. Les rendez-vous de direction restent réservés au Segundo et au Jefe.
+          </div>
+        </div>
+
+        <div class="agenda-layout">
+          <div class="agenda-calendar-card">
+            <div class="agenda-calendar-toolbar">
+              <div class="agenda-month-title" id="agenda-month-title">—</div>
+              <button class="agenda-month-nav" type="button" onclick="changeAgendaMonth(-1)" title="Mois précédent"><i class="ti ti-chevron-left"></i></button>
+              <button class="agenda-month-nav" type="button" onclick="changeAgendaMonth(1)" title="Mois suivant"><i class="ti ti-chevron-right"></i></button>
+              <button class="agenda-today-btn" type="button" onclick="goAgendaToday()"><i class="ti ti-calendar-dot"></i> Aujourd'hui</button>
+            </div>
+            <div class="agenda-weekdays">
+              <div class="agenda-weekday">Lun</div><div class="agenda-weekday">Mar</div><div class="agenda-weekday">Mer</div>
+              <div class="agenda-weekday">Jeu</div><div class="agenda-weekday">Ven</div><div class="agenda-weekday">Sam</div><div class="agenda-weekday">Dim</div>
+            </div>
+            <div class="agenda-grid" id="agenda-grid"></div>
+          </div>
+
+          <aside class="agenda-day-panel">
+            <div class="agenda-day-panel-head">
+              <div class="agenda-day-panel-kicker">Rendez-vous du jour</div>
+              <div class="agenda-day-panel-title" id="agenda-selected-title">—</div>
+            </div>
+            <div class="agenda-day-list" id="agenda-day-list"></div>
+          </aside>
         </div>
       </section>
 
@@ -1772,6 +2064,44 @@ body:not(.logged-in) #app { display: none !important; }
   </div>
 </div>
 
+<!-- MODAL RENDEZ-VOUS -->
+<div class="modal-overlay" id="modal-agenda">
+  <div class="modal" style="width:520px">
+    <div class="modal-header">
+      <i class="ti ti-calendar-plus" style="color:var(--accent)"></i>
+      <span class="modal-title">NOUVEAU RENDEZ-VOUS</span>
+      <button class="modal-close" type="button" onclick="closeModal('modal-agenda')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="agenda-date"></div>
+        <div class="form-group"><label class="form-label">Heure</label><input class="form-input" type="time" id="agenda-time"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Raison du rendez-vous</label>
+        <textarea class="form-input" id="agenda-reason" rows="3" maxlength="300" placeholder="Ex : Réunion préparation opération"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Avec qui</label>
+        <input class="form-input" id="agenda-with" list="agenda-member-list" maxlength="120" placeholder="Ex : Tous les Soldados, Ayrton, équipe garage…">
+        <datalist id="agenda-member-list"></datalist>
+      </div>
+      <div class="form-group" id="agenda-visibility-group">
+        <label class="form-label">Visibilité</label>
+        <select class="form-select" id="agenda-visibility">
+          <option value="public">Tous les grades — Soldado à Jefe</option>
+          <option value="leadership">Direction uniquement — Segundo et Jefe</option>
+        </select>
+        <div class="agenda-visibility-help"><i class="ti ti-lock"></i> La visibilité Direction est disponible uniquement pour le Segundo et le Jefe.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" type="button" onclick="closeModal('modal-agenda')">Annuler</button>
+      <button class="btn btn-primary" type="button" onclick="saveAppointment()"><i class="ti ti-check"></i> Créer le rendez-vous</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PRODUIT -->
 <div class="modal-overlay" id="modal-product">
   <div class="modal">
@@ -1926,6 +2256,11 @@ body:not(.logged-in) #app { display: none !important; }
 // ===================== DATA =====================
 const PASS = '1234';
 let currentSection = 'dashboard';
+let agendaCursor = new Date();
+agendaCursor.setDate(1);
+let agendaSelectedDate = localDateKey(new Date());
+let agendaClockTimer = null;
+let agendaLastMinuteKey = '';
 
 let data = {
   locations: [
@@ -1975,10 +2310,11 @@ let data = {
   cashMovements: [
     { id:1, type:'entree', amount:25000, reason:'Fond de caisse initial', userId:1, date:'2025-05-17 08:00' },
   ],
+  appointments: [],
   currentUser: null,
   editingProduct: null,
   editingUser: null,
-  nextId: { cat:5, product:9, user:5, mvt:5, log:7, cash:2, location:6 },
+  nextId: { cat:5, product:9, user:5, mvt:5, log:7, cash:2, location:6, appointment:1 },
 };
 
 // ===================== SAUVEGARDE EN LIGNE SUPABASE TEMPS RÉEL =====================
@@ -2040,6 +2376,7 @@ function restoreCurrentUser(previousUser) {
 
 function ensureLocationData() {
   if (!Array.isArray(data.gameScores)) data.gameScores = [];
+  if (!Array.isArray(data.appointments)) data.appointments = [];
   if (!Array.isArray(data.categories)) data.categories = [];
   if (!Array.isArray(data.products)) data.products = [];
   if (!Array.isArray(data.users)) data.users = [];
@@ -2103,6 +2440,23 @@ function ensureLocationData() {
   if (!data.nextId) data.nextId = {};
   const maxLoc = data.locations.reduce((m,l)=>Math.max(m,Number(l.id||0)),0);
   data.nextId.location = Math.max(Number(data.nextId.location || 1), maxLoc + 1);
+
+  data.appointments = data.appointments.map(appointment => {
+    const creator = data.users.find(user => sameId(user.id, appointment.createdBy));
+    return {
+      ...appointment,
+      date: String(appointment.date || '').slice(0, 10),
+      time: String(appointment.time || '00:00').slice(0, 5),
+      reason: String(appointment.reason || ''),
+      withWho: String(appointment.withWho || appointment.with || ''),
+      visibility: appointment.visibility === 'leadership' ? 'leadership' : 'public',
+      createdByRole: appointment.createdByRole || creator?.role || 'soldado',
+      creatorName: appointment.creatorName || (creator ? `${creator.firstname} ${creator.lastname}`.trim() : 'Ancien membre'),
+      responses: appointment.responses && typeof appointment.responses === 'object' ? appointment.responses : {}
+    };
+  });
+  const maxAppointment = data.appointments.reduce((max, appointment) => Math.max(max, Number(appointment.id || 0)), 0);
+  data.nextId.appointment = Math.max(Number(data.nextId.appointment || 1), maxAppointment + 1);
 }
 
 function applySavedData(savedData) {
@@ -3227,6 +3581,22 @@ function isSegundo() { return role() === 'segundo'; }
 function isTeniente() { return role() === 'teniente'; }
 function isSoldado() { return role() === 'soldado'; }
 function isVisiteur() { return ['visiteur','visitor'].includes(role()); }
+function canViewAgenda() { return ['boss','segundo','teniente','soldado'].includes(role()); }
+function canCreateLeadershipAppointment() { return isBoss() || isSegundo(); }
+function canViewAppointment(appointment) {
+  if (!appointment || !canViewAgenda()) return false;
+  return appointment.visibility !== 'leadership' || canCreateLeadershipAppointment();
+}
+function canDeleteAppointment(appointment) {
+  if (!appointment || !canViewAppointment(appointment) || !data.currentUser) return false;
+  const creatorRole = String(appointment.createdByRole || '').toLowerCase();
+  const ownAppointment = sameId(appointment.createdBy, data.currentUser.id);
+  if (isBoss()) return true;
+  if (isSegundo()) return creatorRole !== 'boss';
+  if (isTeniente()) return creatorRole === 'soldado' || ownAppointment;
+  if (isSoldado()) return ownAppointment;
+  return false;
+}
 function canDelete() { return isBoss(); }
 function canClearLogs() { return isBoss(); }
 function canAddProduct() { return isBoss() || isSegundo() || isTeniente(); }
@@ -3251,6 +3621,8 @@ function canAssignRole(targetRole) {
 }
 function canAccessSection(section) {
   if (!data.currentUser) return false;
+
+  if (section === 'agenda') return canViewAgenda();
 
   if (['logs','categories','locations'].includes(section)) {
     return isBoss() || isSegundo();
@@ -3289,6 +3661,7 @@ function updatePermissionsUI() {
 }
 
 function topbarActionAllowed() {
+  if (currentSection === 'agenda') return canViewAgenda();
   if (currentSection === 'stock') return canAddProduct();
   if (currentSection === 'users') return canRecruit();
   if (currentSection === 'categories' || currentSection === 'locations') return canAddCategory();
@@ -3301,7 +3674,7 @@ function topbarActionAllowed() {
 // ===================== NAV =====================
 function nav(section, el) {
   if (!canAccessSection(section)) {
-    deny('Cette section est réservée au Segundo et au Jefe');
+    deny(section === 'agenda' ? 'L’agenda est accessible du Soldado au Jefe' : 'Cette section est réservée au Segundo et au Jefe');
     return;
   }
   if (!canAccessSection(section)) { deny(); return; }
@@ -3316,10 +3689,10 @@ function nav(section, el) {
   if (navEl) navEl.classList.add('active');
   currentSection = section;
 
-  const titles = { dashboard:'TABLEAU DE BORD', stock:'INVENTAIRE', mouvements:'MOUVEMENTS', cash:'CASH', logs:'JOURNAUX', users:'MEMBRES', categories:'CATÉGORIES', locations:'LOCALISATIONS' };
+  const titles = { dashboard:'TABLEAU DE BORD', agenda:'AGENDA', stock:'INVENTAIRE', mouvements:'MOUVEMENTS', cash:'CASH', logs:'JOURNAUX', users:'MEMBRES', categories:'CATÉGORIES', locations:'LOCALISATIONS' };
   document.getElementById('page-title').textContent = titles[section] || section.toUpperCase();
 
-  const btnLabels = { users:'Recruter', categories:'Ajouter', locations:'Ajouter', stock:'Ajouter article' };
+  const btnLabels = { agenda:'Nouveau RDV', users:'Recruter', categories:'Ajouter', locations:'Ajouter', stock:'Ajouter article' };
   const topbarBtn = document.getElementById('topbar-action');
   if (topbarBtn) {
     topbarBtn.innerHTML = `<i class="ti ti-plus"></i> ${btnLabels[section] || 'Ajouter'}`;
@@ -3340,7 +3713,248 @@ function nav(section, el) {
   }
 }
 
-function render() { ensureLocationData(); updatePermissionsUI(); renderDashboard(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); renderLocations(); }
+function render() { ensureLocationData(); updatePermissionsUI(); renderDashboard(); renderAgenda(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); renderLocations(); }
+
+// ===================== AGENDA =====================
+function localDateKey(date) {
+  const value = date instanceof Date ? date : new Date(date);
+  return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}`;
+}
+
+function appointmentDateTime(appointment) {
+  const value = new Date(`${appointment.date}T${appointment.time || '00:00'}:00`);
+  return Number.isNaN(value.getTime()) ? new Date(0) : value;
+}
+
+function agendaRoleLabel(value) {
+  return ({ boss:'Jefe', segundo:'Segundo', teniente:'Teniente', soldado:'Soldado' })[value] || value || 'Grade inconnu';
+}
+
+function visibleAppointments() {
+  return (data.appointments || [])
+    .filter(canViewAppointment)
+    .sort((a,b) => appointmentDateTime(a) - appointmentDateTime(b));
+}
+
+function appointmentCreatorName(appointment) {
+  const freshCreator = data.users.find(user => sameId(user.id, appointment.createdBy));
+  return freshCreator ? `${freshCreator.firstname} ${freshCreator.lastname}`.trim() : (appointment.creatorName || 'Ancien membre');
+}
+
+function responseNames(appointment, response) {
+  return Object.entries(appointment.responses || {})
+    .filter(([, value]) => value === response)
+    .map(([userId]) => {
+      const user = data.users.find(candidate => sameId(candidate.id, userId));
+      return user ? `${user.firstname} ${user.lastname}`.trim() : 'Ancien membre';
+    });
+}
+
+function selectAgendaDate(dateKey, syncMonth = false) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+  agendaSelectedDate = dateKey;
+  if (syncMonth) {
+    const selected = new Date(`${dateKey}T12:00:00`);
+    agendaCursor = new Date(selected.getFullYear(), selected.getMonth(), 1);
+  }
+  renderAgenda();
+}
+
+function changeAgendaMonth(delta) {
+  agendaCursor = new Date(agendaCursor.getFullYear(), agendaCursor.getMonth() + delta, 1);
+  agendaSelectedDate = localDateKey(agendaCursor);
+  renderAgenda();
+}
+
+function goAgendaToday() {
+  const today = new Date();
+  agendaCursor = new Date(today.getFullYear(), today.getMonth(), 1);
+  agendaSelectedDate = localDateKey(today);
+  renderAgenda();
+}
+
+function renderAgenda() {
+  const grid = document.getElementById('agenda-grid');
+  const list = document.getElementById('agenda-day-list');
+  if (!grid || !list) return;
+
+  if (!canViewAgenda()) {
+    grid.innerHTML = '';
+    list.innerHTML = '';
+    return;
+  }
+
+  const appointments = visibleAppointments();
+  const grouped = new Map();
+  appointments.forEach(appointment => {
+    if (!grouped.has(appointment.date)) grouped.set(appointment.date, []);
+    grouped.get(appointment.date).push(appointment);
+  });
+
+  const year = agendaCursor.getFullYear();
+  const month = agendaCursor.getMonth();
+  const monthTitle = document.getElementById('agenda-month-title');
+  if (monthTitle) monthTitle.textContent = new Intl.DateTimeFormat('fr-FR', { month:'long', year:'numeric' }).format(agendaCursor);
+
+  const firstDay = new Date(year, month, 1);
+  const mondayOffset = (firstDay.getDay() + 6) % 7;
+  const gridStart = new Date(year, month, 1 - mondayOffset);
+  const todayKey = localDateKey(new Date());
+  const cells = [];
+
+  for (let index = 0; index < 42; index++) {
+    const date = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+    const key = localDateKey(date);
+    const dayAppointments = grouped.get(key) || [];
+    const chips = dayAppointments.slice(0, 3).map(appointment => `
+      <div class="agenda-day-event ${appointment.visibility === 'leadership' ? 'leadership' : ''}" title="${escapeHtml(appointment.reason)}">
+        <strong>${escapeHtml(appointment.time)}</strong> <span class="agenda-chip-reason">${escapeHtml(appointment.reason)}</span>
+      </div>`).join('');
+    const more = dayAppointments.length > 3 ? `<div class="agenda-more">+${dayAppointments.length - 3} autre(s)</div>` : '';
+    cells.push(`<button class="agenda-day ${date.getMonth() !== month ? 'outside' : ''} ${key === todayKey ? 'today' : ''} ${key === agendaSelectedDate ? 'selected' : ''}" type="button" onclick="selectAgendaDate('${key}', ${date.getMonth() !== month})" aria-label="Voir les rendez-vous du ${key}">
+      <span class="agenda-day-number">${date.getDate()}</span>
+      <span class="agenda-day-events">${chips}${more}</span>
+    </button>`);
+  }
+  grid.innerHTML = cells.join('');
+
+  const selected = new Date(`${agendaSelectedDate}T12:00:00`);
+  const selectedTitle = document.getElementById('agenda-selected-title');
+  if (selectedTitle) selectedTitle.textContent = new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' }).format(selected);
+
+  const dayAppointments = grouped.get(agendaSelectedDate) || [];
+  if (!dayAppointments.length) {
+    list.innerHTML = `<div class="agenda-empty"><i class="ti ti-calendar-off"></i><strong>Aucun rendez-vous</strong><span>Cette journée est libre.</span></div>`;
+    return;
+  }
+
+  const currentUserId = String(data.currentUser?.id ?? '');
+  const now = new Date();
+  list.innerHTML = dayAppointments.map(appointment => {
+    const presentNames = responseNames(appointment, 'present');
+    const absentNames = responseNames(appointment, 'absent');
+    const myResponse = appointment.responses?.[currentUserId] || '';
+    const deleteButton = canDeleteAppointment(appointment)
+      ? `<button class="agenda-delete" type="button" onclick="deleteAppointment('${appointment.id}')" title="Supprimer ce rendez-vous"><i class="ti ti-trash"></i></button>`
+      : '';
+    return `<article class="agenda-event-card ${appointment.visibility === 'leadership' ? 'leadership' : ''} ${appointmentDateTime(appointment) < now ? 'past' : ''}">
+      <div class="agenda-event-top">
+        <div class="agenda-event-time">${escapeHtml(appointment.time)}</div>
+        ${appointment.visibility === 'leadership' ? '<span class="agenda-event-badge"><i class="ti ti-lock"></i> Direction</span>' : ''}
+        ${deleteButton}
+      </div>
+      <div class="agenda-event-reason">${escapeHtml(appointment.reason)}</div>
+      <div class="agenda-event-with"><i class="ti ti-users"></i> Avec : ${escapeHtml(appointment.withWho || 'Non précisé')}</div>
+      <div class="agenda-event-author">Créé par <strong>${escapeHtml(appointmentCreatorName(appointment))}</strong> · ${escapeHtml(agendaRoleLabel(appointment.createdByRole))}</div>
+      <div class="agenda-reactions">
+        <button class="agenda-reaction-btn present ${myResponse === 'present' ? 'active' : ''}" type="button" onclick="setAppointmentResponse('${appointment.id}','present')"><i class="ti ti-user-check"></i> Présent · ${presentNames.length}</button>
+        <button class="agenda-reaction-btn absent ${myResponse === 'absent' ? 'active' : ''}" type="button" onclick="setAppointmentResponse('${appointment.id}','absent')"><i class="ti ti-user-x"></i> Non · ${absentNames.length}</button>
+      </div>
+      ${(presentNames.length || absentNames.length) ? `<div class="agenda-response-names">${presentNames.length ? `Présents : <span>${escapeHtml(presentNames.join(', '))}</span>` : ''}${presentNames.length && absentNames.length ? '<br>' : ''}${absentNames.length ? `Absents : <span>${escapeHtml(absentNames.join(', '))}</span>` : ''}</div>` : ''}
+    </article>`;
+  }).join('');
+}
+
+function openAgendaModal(prefillDate = agendaSelectedDate) {
+  if (!canViewAgenda()) { deny('L’agenda est accessible du Soldado au Jefe'); return; }
+  const now = new Date();
+  const rounded = new Date(now.getTime() + 30 * 60 * 1000);
+  rounded.setMinutes(Math.ceil(rounded.getMinutes() / 15) * 15, 0, 0);
+  document.getElementById('agenda-date').value = /^\d{4}-\d{2}-\d{2}$/.test(prefillDate) ? prefillDate : localDateKey(now);
+  document.getElementById('agenda-time').value = `${String(rounded.getHours()).padStart(2,'0')}:${String(rounded.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('agenda-reason').value = '';
+  document.getElementById('agenda-with').value = '';
+  document.getElementById('agenda-member-list').innerHTML = data.users
+    .filter(user => user.active && !['visiteur','visitor'].includes(String(user.role).toLowerCase()))
+    .sort((a,b) => alphaCompare(`${a.firstname} ${a.lastname}`, `${b.firstname} ${b.lastname}`))
+    .map(user => `<option value="${escapeHtml(`${user.firstname} ${user.lastname}`.trim())}"></option>`).join('');
+  const visibilityGroup = document.getElementById('agenda-visibility-group');
+  const visibilitySelect = document.getElementById('agenda-visibility');
+  visibilityGroup.style.display = canCreateLeadershipAppointment() ? 'block' : 'none';
+  visibilitySelect.value = 'public';
+  openModal('modal-agenda');
+}
+
+function saveAppointment() {
+  if (!canViewAgenda() || !data.currentUser) { deny(); return; }
+  const date = document.getElementById('agenda-date').value;
+  const time = document.getElementById('agenda-time').value;
+  const reason = document.getElementById('agenda-reason').value.trim();
+  const withWho = document.getElementById('agenda-with').value.trim();
+  let visibility = document.getElementById('agenda-visibility').value;
+  if (visibility === 'leadership' && !canCreateLeadershipAppointment()) visibility = 'public';
+
+  if (!date || !time || !reason || !withWho) {
+    toast('Date, heure, raison et personne/groupe requis', 'error');
+    return;
+  }
+
+  const creatorRole = role();
+  const appointment = {
+    id: data.nextId.appointment++,
+    date,
+    time,
+    reason,
+    withWho,
+    visibility,
+    createdBy: data.currentUser.id,
+    creatorName: userName(),
+    createdByRole: creatorRole,
+    createdAt: new Date().toISOString(),
+    responses: {}
+  };
+  data.appointments.push(appointment);
+  agendaCursor = new Date(`${date}T12:00:00`);
+  agendaCursor.setDate(1);
+  agendaSelectedDate = date;
+  addLog('system', `${visibility === 'leadership' ? 'Rendez-vous Direction' : 'Rendez-vous'} ajouté le <strong>${date}</strong> à <strong>${time}</strong>`, userName());
+  closeModal('modal-agenda');
+  render();
+  toast('Rendez-vous ajouté à l’agenda', 'success');
+}
+
+async function setAppointmentResponse(id, response) {
+  if (!['present','absent'].includes(response) || !data.currentUser) return;
+  await refreshRemoteData(true);
+  const appointment = data.appointments.find(item => sameId(item.id, id));
+  if (!canViewAppointment(appointment)) { deny('Tu ne peux pas réagir à ce rendez-vous'); return; }
+  if (!appointment.responses || typeof appointment.responses !== 'object') appointment.responses = {};
+  const userId = String(data.currentUser.id);
+  if (appointment.responses[userId] === response) delete appointment.responses[userId];
+  else appointment.responses[userId] = response;
+  saveData();
+  renderAgenda();
+  toast(appointment.responses[userId] === 'present' ? 'Présence confirmée' : appointment.responses[userId] === 'absent' ? 'Absence indiquée' : 'Réponse retirée', 'info');
+}
+
+async function deleteAppointment(id) {
+  await refreshRemoteData(true);
+  const appointment = data.appointments.find(item => sameId(item.id, id));
+  if (!appointment) { toast('Rendez-vous introuvable', 'error'); return; }
+  if (!canDeleteAppointment(appointment)) { deny('Ton grade ne permet pas de supprimer ce rendez-vous'); return; }
+  if (!(await siteConfirm(`Supprimer le rendez-vous du ${appointment.date} à ${appointment.time} ?`))) return;
+  data.appointments = data.appointments.filter(item => !sameId(item.id, id));
+  addLog('system', `Rendez-vous du <strong>${appointment.date}</strong> à <strong>${appointment.time}</strong> supprimé`, userName());
+  render();
+  toast('Rendez-vous supprimé', 'info');
+}
+
+function updateAgendaClock() {
+  const now = new Date();
+  const timeElement = document.getElementById('agenda-live-time');
+  const dateElement = document.getElementById('agenda-live-date');
+  if (timeElement) timeElement.textContent = new Intl.DateTimeFormat('fr-FR', { hour:'2-digit', minute:'2-digit', second:'2-digit' }).format(now);
+  if (dateElement) dateElement.textContent = new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' }).format(now);
+  const minuteKey = `${localDateKey(now)}-${now.getHours()}-${now.getMinutes()}`;
+  if (agendaLastMinuteKey && minuteKey !== agendaLastMinuteKey && currentSection === 'agenda') renderAgenda();
+  agendaLastMinuteKey = minuteKey;
+}
+
+function startAgendaClock() {
+  clearInterval(agendaClockTimer);
+  updateAgendaClock();
+  agendaClockTimer = setInterval(updateAgendaClock, 1000);
+}
 
 // ===================== DASHBOARD =====================
 function renderDashboard() {
@@ -4134,6 +4748,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 
 function openAddModal() {
   if (!topbarActionAllowed()) { deny(); return; }
+  if (currentSection === 'agenda') { openAgendaModal(); return; }
   if (currentSection === 'mouvements') { openMvtModal('entree'); return; }
   if (currentSection === 'cash') { openCashModal('entree'); return; }
   if (currentSection === 'users') { openUserModal(); return; }
@@ -4565,6 +5180,7 @@ async function initApp() {
   }
 
   scheduleMidnightDashboardReset();
+  startAgendaClock();
 }
 initApp();
 </script>
