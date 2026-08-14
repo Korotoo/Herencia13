@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="agenda-discord-secure-outbox-stock-by-location-cash-all-v15">
+<meta name="vault-build" content="agenda-discord-secure-outbox-stock-location-cash-all-dashboard-widgets-v16">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -211,7 +211,6 @@ body {
   gap: 8px;
   align-items: stretch;
 }
-
 .btn.cash-all-button {
   min-height: 42px;
   padding-inline: 13px;
@@ -219,17 +218,8 @@ body {
   color: var(--red);
   border: 1px solid rgba(232,64,64,0.28);
 }
-
-.btn.cash-all-button:hover:not(:disabled) {
-  background: rgba(232,64,64,0.2);
-  transform: translateY(-1px);
-}
-
-.btn.cash-all-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.42;
-}
-
+.btn.cash-all-button:hover:not(:disabled) { background: rgba(232,64,64,0.2); transform: translateY(-1px); }
+.btn.cash-all-button:disabled { cursor: not-allowed; opacity: 0.42; }
 .cash-balance-note {
   display: none;
   margin-top: 8px;
@@ -774,6 +764,409 @@ body {
   .dashboard-summary-grid { grid-template-columns: 1fr; }
   .location-grid { grid-template-columns: 1fr; }
   .dashboard-hero-title { font-size: 24px; }
+}
+
+/* TABLEAU DE BORD PERSONNEL À WIDGETS */
+.personal-dashboard-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 19px 20px;
+  margin-bottom: 13px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 86% 0%, rgba(232,160,32,.15), transparent 34%),
+    linear-gradient(135deg, var(--bg2), #15120d);
+}
+.personal-dashboard-hero::after {
+  content: '';
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  right: -100px;
+  bottom: -175px;
+  border: 1px solid rgba(232,160,32,.12);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.personal-dashboard-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.personal-dashboard-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(232,160,32,.2);
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 23px;
+}
+.personal-dashboard-kicker {
+  color: var(--accent);
+  font: 600 10px var(--font-cond);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.personal-dashboard-title {
+  margin-top: 2px;
+  font: 30px/1 var(--font-display);
+  letter-spacing: .055em;
+}
+.personal-dashboard-sub {
+  margin-top: 6px;
+  color: var(--text3);
+  font: 11px var(--font-cond);
+  letter-spacing: .035em;
+}
+.personal-dashboard-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.dashboard-edit-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 13px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(232,160,32,.4);
+  border-radius: 9px;
+  background: rgba(232,160,32,.06);
+  color: var(--text2);
+  font: 11px var(--font-cond);
+}
+.dashboard-edit-banner.visible { display: flex; }
+.dashboard-edit-banner > i { color: var(--accent); font-size: 17px; }
+.dashboard-edit-banner > span { flex: 1; }
+
+.dashboard-widget-grid {
+  --dashboard-gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: 70px;
+  gap: var(--dashboard-gap);
+  position: relative;
+  align-items: stretch;
+  min-height: 160px;
+}
+.dashboard-widget {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg2);
+  box-shadow: 0 8px 24px rgba(0,0,0,.11);
+  transition: border-color .16s, box-shadow .16s, transform .16s;
+}
+.dashboard-widget::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--widget-color, var(--accent));
+  opacity: .75;
+}
+.dashboard-widget:hover {
+  border-color: var(--border2);
+  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+}
+.dashboard-widget-grid.is-editing .dashboard-widget {
+  border-color: rgba(232,160,32,.27);
+}
+.dashboard-widget.is-dragging,
+.dashboard-widget.is-resizing {
+  z-index: 40;
+  transition: none;
+  border-color: var(--accent);
+  box-shadow: 0 18px 45px rgba(0,0,0,.4), 0 0 0 1px rgba(232,160,32,.25);
+}
+.dashboard-widget.is-dragging { opacity: .91; }
+.dashboard-widget-head {
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px 9px 13px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,.018), transparent);
+  user-select: none;
+}
+.dashboard-widget-grid.is-editing .dashboard-widget-head {
+  cursor: grab;
+  touch-action: none;
+}
+.dashboard-widget-grid.is-editing .dashboard-widget-head:active { cursor: grabbing; }
+.dashboard-widget-drag {
+  display: none;
+  color: var(--text3);
+  font-size: 15px;
+}
+.dashboard-widget-grid.is-editing .dashboard-widget-drag { display: inline-flex; }
+.dashboard-widget-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--bg4);
+  background: color-mix(in srgb, var(--widget-color, var(--accent)) 14%, transparent);
+  color: var(--widget-color, var(--accent));
+  font-size: 15px;
+}
+.dashboard-widget-heading { min-width: 0; flex: 1; }
+.dashboard-widget-title {
+  overflow: hidden;
+  color: var(--text);
+  font: 17px/1 var(--font-display);
+  letter-spacing: .045em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-widget-category {
+  margin-top: 3px;
+  color: var(--text3);
+  font: 9px/1 var(--font-cond);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.dashboard-widget-controls {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+.dashboard-widget-grid.is-editing .dashboard-widget-controls { display: flex; }
+.dashboard-widget-control {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg3);
+  color: var(--text3);
+  cursor: pointer;
+}
+.dashboard-widget-control:hover { color: var(--text); border-color: var(--border2); }
+.dashboard-widget-control.remove:hover { color: var(--red); border-color: rgba(232,64,64,.4); }
+.dashboard-widget-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 13px;
+}
+.dashboard-widget-resize {
+  display: none;
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 25px;
+  height: 25px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 3px 3px 0;
+  color: var(--accent);
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 3;
+}
+.dashboard-widget-grid.is-editing .dashboard-widget-resize { display: flex; }
+.dashboard-widget-resize i { font-size: 15px; transform: rotate(90deg); }
+
+.dashboard-widget-kpi {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.dashboard-widget-kpi-value {
+  overflow: hidden;
+  color: var(--widget-color, var(--accent));
+  font: 36px/1 var(--font-display);
+  letter-spacing: .02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-widget-kpi-note {
+  margin-top: 7px;
+  color: var(--text3);
+  font: 10px var(--font-cond);
+  letter-spacing: .04em;
+}
+.dashboard-widget-list { display: flex; flex-direction: column; gap: 7px; }
+.dashboard-widget-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg3);
+}
+.dashboard-widget-row-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--bg4);
+  color: var(--row-color, var(--accent));
+}
+.dashboard-widget-row-main { min-width: 0; flex: 1; }
+.dashboard-widget-row-title {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-widget-row-sub {
+  overflow: hidden;
+  margin-top: 3px;
+  color: var(--text3);
+  font: 9.5px var(--font-cond);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-widget-row-value {
+  flex: 0 0 auto;
+  color: var(--row-color, var(--accent));
+  font: 18px var(--font-display);
+}
+.dashboard-widget-empty {
+  height: 100%;
+  min-height: 70px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  color: var(--text3);
+  text-align: center;
+  font: 11px var(--font-cond);
+}
+.dashboard-widget-empty i { font-size: 25px; opacity: .55; }
+.dashboard-personal-empty {
+  display: none;
+  min-height: 280px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px dashed var(--border2);
+  border-radius: 12px;
+  color: var(--text3);
+  text-align: center;
+}
+.dashboard-personal-empty.visible { display: flex; }
+.dashboard-personal-empty > i { font-size: 38px; color: var(--accent); opacity: .7; }
+.dashboard-personal-empty strong { color: var(--text); font: 22px var(--font-display); letter-spacing: .05em; }
+.dashboard-personal-empty span { margin-bottom: 7px; font: 11px var(--font-cond); }
+
+.dashboard-widget-catalog-modal { width: min(900px, calc(100vw - 24px)); }
+.widget-catalog-subtitle {
+  margin-top: 3px;
+  color: var(--text3);
+  font: 10px var(--font-cond);
+  letter-spacing: .035em;
+}
+.dashboard-widget-catalog-body { padding-top: 13px; }
+.widget-catalog-filters {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+.widget-catalog-filter {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg3);
+  color: var(--text3);
+  font: 600 10px var(--font-cond);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.widget-catalog-filter.active,
+.widget-catalog-filter:hover { border-color: rgba(232,160,32,.45); color: var(--accent); }
+.widget-catalog-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.widget-catalog-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg3);
+}
+.widget-catalog-card.added { border-color: rgba(80,200,120,.3); }
+.widget-catalog-card-icon {
+  width: 39px;
+  height: 39px;
+  flex: 0 0 39px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--bg4);
+  background: color-mix(in srgb, var(--catalog-color, var(--accent)) 14%, transparent);
+  color: var(--catalog-color, var(--accent));
+  font-size: 19px;
+}
+.widget-catalog-card-copy { min-width: 0; flex: 1; }
+.widget-catalog-card-title { color: var(--text); font: 17px var(--font-display); letter-spacing: .04em; }
+.widget-catalog-card-desc { margin-top: 3px; color: var(--text3); font: 10px/1.25 var(--font-cond); }
+.widget-catalog-card .btn { flex: 0 0 auto; }
+
+@media (max-width: 900px) {
+  .personal-dashboard-hero { align-items: flex-start; flex-direction: column; }
+  .personal-dashboard-actions { width: 100%; }
+  .personal-dashboard-actions .btn { flex: 1; justify-content: center; }
+}
+@media (max-width: 760px) {
+  .dashboard-widget-grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .dashboard-widget {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    min-height: 180px;
+  }
+  .dashboard-widget-resize { display: none !important; }
+  .widget-catalog-list { grid-template-columns: 1fr; }
+  .dashboard-edit-banner { align-items: flex-start; flex-wrap: wrap; }
+  .dashboard-edit-banner > span { flex-basis: calc(100% - 30px); }
+  .dashboard-edit-banner .btn { width: 100%; justify-content: center; }
+}
+@media (max-width: 480px) {
+  .personal-dashboard-hero { padding: 15px; }
+  .personal-dashboard-title { font-size: 24px; }
+  .personal-dashboard-sub { line-height: 1.3; }
+  .personal-dashboard-actions { flex-direction: column; }
+  .personal-dashboard-actions .btn { width: 100%; }
+  .dashboard-widget-catalog-modal { width: calc(100vw - 20px); }
+  .widget-catalog-card { align-items: flex-start; flex-wrap: wrap; }
+  .widget-catalog-card .btn { width: 100%; justify-content: center; }
 }
 
 /* CARD */
@@ -2105,6 +2498,38 @@ body:not(.logged-in) #app { display: none !important; }
 
       <!-- DASHBOARD -->
       <section class="section active" id="sec-dashboard">
+        <div class="personal-dashboard-hero">
+          <div class="personal-dashboard-identity">
+            <div class="personal-dashboard-icon"><i class="ti ti-layout-dashboard"></i></div>
+            <div>
+              <div class="personal-dashboard-kicker">Espace personnel</div>
+              <div class="personal-dashboard-title" id="personal-dashboard-title">MON TABLEAU DE BORD</div>
+              <div class="personal-dashboard-sub">Tes widgets, tes positions et tes tailles sont enregistrés uniquement pour ton compte.</div>
+            </div>
+          </div>
+          <div class="personal-dashboard-actions">
+            <button class="btn btn-ghost" id="dashboard-edit-toggle" type="button" onclick="toggleDashboardEditMode()"><i class="ti ti-pencil"></i> Organiser</button>
+            <button class="btn btn-primary" type="button" onclick="openWidgetCatalog()"><i class="ti ti-layout-grid-add"></i> Ajouter un widget</button>
+          </div>
+        </div>
+
+        <div class="dashboard-edit-banner" id="dashboard-edit-banner">
+          <i class="ti ti-hand-move"></i>
+          <span>Déplace les widgets avec leur en-tête, agrandis-les depuis le coin inférieur droit ou utilise le bouton de taille.</span>
+          <button class="btn btn-ghost btn-sm" type="button" onclick="resetDashboardLayout()"><i class="ti ti-refresh"></i> Réinitialiser</button>
+        </div>
+
+        <div class="dashboard-widget-grid" id="personal-dashboard-grid"></div>
+        <div class="dashboard-personal-empty" id="personal-dashboard-empty">
+          <i class="ti ti-layout-dashboard"></i>
+          <strong>Ton tableau de bord est vide</strong>
+          <span>Ajoute les informations que tu veux suivre.</span>
+          <button class="btn btn-primary" type="button" onclick="openWidgetCatalog()"><i class="ti ti-plus"></i> Choisir des widgets</button>
+        </div>
+      </section>
+
+      <!-- Ancien tableau conservé hors affichage pour préserver la compatibilité des anciennes versions -->
+      <section class="section" id="sec-dashboard-legacy" style="display:none!important">
         <div class="dashboard-hero">
           <div class="dashboard-hero-icon"><i class="ti ti-building-warehouse"></i></div>
           <div>
@@ -2564,6 +2989,27 @@ body:not(.logged-in) #app { display: none !important; }
   </div>
 </div>
 
+<!-- MODAL CATALOGUE DE WIDGETS -->
+<div class="modal-overlay" id="modal-dashboard-widgets">
+  <div class="modal dashboard-widget-catalog-modal">
+    <div class="modal-header">
+      <i class="ti ti-layout-grid-add" style="color:var(--accent)"></i>
+      <div>
+        <span class="modal-title">AJOUTER DES WIDGETS</span>
+        <div class="widget-catalog-subtitle">Choisis uniquement les informations utiles pour ton tableau personnel.</div>
+      </div>
+      <button class="modal-close" type="button" onclick="closeModal('modal-dashboard-widgets')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body dashboard-widget-catalog-body">
+      <div class="widget-catalog-filters" id="dashboard-widget-filters"></div>
+      <div class="widget-catalog-list" id="dashboard-widget-catalog"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" onclick="closeModal('modal-dashboard-widgets')"><i class="ti ti-check"></i> Terminer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PRODUIT -->
 <div class="modal-overlay" id="modal-product">
   <div class="modal">
@@ -2694,9 +3140,7 @@ body:not(.logged-in) #app { display: none !important; }
         <label class="form-label">Montant ($)</label>
         <div class="cash-amount-control">
           <input class="form-input" type="number" id="cash-amount" placeholder="0" min="1" step="1" oninput="markCashAmountManual()">
-          <button class="btn cash-all-button" id="cash-use-all" type="button" onclick="useAllCashForLocation()">
-            <i class="ti ti-wallet-off"></i> Tout retirer
-          </button>
+          <button class="btn cash-all-button" id="cash-use-all" type="button" onclick="useAllCashForLocation()"><i class="ti ti-wallet-off"></i> Tout retirer</button>
         </div>
         <div class="cash-balance-note" id="cash-balance-note"></div>
       </div>
@@ -2787,6 +3231,7 @@ let data = {
     { id:1, type:'entree', amount:25000, reason:'Fond de caisse initial', userId:1, date:'2025-05-17 08:00' },
   ],
   appointments: [],
+  dashboardLayouts: {},
   currentUser: null,
   editingProduct: null,
   editingUser: null,
@@ -2851,165 +3296,98 @@ function restoreCurrentUser(previousUser) {
 }
 
 function normalizedProductName(name) {
-  return String(name || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLocaleLowerCase('fr-FR');
+  return String(name || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr-FR');
 }
-
 function productIdentityKey(product) {
   return `${String(product?.cat ?? '')}:${normalizedProductName(product?.name)}`;
 }
-
 function sameProductIdentity(first, second) {
   return Boolean(first && second) && productIdentityKey(first) === productIdentityKey(second);
 }
-
 function findProductStockAtLocation(sourceProduct, locationId) {
   if (!sourceProduct || !locationId) return null;
-  return (data.products || []).find(product =>
-    sameProductIdentity(product, sourceProduct) && sameId(product.locationId, locationId)
-  ) || null;
+  return (data.products || []).find(product => sameProductIdentity(product, sourceProduct) && sameId(product.locationId, locationId)) || null;
 }
-
 function productTotalAcrossLocations(sourceProduct) {
   if (!sourceProduct) return 0;
-  return (data.products || [])
-    .filter(product => sameProductIdentity(product, sourceProduct))
-    .reduce((sum, product) => sum + Number(product.qty || 0), 0);
+  return (data.products || []).filter(product => sameProductIdentity(product, sourceProduct)).reduce((sum, product) => sum + Number(product.qty || 0), 0);
 }
-
 function mergeDuplicateProductStocks() {
-  const products = Array.isArray(data.products) ? data.products : [];
   const uniqueStocks = new Map();
   const remappedProductIds = new Map();
-
-  products.forEach(product => {
+  (Array.isArray(data.products) ? data.products : []).forEach(product => {
     product.qty = Math.max(0, Number(product.qty || 0));
     product.price = Math.max(0, Number(product.price || 0));
     const key = `${productIdentityKey(product)}:${String(product.locationId || '')}`;
     const existing = uniqueStocks.get(key);
-
-    if (!existing) {
-      uniqueStocks.set(key, product);
-      return;
-    }
-
+    if (!existing) { uniqueStocks.set(key, product); return; }
     existing.qty = Number(existing.qty || 0) + Number(product.qty || 0);
     remappedProductIds.set(String(product.id), existing.id);
   });
-
   if (!remappedProductIds.size) return;
-
   data.products = [...uniqueStocks.values()];
   (data.movements || []).forEach(movement => {
     const replacementId = remappedProductIds.get(String(movement.productId));
     if (replacementId !== undefined) movement.productId = replacementId;
   });
-
   const editingReplacement = remappedProductIds.get(String(data.editingProduct));
   if (editingReplacement !== undefined) data.editingProduct = editingReplacement;
 }
-
 function createProductStockAtLocation(sourceProduct, locationId) {
   const existing = findProductStockAtLocation(sourceProduct, locationId);
   if (existing) return existing;
-
   if (!data.nextId) data.nextId = {};
-  const maxProductId = (data.products || []).reduce(
-    (max, product) => Math.max(max, Number(product.id || 0)),
-    0
-  );
+  const maxProductId = (data.products || []).reduce((max, product) => Math.max(max, Number(product.id || 0)), 0);
   const newId = Math.max(Number(data.nextId.product || 1), maxProductId + 1);
   data.nextId.product = newId + 1;
-
-  const stockLine = {
-    id: newId,
-    name: sourceProduct.name,
-    cat: sourceProduct.cat,
-    qty: 0,
-    price: Number(sourceProduct.price || 0),
-    loc: locationName(locationId),
-    locationId
-  };
-
+  const stockLine = { id:newId, name:sourceProduct.name, cat:sourceProduct.cat, qty:0, price:Number(sourceProduct.price || 0), loc:locationName(locationId), locationId };
   data.products.push(stockLine);
   return stockLine;
 }
-
 function parsedStockLog(log) {
-  const plainAction = String(log?.action || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const plainAction = String(log?.action || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
   const match = plainAction.match(/^(Entrée|Sortie)\s+de\s+(\d+)\s+unité(?:\(s\)|s)?\s+de\s+(.+?)\s+📍\s+(.+?)(?:\s+\(Stock\s*:|$)/i);
   if (!match) return null;
-  return {
-    delta: match[1].toLocaleLowerCase('fr-FR') === 'entrée' ? Number(match[2]) : -Number(match[2]),
-    productName: normalizedProductName(match[3]),
-    locationName: String(match[4] || '').trim().toLocaleLowerCase('fr-FR')
-  };
+  return { delta:match[1].toLocaleLowerCase('fr-FR') === 'entrée' ? Number(match[2]) : -Number(match[2]), productName:normalizedProductName(match[3]), locationName:String(match[4] || '').trim().toLocaleLowerCase('fr-FR') };
 }
-
 function migrateLegacyCrossLocationStocks() {
   if (Number(data.stockLocationMigrationVersion || 0) >= 1) return;
-
   const productGroups = new Map();
   (data.products || []).forEach(product => {
     const key = productIdentityKey(product);
     if (!productGroups.has(key)) productGroups.set(key, []);
     productGroups.get(key).push(product);
   });
-
   const parsedLogs = (data.logs || []).map(parsedStockLog).filter(Boolean);
-
   productGroups.forEach(products => {
     if (products.length !== 1) return;
     const sourceProduct = products[0];
-    const relatedMovements = (data.movements || []).filter(movement =>
-      sameId(movement.productId, sourceProduct.id)
-    );
-    const movementLocations = new Set(relatedMovements.map(movement => String(movement.locationId || '')));
-    if (movementLocations.size < 2) return;
-
+    const relatedMovements = (data.movements || []).filter(movement => sameId(movement.productId, sourceProduct.id));
+    if (new Set(relatedMovements.map(movement => String(movement.locationId || ''))).size < 2) return;
     const balances = new Map();
-    parsedLogs
-      .filter(entry => entry.productName === normalizedProductName(sourceProduct.name))
-      .forEach(entry => {
-        const location = (data.locations || []).find(item =>
-          String(item.name || '').trim().toLocaleLowerCase('fr-FR') === entry.locationName
-        );
-        if (!location) return;
-        balances.set(String(location.id), Number(balances.get(String(location.id)) || 0) + entry.delta);
-      });
-
+    parsedLogs.filter(entry => entry.productName === normalizedProductName(sourceProduct.name)).forEach(entry => {
+      const locationItem = (data.locations || []).find(item => String(item.name || '').trim().toLocaleLowerCase('fr-FR') === entry.locationName);
+      if (locationItem) balances.set(String(locationItem.id), Number(balances.get(String(locationItem.id)) || 0) + entry.delta);
+    });
     if (balances.size < 2 || [...balances.values()].some(quantity => quantity < 0)) return;
-    const reconstructedTotal = [...balances.values()].reduce((sum, quantity) => sum + quantity, 0);
-    if (reconstructedTotal !== Number(sourceProduct.qty || 0)) return;
-
-    const balanceEntries = [...balances.entries()];
-    let primaryEntry = balanceEntries.find(([locationId]) => sameId(locationId, sourceProduct.locationId));
-    if (!primaryEntry) primaryEntry = balanceEntries[0];
-
-    sourceProduct.locationId = Number(primaryEntry[0]);
-    sourceProduct.loc = locationName(primaryEntry[0]);
-    sourceProduct.qty = Number(primaryEntry[1]);
-
+    if ([...balances.values()].reduce((sum, quantity) => sum + quantity, 0) !== Number(sourceProduct.qty || 0)) return;
+    const entries = [...balances.entries()];
+    let primary = entries.find(([locationId]) => sameId(locationId, sourceProduct.locationId)) || entries[0];
+    sourceProduct.locationId = Number(primary[0]);
+    sourceProduct.loc = locationName(primary[0]);
+    sourceProduct.qty = Number(primary[1]);
     const stockLines = new Map([[String(sourceProduct.locationId), sourceProduct]]);
-    balanceEntries.forEach(([locationId, quantity]) => {
+    entries.forEach(([locationId, quantity]) => {
       if (sameId(locationId, sourceProduct.locationId)) return;
       const stockLine = createProductStockAtLocation(sourceProduct, Number(locationId));
       stockLine.qty = Number(quantity);
       stockLines.set(String(locationId), stockLine);
     });
-
     relatedMovements.forEach(movement => {
       const stockLine = stockLines.get(String(movement.locationId));
       if (stockLine) movement.productId = stockLine.id;
     });
   });
-
   data.stockLocationMigrationVersion = 1;
 }
 
@@ -3036,6 +3414,7 @@ function ensureLocationData() {
   if (!Array.isArray(data.logs)) data.logs = [];
   if (!Array.isArray(data.locations)) data.locations = [];
   if (!data.cashByLocation || typeof data.cashByLocation !== 'object') data.cashByLocation = {};
+  if (!data.dashboardLayouts || typeof data.dashboardLayouts !== 'object' || Array.isArray(data.dashboardLayouts)) data.dashboardLayouts = {};
 
   const names = new Set(data.locations.map(l => String(l.name || '').trim().toLowerCase()));
   (data.products || []).forEach(p => {
@@ -3068,10 +3447,6 @@ function ensureLocationData() {
   });
 
   migrateLegacyCrossLocationStocks();
-
-  // Une ligne d'inventaire correspond toujours à un article dans une localisation.
-  // Les anciennes lignes en double au même endroit sont fusionnées sans mélanger
-  // les stocks portant le même nom dans deux localisations différentes.
   mergeDuplicateProductStocks();
 
   if (!Object.keys(data.cashByLocation).length && Number(data.cashBalance || 0) > 0) {
@@ -3463,11 +3838,7 @@ function consolidateMovementsByProduct() {
     const current = grouped.get(key);
     const movementDate = String(movement.date || '');
     const currentDate = String(current?.date || '');
-    if (
-      !current ||
-      movementDate > currentDate ||
-      (movementDate === currentDate && Number(movement.id || 0) > Number(current.id || 0))
-    ) {
+    if (!current || movementDate > currentDate || (movementDate === currentDate && Number(movement.id || 0) > Number(current.id || 0))) {
       grouped.set(key, movement);
     }
   });
@@ -4320,6 +4691,7 @@ function updatePermissionsUI() {
 }
 
 function topbarActionAllowed() {
+  if (currentSection === 'dashboard') return !!data.currentUser;
   if (currentSection === 'agenda') return canViewAgenda();
   if (currentSection === 'stock') return canAddProduct();
   if (currentSection === 'users') return canRecruit();
@@ -4351,7 +4723,7 @@ function nav(section, el) {
   const titles = { dashboard:'TABLEAU DE BORD', agenda:'AGENDA', stock:'INVENTAIRE', mouvements:'MOUVEMENTS', cash:'CASH', logs:'JOURNAUX', users:'MEMBRES', categories:'CATÉGORIES', locations:'LOCALISATIONS' };
   document.getElementById('page-title').textContent = titles[section] || section.toUpperCase();
 
-  const btnLabels = { agenda:'Nouveau RDV', users:'Recruter', categories:'Ajouter', locations:'Ajouter', stock:'Ajouter article' };
+  const btnLabels = { dashboard:'Ajouter un widget', agenda:'Nouveau RDV', users:'Recruter', categories:'Ajouter', locations:'Ajouter', stock:'Ajouter article' };
   const topbarBtn = document.getElementById('topbar-action');
   if (topbarBtn) {
     topbarBtn.innerHTML = `<i class="ti ti-plus"></i> ${btnLabels[section] || 'Ajouter'}`;
@@ -4860,7 +5232,10 @@ function updateAgendaClock() {
   if (timeElement) timeElement.textContent = new Intl.DateTimeFormat('fr-FR', { timeZone:AGENDA_TIME_ZONE, hour:'2-digit', minute:'2-digit', second:'2-digit' }).format(now);
   if (dateElement) dateElement.textContent = new Intl.DateTimeFormat('fr-FR', { timeZone:AGENDA_TIME_ZONE, weekday:'long', day:'numeric', month:'long', year:'numeric' }).format(now);
   const minuteKey = `${parisDateKey(now)}-${frenchParts.hour}-${frenchParts.minute}`;
-  if (agendaLastMinuteKey && minuteKey !== agendaLastMinuteKey && currentSection === 'agenda') renderAgenda();
+  if (agendaLastMinuteKey && minuteKey !== agendaLastMinuteKey) {
+    if (currentSection === 'agenda') renderAgenda();
+    if (currentSection === 'dashboard') renderDashboard();
+  }
   agendaLastMinuteKey = minuteKey;
 }
 
@@ -4870,8 +5245,602 @@ function startAgendaClock() {
   agendaClockTimer = setInterval(updateAgendaClock, 1000);
 }
 
-// ===================== DASHBOARD =====================
+// ===================== TABLEAU DE BORD PERSONNEL =====================
+const DASHBOARD_COLUMNS = 12;
+const DASHBOARD_ROW_HEIGHT = 70;
+const DASHBOARD_GAP = 12;
+
+const DASHBOARD_WIDGET_CATEGORIES = {
+  all:       { label:'Tous', icon:'ti-layout-grid', color:'var(--accent)' },
+  overview:  { label:'Vue générale', icon:'ti-chart-dots', color:'var(--accent)' },
+  agenda:    { label:'Agenda', icon:'ti-calendar-event', color:'var(--purple)' },
+  stock:     { label:'Inventaire', icon:'ti-package', color:'var(--green)' },
+  cash:      { label:'Cash', icon:'ti-cash', color:'var(--accent)' },
+  locations: { label:'Localisations', icon:'ti-map-pin', color:'var(--blue)' },
+  members:   { label:'Membres', icon:'ti-users', color:'var(--purple)' },
+  activity:  { label:'Activité', icon:'ti-history', color:'var(--red)' }
+};
+
+const DASHBOARD_WIDGET_DEFINITIONS = [
+  { id:'stock_value', category:'overview', title:'Valeur du stock', description:'Valeur totale de tous les objets.', icon:'ti-packages', color:'var(--green)', w:3, h:2, minW:2, minH:2, maxW:6, maxH:3 },
+  { id:'cash_total', category:'overview', title:'Cash disponible', description:'Cash cumulé dans toutes les localisations.', icon:'ti-cash', color:'var(--accent)', w:3, h:2, minW:2, minH:2, maxW:6, maxH:3 },
+  { id:'global_total', category:'overview', title:'Valeur globale', description:'Cash et valeur du stock réunis.', icon:'ti-building-bank', color:'var(--purple)', w:3, h:2, minW:2, minH:2, maxW:6, maxH:3 },
+  { id:'today_operations', category:'overview', title:"Opérations aujourd'hui", description:'Entrées et sorties réalisées depuis minuit.', icon:'ti-arrows-exchange', color:'var(--blue)', w:3, h:2, minW:2, minH:2, maxW:6, maxH:3 },
+  { id:'stock_units', category:'stock', title:'Unités en stock', description:'Nombre total d’unités dans l’inventaire.', icon:'ti-boxes', color:'var(--green)', w:3, h:2, minW:2, minH:2, maxW:6, maxH:3 },
+  { id:'stock_locations', category:'stock', title:'Stock par localisation', description:'Quantités et valeurs réparties par lieu.', icon:'ti-building-warehouse', color:'var(--green)', w:6, h:4, minW:4, minH:3, maxW:12, maxH:8 },
+  { id:'recent_stock', category:'stock', title:'Derniers mouvements', description:'Dernières entrées et sorties de stock.', icon:'ti-history', color:'var(--green)', w:6, h:4, minW:4, minH:3, maxW:12, maxH:8 },
+  { id:'cash_locations', category:'cash', title:'Cash par localisation', description:'Solde disponible dans chaque lieu.', icon:'ti-map-pin-dollar', color:'var(--accent)', w:6, h:4, minW:4, minH:3, maxW:12, maxH:8 },
+  { id:'recent_cash', category:'cash', title:'Dernières opérations cash', description:'Dernières entrées et sorties d’argent.', icon:'ti-receipt-dollar', color:'var(--accent)', w:6, h:4, minW:4, minH:3, maxW:12, maxH:8 },
+  { id:'upcoming_appointments', category:'agenda', title:'Prochains rendez-vous', description:'Les prochains rendez-vous visibles pour ton grade.', icon:'ti-calendar-time', color:'var(--purple)', w:6, h:4, minW:4, minH:3, maxW:12, maxH:8, access:'agenda' },
+  { id:'today_appointments', category:'agenda', title:"Rendez-vous aujourd'hui", description:'Le programme prévu pour la journée.', icon:'ti-calendar-check', color:'var(--purple)', w:6, h:4, minW:4, minH:3, maxW:12, maxH:8, access:'agenda' },
+  { id:'location_summary', category:'locations', title:'Résumé des localisations', description:'Cash, stock et valeur globale par lieu.', icon:'ti-map-2', color:'var(--blue)', w:8, h:4, minW:5, minH:3, maxW:12, maxH:8 },
+  { id:'active_members', category:'members', title:'Membres actifs', description:'Effectif actif réparti par grade.', icon:'ti-users-group', color:'var(--purple)', w:4, h:4, minW:3, minH:3, maxW:8, maxH:7 },
+  { id:'recent_activity', category:'activity', title:'Activité récente', description:'Dernières actions enregistrées dans les journaux.', icon:'ti-activity', color:'var(--red)', w:6, h:4, minW:4, minH:3, maxW:12, maxH:8, access:'logs' }
+];
+
+let dashboardEditMode = false;
+let dashboardCatalogFilter = 'all';
+let dashboardInteraction = null;
+let dashboardLastUserId = null;
+let dashboardResizeTimer = null;
+
+function dashboardWidgetDefinition(widgetId) {
+  return DASHBOARD_WIDGET_DEFINITIONS.find(widget => widget.id === widgetId) || null;
+}
+
+function canUseDashboardWidget(definition) {
+  if (!definition || !data.currentUser) return false;
+  if (definition.access === 'agenda') return canViewAgenda();
+  if (definition.access === 'logs') return canAccessSection('logs');
+  return true;
+}
+
+function defaultDashboardWidgets() {
+  const presets = [
+    { id:'stock_value', x:0, y:0, w:3, h:2 },
+    { id:'cash_total', x:3, y:0, w:3, h:2 },
+    { id:'global_total', x:6, y:0, w:3, h:2 },
+    { id:'today_operations', x:9, y:0, w:3, h:2 },
+    { id:'upcoming_appointments', x:0, y:2, w:6, h:4 },
+    { id:'location_summary', x:6, y:2, w:6, h:4 },
+    { id:'recent_stock', x:0, y:6, w:6, h:4 },
+    { id:'cash_locations', x:6, y:6, w:6, h:4 }
+  ];
+  return presets.filter(widget => canUseDashboardWidget(dashboardWidgetDefinition(widget.id)));
+}
+
+function dashboardClamp(value, min, max) {
+  return Math.min(max, Math.max(min, Number(value) || 0));
+}
+
+function dashboardRectsOverlap(first, second) {
+  return first.x < second.x + second.w &&
+    first.x + first.w > second.x &&
+    first.y < second.y + second.h &&
+    first.y + first.h > second.y;
+}
+
+function sanitizeDashboardWidget(widget) {
+  const definition = dashboardWidgetDefinition(widget?.id);
+  if (!definition) return null;
+  const width = dashboardClamp(widget.w || definition.w, definition.minW || 2, Math.min(DASHBOARD_COLUMNS, definition.maxW || DASHBOARD_COLUMNS));
+  const height = dashboardClamp(widget.h || definition.h, definition.minH || 2, definition.maxH || 10);
+  return {
+    id: definition.id,
+    x: dashboardClamp(widget.x, 0, DASHBOARD_COLUMNS - width),
+    y: Math.max(0, Number(widget.y) || 0),
+    w: width,
+    h: height
+  };
+}
+
+function findDashboardFreePosition(widget, placedWidgets, startY = 0) {
+  const desiredX = dashboardClamp(widget.x, 0, DASHBOARD_COLUMNS - widget.w);
+  for (let y = Math.max(0, startY); y < 250; y++) {
+    const xCandidates = [desiredX];
+    for (let x = 0; x <= DASHBOARD_COLUMNS - widget.w; x++) {
+      if (!xCandidates.includes(x)) xCandidates.push(x);
+    }
+    for (const x of xCandidates) {
+      const candidate = { ...widget, x, y };
+      if (!placedWidgets.some(placed => dashboardRectsOverlap(candidate, placed))) return { x, y };
+    }
+  }
+  const bottom = placedWidgets.reduce((max, placed) => Math.max(max, placed.y + placed.h), 0);
+  return { x:0, y:bottom };
+}
+
+function normalizeDashboardLayout(widgets, priorityWidgetId = null) {
+  const seen = new Set();
+  const cleanWidgets = (Array.isArray(widgets) ? widgets : [])
+    .map(sanitizeDashboardWidget)
+    .filter(widget => widget && !seen.has(widget.id) && seen.add(widget.id));
+
+  cleanWidgets.sort((first, second) => {
+    if (first.id === priorityWidgetId) return -1;
+    if (second.id === priorityWidgetId) return 1;
+    return first.y - second.y || first.x - second.x;
+  });
+
+  const placed = [];
+  cleanWidgets.forEach(widget => {
+    if (placed.some(existing => dashboardRectsOverlap(widget, existing))) {
+      const free = findDashboardFreePosition(widget, placed, widget.y);
+      widget.x = free.x;
+      widget.y = free.y;
+    }
+    placed.push(widget);
+  });
+  return placed;
+}
+
+function currentDashboardProfile(createIfMissing = true) {
+  if (!data.currentUser) return null;
+  if (!data.dashboardLayouts || typeof data.dashboardLayouts !== 'object' || Array.isArray(data.dashboardLayouts)) data.dashboardLayouts = {};
+  const userId = String(data.currentUser.id);
+  let profile = data.dashboardLayouts[userId];
+  if ((!profile || !Array.isArray(profile.widgets)) && createIfMissing) {
+    profile = { version:1, widgets:defaultDashboardWidgets() };
+    data.dashboardLayouts[userId] = profile;
+  }
+  if (!profile) return null;
+  profile.version = 1;
+  profile.widgets = normalizeDashboardLayout(profile.widgets);
+  return profile;
+}
+
+function savePersonalDashboard() {
+  const profile = currentDashboardProfile(false);
+  if (!profile) return;
+  profile.updatedAt = new Date().toISOString();
+  saveData();
+}
+
+function dashboardWidgetIsAdded(widgetId) {
+  const profile = currentDashboardProfile();
+  return Boolean(profile?.widgets.some(widget => widget.id === widgetId));
+}
+
+function addDashboardWidget(widgetId) {
+  const definition = dashboardWidgetDefinition(widgetId);
+  const profile = currentDashboardProfile();
+  if (!definition || !profile || !canUseDashboardWidget(definition) || dashboardWidgetIsAdded(widgetId)) return;
+
+  const widget = sanitizeDashboardWidget({ id:widgetId, x:0, y:0, w:definition.w, h:definition.h });
+  const free = findDashboardFreePosition(widget, profile.widgets, 0);
+  widget.x = free.x;
+  widget.y = free.y;
+  profile.widgets.push(widget);
+  profile.widgets = normalizeDashboardLayout(profile.widgets, widget.id);
+  savePersonalDashboard();
+  renderDashboard();
+  renderWidgetCatalog();
+  toast(`Widget « ${definition.title} » ajouté`, 'success');
+}
+
+function removeDashboardWidget(widgetId, notify = true) {
+  const definition = dashboardWidgetDefinition(widgetId);
+  const profile = currentDashboardProfile();
+  if (!profile || !profile.widgets.some(widget => widget.id === widgetId)) return;
+  profile.widgets = profile.widgets.filter(widget => widget.id !== widgetId);
+  savePersonalDashboard();
+  renderDashboard();
+  renderWidgetCatalog();
+  if (notify && definition) toast(`Widget « ${definition.title} » retiré`, 'info');
+}
+
+function toggleDashboardWidget(widgetId) {
+  if (dashboardWidgetIsAdded(widgetId)) removeDashboardWidget(widgetId);
+  else addDashboardWidget(widgetId);
+}
+
+function cycleDashboardWidgetSize(widgetId) {
+  const profile = currentDashboardProfile();
+  const widget = profile?.widgets.find(item => item.id === widgetId);
+  const definition = dashboardWidgetDefinition(widgetId);
+  if (!widget || !definition) return;
+
+  const compact = { w:definition.w, h:definition.h };
+  const medium = { w:Math.min(8, definition.maxW || 12), h:Math.min(Math.max(definition.h, 4), definition.maxH || 8) };
+  const large = { w:Math.min(12, definition.maxW || 12), h:Math.min(Math.max(definition.h + 2, 5), definition.maxH || 8) };
+  const isCompact = widget.w === compact.w && widget.h === compact.h;
+  const isMedium = widget.w === medium.w && widget.h === medium.h;
+  const mediumIsLarge = medium.w === large.w && medium.h === large.h;
+  const next = isCompact ? medium : isMedium ? (mediumIsLarge ? compact : large) : compact;
+  widget.w = dashboardClamp(next.w, definition.minW || 2, Math.min(12, definition.maxW || 12));
+  widget.h = dashboardClamp(next.h, definition.minH || 2, definition.maxH || 10);
+  widget.x = Math.min(widget.x, DASHBOARD_COLUMNS - widget.w);
+  profile.widgets = normalizeDashboardLayout(profile.widgets, widget.id);
+  savePersonalDashboard();
+  renderDashboard();
+}
+
+function toggleDashboardEditMode(forceValue = null) {
+  dashboardEditMode = typeof forceValue === 'boolean' ? forceValue : !dashboardEditMode;
+  renderDashboard();
+}
+
+async function resetDashboardLayout() {
+  if (!data.currentUser) return;
+  if (!(await siteConfirm('Réinitialiser uniquement ton tableau de bord personnel ?', 'Réinitialiser'))) return;
+  data.dashboardLayouts[String(data.currentUser.id)] = { version:1, widgets:defaultDashboardWidgets() };
+  savePersonalDashboard();
+  dashboardEditMode = false;
+  renderDashboard();
+  renderWidgetCatalog();
+  toast('Ton tableau de bord a été réinitialisé', 'info');
+}
+
+function openWidgetCatalog() {
+  if (!data.currentUser) return;
+  dashboardCatalogFilter = 'all';
+  renderWidgetCatalog();
+  openModal('modal-dashboard-widgets');
+}
+
+function setDashboardCatalogFilter(category) {
+  dashboardCatalogFilter = DASHBOARD_WIDGET_CATEGORIES[category] ? category : 'all';
+  renderWidgetCatalog();
+}
+
+function renderWidgetCatalog() {
+  const filterContainer = document.getElementById('dashboard-widget-filters');
+  const catalog = document.getElementById('dashboard-widget-catalog');
+  if (!filterContainer || !catalog || !data.currentUser) return;
+
+  const availableWidgets = DASHBOARD_WIDGET_DEFINITIONS.filter(canUseDashboardWidget);
+  const availableCategories = Object.entries(DASHBOARD_WIDGET_CATEGORIES).filter(([category]) =>
+    category === 'all' || availableWidgets.some(widget => widget.category === category)
+  );
+  filterContainer.innerHTML = availableCategories.map(([category, config]) => `
+    <button class="widget-catalog-filter ${dashboardCatalogFilter === category ? 'active' : ''}" type="button" onclick="setDashboardCatalogFilter('${category}')">
+      <i class="ti ${config.icon}"></i>${config.label}
+    </button>`).join('');
+
+  const filteredWidgets = availableWidgets.filter(widget => dashboardCatalogFilter === 'all' || widget.category === dashboardCatalogFilter);
+  catalog.innerHTML = filteredWidgets.map(widget => {
+    const added = dashboardWidgetIsAdded(widget.id);
+    const category = DASHBOARD_WIDGET_CATEGORIES[widget.category];
+    return `<article class="widget-catalog-card ${added ? 'added' : ''}" style="--catalog-color:${widget.color}">
+      <div class="widget-catalog-card-icon"><i class="ti ${widget.icon}"></i></div>
+      <div class="widget-catalog-card-copy">
+        <div class="widget-catalog-card-title">${escapeHtml(widget.title)}</div>
+        <div class="widget-catalog-card-desc">${escapeHtml(category.label)} · ${escapeHtml(widget.description)}</div>
+      </div>
+      <button class="btn ${added ? 'btn-ghost' : 'btn-primary'} btn-sm" type="button" onclick="toggleDashboardWidget('${widget.id}')">
+        <i class="ti ${added ? 'ti-minus' : 'ti-plus'}"></i>${added ? 'Retirer' : 'Ajouter'}
+      </button>
+    </article>`;
+  }).join('');
+}
+
+function dashboardMoney(value) {
+  return '$' + Number(value || 0).toLocaleString('fr-FR');
+}
+
+function dashboardTodayOperationCount() {
+  const today = parisDateKey(new Date());
+  return (data.logs || []).filter(log => {
+    if (!String(log.date || '').startsWith(today)) return false;
+    const action = String(log.action || '').replace(/<[^>]*>/g, '').trim();
+    return (log.type === 'stock' && /^(Entrée de|Sortie de)/.test(action)) ||
+      (log.type === 'cash' && /^(Entrée cash|Sortie cash)/.test(action));
+  }).length;
+}
+
+function dashboardLocationStats() {
+  return (data.locations || []).map(locationItem => {
+    const products = (data.products || []).filter(product => sameId(product.locationId, locationItem.id));
+    const units = products.reduce((sum, product) => sum + Number(product.qty || 0), 0);
+    const stock = products.reduce((sum, product) => sum + Number(product.qty || 0) * Number(product.price || 0), 0);
+    const cash = Number(data.cashByLocation?.[locationItem.id] || 0);
+    return { location:locationItem, products, units, stock, cash, total:stock + cash };
+  }).sort((first, second) => second.total - first.total || alphaCompare(first.location.name, second.location.name));
+}
+
+function dashboardWidgetEmpty(icon, text) {
+  return `<div class="dashboard-widget-empty"><i class="ti ${icon}"></i><span>${escapeHtml(text)}</span></div>`;
+}
+
+function dashboardWidgetRow(icon, title, subtitle, value = '', color = 'var(--accent)') {
+  return `<div class="dashboard-widget-row" style="--row-color:${color}">
+    <div class="dashboard-widget-row-icon"><i class="ti ${icon}"></i></div>
+    <div class="dashboard-widget-row-main">
+      <div class="dashboard-widget-row-title">${escapeHtml(title)}</div>
+      <div class="dashboard-widget-row-sub">${escapeHtml(subtitle)}</div>
+    </div>
+    ${value !== '' ? `<div class="dashboard-widget-row-value">${escapeHtml(String(value))}</div>` : ''}
+  </div>`;
+}
+
+function dashboardKpiContent(value, note) {
+  return `<div class="dashboard-widget-kpi">
+    <div class="dashboard-widget-kpi-value">${escapeHtml(String(value))}</div>
+    <div class="dashboard-widget-kpi-note">${escapeHtml(note)}</div>
+  </div>`;
+}
+
+function dashboardSortedOperationLogs(type, pattern, limit = 8) {
+  return [...(data.logs || [])]
+    .filter(log => {
+      if (log.type !== type) return false;
+      const action = String(log.action || '').replace(/<[^>]*>/g, '').trim();
+      return pattern.test(action);
+    })
+    .sort((first, second) => String(second.date || '').localeCompare(String(first.date || '')) || Number(second.id || 0) - Number(first.id || 0))
+    .slice(0, limit);
+}
+
+function dashboardOperationRows(logs, type) {
+  if (!logs.length) return dashboardWidgetEmpty(type === 'cash' ? 'ti-cash-off' : 'ti-arrows-exchange', 'Aucune opération enregistrée');
+  return `<div class="dashboard-widget-list">${logs.map(log => {
+    const plain = String(log.action || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const isEntry = /^(Entrée|Entrée cash)/.test(plain);
+    return dashboardWidgetRow(
+      isEntry ? 'ti-arrow-down' : 'ti-arrow-up',
+      plain,
+      `${log.user || 'Système'} · ${log.date || '—'}`,
+      '',
+      isEntry ? 'var(--green)' : 'var(--red)'
+    );
+  }).join('')}</div>`;
+}
+
+function dashboardAppointmentRows(mode) {
+  const now = new Date();
+  const today = parisDateKey(now);
+  let appointments = visibleAppointments();
+  if (mode === 'today') appointments = appointments.filter(appointment => appointment.date === today);
+  else appointments = appointments.filter(appointment => appointmentDateTime(appointment) >= now);
+  appointments = appointments.slice(0, 8);
+  if (!appointments.length) return dashboardWidgetEmpty('ti-calendar-off', mode === 'today' ? "Aucun rendez-vous aujourd'hui" : 'Aucun rendez-vous à venir');
+  return `<div class="dashboard-widget-list">${appointments.map(appointment => {
+    const dateLabel = new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'short' }).format(new Date(`${appointment.date}T12:00:00`));
+    const visibility = appointment.visibility === 'leadership' ? ' · Direction' : '';
+    return dashboardWidgetRow(
+      appointment.visibility === 'leadership' ? 'ti-lock' : 'ti-calendar-event',
+      appointment.reason || 'Rendez-vous',
+      `${dateLabel} · ${displayAppointmentTime(appointment.time)} · ${appointment.withWho || 'Non précisé'}${visibility}`,
+      '',
+      'var(--purple)'
+    );
+  }).join('')}</div>`;
+}
+
+function dashboardWidgetContent(widgetId) {
+  const stockValueTotal = stockValue();
+  const totalUnits = (data.products || []).reduce((sum, product) => sum + Number(product.qty || 0), 0);
+  const cashTotal = Number(data.cashBalance || 0);
+  const locationStats = dashboardLocationStats();
+
+  if (widgetId === 'stock_value') return dashboardKpiContent(dashboardMoney(stockValueTotal), 'Valeur totale de tous les objets');
+  if (widgetId === 'cash_total') return dashboardKpiContent(dashboardMoney(cashTotal), 'Toutes localisations réunies');
+  if (widgetId === 'global_total') return dashboardKpiContent(dashboardMoney(stockValueTotal + cashTotal), 'Cash + valeur du stock');
+  if (widgetId === 'today_operations') return dashboardKpiContent(dashboardTodayOperationCount(), 'Entrées et sorties depuis 00 h 00');
+  if (widgetId === 'stock_units') return dashboardKpiContent(totalUnits.toLocaleString('fr-FR'), `${data.products.length} ligne(s) d’inventaire`);
+
+  if (widgetId === 'stock_locations') {
+    if (!locationStats.length) return dashboardWidgetEmpty('ti-map-pin-off', 'Aucune localisation');
+    return `<div class="dashboard-widget-list">${locationStats.map(item => dashboardWidgetRow(
+      'ti-building-warehouse', item.location.name,
+      `${item.units.toLocaleString('fr-FR')} unité(s) · ${item.products.length} référence(s)`,
+      dashboardMoney(item.stock), 'var(--green)'
+    )).join('')}</div>`;
+  }
+
+  if (widgetId === 'cash_locations') {
+    if (!locationStats.length) return dashboardWidgetEmpty('ti-map-pin-off', 'Aucune localisation');
+    return `<div class="dashboard-widget-list">${locationStats.map(item => dashboardWidgetRow(
+      'ti-map-pin-dollar', item.location.name,
+      item.cash > 0 ? 'Cash disponible' : 'Aucun cash disponible',
+      dashboardMoney(item.cash), 'var(--accent)'
+    )).join('')}</div>`;
+  }
+
+  if (widgetId === 'location_summary') {
+    if (!locationStats.length) return dashboardWidgetEmpty('ti-map-pin-off', 'Aucune localisation');
+    return `<div class="dashboard-widget-list">${locationStats.map(item => dashboardWidgetRow(
+      'ti-map-2', item.location.name,
+      `Stock ${dashboardMoney(item.stock)} · Cash ${dashboardMoney(item.cash)}`,
+      dashboardMoney(item.total), 'var(--blue)'
+    )).join('')}</div>`;
+  }
+
+  if (widgetId === 'recent_stock') return dashboardOperationRows(dashboardSortedOperationLogs('stock', /^(Entrée de|Sortie de)/), 'stock');
+  if (widgetId === 'recent_cash') return dashboardOperationRows(dashboardSortedOperationLogs('cash', /^(Entrée cash|Sortie cash)/), 'cash');
+  if (widgetId === 'upcoming_appointments') return dashboardAppointmentRows('upcoming');
+  if (widgetId === 'today_appointments') return dashboardAppointmentRows('today');
+
+  if (widgetId === 'active_members') {
+    const activeUsers = (data.users || []).filter(user => user.active);
+    const roles = ['boss','segundo','teniente','soldado','visiteur'];
+    const labels = { boss:'Jefe', segundo:'Segundo', teniente:'Teniente', soldado:'Soldado', visiteur:'Visiteur' };
+    return `<div class="dashboard-widget-list">${roles.map(userRole => {
+      const count = activeUsers.filter(user => String(user.role).toLowerCase() === userRole).length;
+      return dashboardWidgetRow('ti-user-shield', labels[userRole], `${count} membre(s) actif(s)`, String(count), 'var(--purple)');
+    }).join('')}</div>`;
+  }
+
+  if (widgetId === 'recent_activity') {
+    const logs = [...(data.logs || [])].reverse().slice(0, 8);
+    if (!logs.length) return dashboardWidgetEmpty('ti-activity', 'Aucune activité récente');
+    return `<div class="dashboard-widget-list">${logs.map(log => dashboardWidgetRow(
+      log.type === 'cash' ? 'ti-cash' : log.type === 'stock' ? 'ti-package' : log.type === 'user' ? 'ti-user' : 'ti-settings',
+      String(log.action || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(),
+      `${log.user || 'Système'} · ${log.date || '—'}`,
+      '',
+      'var(--red)'
+    )).join('')}</div>`;
+  }
+
+  return dashboardWidgetEmpty('ti-widget', 'Widget indisponible');
+}
+
+function dashboardWidgetMarkup(widget) {
+  const definition = dashboardWidgetDefinition(widget.id);
+  const category = DASHBOARD_WIDGET_CATEGORIES[definition.category];
+  return `<article class="dashboard-widget" data-widget-id="${definition.id}" style="grid-column:${widget.x + 1} / span ${widget.w};grid-row:${widget.y + 1} / span ${widget.h};--widget-color:${definition.color}">
+    <header class="dashboard-widget-head" onpointerdown="startDashboardWidgetDrag(event,'${definition.id}')">
+      <span class="dashboard-widget-drag"><i class="ti ti-grip-vertical"></i></span>
+      <span class="dashboard-widget-icon"><i class="ti ${definition.icon}"></i></span>
+      <span class="dashboard-widget-heading">
+        <span class="dashboard-widget-title">${escapeHtml(definition.title)}</span>
+        <span class="dashboard-widget-category">${escapeHtml(category.label)}</span>
+      </span>
+      <span class="dashboard-widget-controls" onpointerdown="event.stopPropagation()">
+        <button class="dashboard-widget-control" type="button" onclick="cycleDashboardWidgetSize('${definition.id}')" title="Changer rapidement la taille" aria-label="Changer la taille"><i class="ti ti-arrows-maximize"></i></button>
+        <button class="dashboard-widget-control remove" type="button" onclick="removeDashboardWidget('${definition.id}')" title="Retirer le widget" aria-label="Retirer le widget"><i class="ti ti-x"></i></button>
+      </span>
+    </header>
+    <div class="dashboard-widget-body">${dashboardWidgetContent(definition.id)}</div>
+    <span class="dashboard-widget-resize" onpointerdown="startDashboardWidgetResize(event,'${definition.id}')" title="Redimensionner"><i class="ti ti-corner-right-down"></i></span>
+  </article>`;
+}
+
 function renderDashboard() {
+  const grid = document.getElementById('personal-dashboard-grid');
+  const empty = document.getElementById('personal-dashboard-empty');
+  if (!grid || !empty || !data.currentUser) return;
+
+  const currentUserId = String(data.currentUser.id);
+  if (dashboardLastUserId !== currentUserId) {
+    dashboardLastUserId = currentUserId;
+    dashboardEditMode = false;
+  }
+
+  const title = document.getElementById('personal-dashboard-title');
+  if (title) title.textContent = `TABLEAU DE BORD DE ${String(data.currentUser.firstname || '').toUpperCase()}`;
+
+  const profile = currentDashboardProfile();
+  const visibleWidgets = (profile?.widgets || []).filter(widget => canUseDashboardWidget(dashboardWidgetDefinition(widget.id)));
+  grid.classList.toggle('is-editing', dashboardEditMode);
+  grid.innerHTML = visibleWidgets.map(dashboardWidgetMarkup).join('');
+  grid.style.display = visibleWidgets.length ? 'grid' : 'none';
+  empty.classList.toggle('visible', !visibleWidgets.length);
+
+  const banner = document.getElementById('dashboard-edit-banner');
+  if (banner) banner.classList.toggle('visible', dashboardEditMode && visibleWidgets.length > 0);
+  const editButton = document.getElementById('dashboard-edit-toggle');
+  if (editButton) {
+    editButton.className = `btn ${dashboardEditMode ? 'btn-primary' : 'btn-ghost'}`;
+    editButton.innerHTML = dashboardEditMode ? '<i class="ti ti-check"></i> Terminer' : '<i class="ti ti-pencil"></i> Organiser';
+  }
+}
+
+function dashboardGridMetrics() {
+  const grid = document.getElementById('personal-dashboard-grid');
+  const width = grid?.getBoundingClientRect().width || 1200;
+  return {
+    columnWidth: Math.max(20, (width - DASHBOARD_GAP * (DASHBOARD_COLUMNS - 1)) / DASHBOARD_COLUMNS),
+    rowStep: DASHBOARD_ROW_HEIGHT + DASHBOARD_GAP
+  };
+}
+
+function startDashboardWidgetDrag(event, widgetId) {
+  if (!dashboardEditMode || event.button !== 0) return;
+  const profile = currentDashboardProfile();
+  const widget = profile?.widgets.find(item => item.id === widgetId);
+  const element = event.currentTarget?.closest('.dashboard-widget');
+  if (!widget || !element) return;
+  event.preventDefault();
+  const metrics = dashboardGridMetrics();
+  dashboardInteraction = {
+    type:'drag', widgetId, element, pointerId:event.pointerId,
+    startClientX:event.clientX, startClientY:event.clientY,
+    original:{ ...widget }, metrics
+  };
+  element.classList.add('is-dragging');
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  window.addEventListener('pointermove', handleDashboardWidgetPointerMove, { passive:false });
+  window.addEventListener('pointerup', finishDashboardWidgetInteraction);
+  window.addEventListener('pointercancel', finishDashboardWidgetInteraction);
+}
+
+function startDashboardWidgetResize(event, widgetId) {
+  if (!dashboardEditMode || event.button !== 0 || window.innerWidth <= 760) return;
+  const profile = currentDashboardProfile();
+  const widget = profile?.widgets.find(item => item.id === widgetId);
+  const definition = dashboardWidgetDefinition(widgetId);
+  const element = event.currentTarget?.closest('.dashboard-widget');
+  if (!widget || !definition || !element) return;
+  event.preventDefault();
+  event.stopPropagation();
+  dashboardInteraction = {
+    type:'resize', widgetId, element, definition, pointerId:event.pointerId,
+    startClientX:event.clientX, startClientY:event.clientY,
+    original:{ ...widget }, previewW:widget.w, previewH:widget.h,
+    metrics:dashboardGridMetrics()
+  };
+  element.classList.add('is-resizing');
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  window.addEventListener('pointermove', handleDashboardWidgetPointerMove, { passive:false });
+  window.addEventListener('pointerup', finishDashboardWidgetInteraction);
+  window.addEventListener('pointercancel', finishDashboardWidgetInteraction);
+}
+
+function handleDashboardWidgetPointerMove(event) {
+  const interaction = dashboardInteraction;
+  if (!interaction || event.pointerId !== interaction.pointerId) return;
+  event.preventDefault();
+  const deltaX = event.clientX - interaction.startClientX;
+  const deltaY = event.clientY - interaction.startClientY;
+
+  if (interaction.type === 'drag') {
+    interaction.element.style.transform = `translate3d(${deltaX}px,${deltaY}px,0)`;
+    return;
+  }
+
+  const definition = interaction.definition;
+  const widthDelta = Math.round(deltaX / (interaction.metrics.columnWidth + DASHBOARD_GAP));
+  const heightDelta = Math.round(deltaY / interaction.metrics.rowStep);
+  interaction.previewW = dashboardClamp(interaction.original.w + widthDelta, definition.minW || 2, Math.min(DASHBOARD_COLUMNS, definition.maxW || DASHBOARD_COLUMNS));
+  interaction.previewH = dashboardClamp(interaction.original.h + heightDelta, definition.minH || 2, definition.maxH || 10);
+  interaction.element.style.gridColumn = `${interaction.original.x + 1} / span ${interaction.previewW}`;
+  interaction.element.style.gridRow = `${interaction.original.y + 1} / span ${interaction.previewH}`;
+}
+
+function finishDashboardWidgetInteraction(event) {
+  const interaction = dashboardInteraction;
+  if (!interaction || (event.pointerId !== undefined && event.pointerId !== interaction.pointerId)) return;
+  window.removeEventListener('pointermove', handleDashboardWidgetPointerMove);
+  window.removeEventListener('pointerup', finishDashboardWidgetInteraction);
+  window.removeEventListener('pointercancel', finishDashboardWidgetInteraction);
+  interaction.element.classList.remove('is-dragging', 'is-resizing');
+  interaction.element.style.transform = '';
+
+  const profile = currentDashboardProfile();
+  const widget = profile?.widgets.find(item => item.id === interaction.widgetId);
+  if (widget) {
+    if (interaction.type === 'drag') {
+      const deltaX = (event.clientX ?? interaction.startClientX) - interaction.startClientX;
+      const deltaY = (event.clientY ?? interaction.startClientY) - interaction.startClientY;
+      const mobile = window.innerWidth <= 760;
+      const columnDelta = mobile ? 0 : Math.round(deltaX / (interaction.metrics.columnWidth + DASHBOARD_GAP));
+      const rowDelta = Math.round(deltaY / interaction.metrics.rowStep);
+      widget.x = dashboardClamp(interaction.original.x + columnDelta, 0, DASHBOARD_COLUMNS - widget.w);
+      widget.y = Math.max(0, interaction.original.y + rowDelta);
+    } else {
+      widget.w = interaction.previewW;
+      widget.h = interaction.previewH;
+      widget.x = Math.min(widget.x, DASHBOARD_COLUMNS - widget.w);
+    }
+    profile.widgets = normalizeDashboardLayout(profile.widgets, widget.id);
+    savePersonalDashboard();
+  }
+
+  dashboardInteraction = null;
+  renderDashboard();
+}
+
+window.addEventListener('resize', () => {
+  clearTimeout(dashboardResizeTimer);
+  dashboardResizeTimer = setTimeout(() => {
+    if (currentSection === 'dashboard') renderDashboard();
+  }, 120);
+});
+
+// ===================== ANCIEN TABLEAU DE BORD (COMPATIBILITÉ) =====================
+function renderLegacyDashboard() {
   const total = data.products.reduce((s,p) => s+p.qty, 0);
   const value = stockValue();
   const now = new Date();
@@ -5263,58 +6232,35 @@ function selectedCashLocationBalance() {
   const locationId = parseInt(document.getElementById('cash-location')?.value);
   return locationId ? Math.max(0, Number(data.cashByLocation[locationId] || 0)) : 0;
 }
-
 function markCashAmountManual() {
   const amountInput = document.getElementById('cash-amount');
   if (amountInput) amountInput.dataset.filledFromBalance = 'false';
 }
-
 function updateCashModalBalance() {
   const locationSelect = document.getElementById('cash-location');
   const amountInput = document.getElementById('cash-amount');
   const allButton = document.getElementById('cash-use-all');
   const balanceNote = document.getElementById('cash-balance-note');
   if (!locationSelect || !amountInput || !allButton || !balanceNote) return;
-
   const locationId = parseInt(locationSelect.value);
   const balance = selectedCashLocationBalance();
   const isWithdrawal = currentCashType === 'sortie';
-
   allButton.style.display = isWithdrawal ? 'inline-flex' : 'none';
   balanceNote.style.display = isWithdrawal ? 'block' : 'none';
   allButton.disabled = !locationId || balance <= 0;
-
-  if (!isWithdrawal) {
-    amountInput.dataset.filledFromBalance = 'false';
-    return;
-  }
-
+  if (!isWithdrawal) { amountInput.dataset.filledFromBalance = 'false'; return; }
   balanceNote.innerHTML = locationId
     ? `<i class="ti ti-building-bank" style="color:var(--accent)"></i> Disponible à <strong style="color:var(--text)">${locationName(locationId)}</strong> : <strong style="color:${balance > 0 ? 'var(--green)' : 'var(--text3)'}">$${balance.toLocaleString('fr-FR')}</strong>`
     : '<i class="ti ti-info-circle" style="color:var(--accent)"></i> Choisis une localisation.';
-
-  // Si « Tout retirer » a déjà été utilisé, le montant suit automatiquement
-  // le solde lorsque la personne change de localisation.
-  if (amountInput.dataset.filledFromBalance === 'true') {
-    amountInput.value = balance > 0 ? String(balance) : '';
-  }
+  if (amountInput.dataset.filledFromBalance === 'true') amountInput.value = balance > 0 ? String(balance) : '';
 }
-
 function useAllCashForLocation() {
   if (currentCashType !== 'sortie') return;
   const locationId = parseInt(document.getElementById('cash-location')?.value);
   const amountInput = document.getElementById('cash-amount');
-  if (!locationId || !amountInput) {
-    toast('Choisis une localisation', 'error');
-    return;
-  }
-
+  if (!locationId || !amountInput) { toast('Choisis une localisation', 'error'); return; }
   const balance = selectedCashLocationBalance();
-  if (balance <= 0) {
-    toast(`Aucun cash disponible à ${locationName(locationId)}`, 'error');
-    return;
-  }
-
+  if (balance <= 0) { toast(`Aucun cash disponible à ${locationName(locationId)}`, 'error'); return; }
   amountInput.value = String(balance);
   amountInput.dataset.filledFromBalance = 'true';
 }
@@ -5726,6 +6672,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 
 function openAddModal() {
   if (!topbarActionAllowed()) { deny(); return; }
+  if (currentSection === 'dashboard') { openWidgetCatalog(); return; }
   if (currentSection === 'agenda') { openAgendaModal(); return; }
   if (currentSection === 'mouvements') { openMvtModal('entree'); return; }
   if (currentSection === 'cash') { openCashModal('entree'); return; }
@@ -5768,17 +6715,9 @@ function saveProduct() {
   const cat = parseInt(document.getElementById('p-cat').value);
   if (!name) { toast('Nom requis','error'); return; }
   if (!locationId) { toast('Localisation requise','error'); return; }
-
   const productDraft = { name, cat };
-  const duplicate = data.products.find(product =>
-    !sameId(product.id, data.editingProduct) &&
-    sameProductIdentity(product, productDraft) &&
-    sameId(product.locationId, locationId)
-  );
-  if (duplicate) {
-    toast(`Cet article existe déjà à ${loc}`, 'error');
-    return;
-  }
+  const duplicate = data.products.find(product => !sameId(product.id, data.editingProduct) && sameProductIdentity(product, productDraft) && sameId(product.locationId, locationId));
+  if (duplicate) { toast(`Cet article existe déjà à ${loc}`, 'error'); return; }
 
   if (data.editingProduct) {
     const p = data.products.find(pr => pr.id === data.editingProduct);
@@ -5821,35 +6760,26 @@ function updateMovementProductLocation() {
 
   const previousLocationId = locationSelect.value;
   const availableLocations = [...(data.locations || [])].sort((a, b) => alphaCompare(a.name, b.name));
-  const preferredLocationId = availableLocations.some(location => sameId(location.id, previousLocationId))
-    ? previousLocationId
-    : product.locationId;
-
-  locationSelect.innerHTML = availableLocations.map(location => {
-    const stockLine = findProductStockAtLocation(product, location.id);
+  const preferredLocationId = availableLocations.some(locationItem => sameId(locationItem.id, previousLocationId)) ? previousLocationId : product.locationId;
+  locationSelect.innerHTML = availableLocations.map(locationItem => {
+    const stockLine = findProductStockAtLocation(product, locationItem.id);
     const quantity = Number(stockLine?.qty || 0);
-    return `<option value="${location.id}" ${sameId(location.id, preferredLocationId) ? 'selected' : ''}>${location.name} — stock : ${quantity}</option>`;
+    return `<option value="${locationItem.id}" ${sameId(locationItem.id, preferredLocationId) ? 'selected' : ''}>${locationItem.name} — stock : ${quantity}</option>`;
   }).join('');
-
   refreshMovementLocationChoice();
 }
 
 function refreshMovementLocationChoice() {
   const hint = document.getElementById('mvt-location-stock-hint');
   if (!hint) return;
-
   const product = data.products.find(item => sameId(item.id, document.getElementById('mvt-product')?.value));
   const locationId = document.getElementById('mvt-location')?.value;
   if (!product || !locationId) {
     hint.innerHTML = '<i class="ti ti-info-circle" style="color:var(--accent)"></i> Choisis un article et une localisation.';
     return;
   }
-
-  const stockLine = findProductStockAtLocation(product, locationId);
-  const quantity = Number(stockLine?.qty || 0);
-  const actionLabel = currentMvtType === 'entree'
-    ? 'L’entrée sera ajoutée uniquement ici.'
-    : 'La sortie sera retirée uniquement ici.';
+  const quantity = Number(findProductStockAtLocation(product, locationId)?.qty || 0);
+  const actionLabel = currentMvtType === 'entree' ? 'L’entrée sera ajoutée uniquement ici.' : 'La sortie sera retirée uniquement ici.';
   hint.innerHTML = `<i class="ti ti-map-pin" style="color:var(--accent)"></i> Stock actuel à <strong style="color:var(--text)">${locationName(locationId)}</strong> : <strong style="color:${quantity > 0 ? 'var(--green)' : 'var(--text3)'}">${quantity}</strong>. ${actionLabel}`;
 }
 
@@ -5925,18 +6855,13 @@ function saveMvt() {
 
   const selectedProduct = data.products.find(p => sameId(p.id, productId));
   if (!selectedProduct) { toast('Article introuvable','error'); return; }
-
   let product = findProductStockAtLocation(selectedProduct, locationId);
-  if (!product && currentMvtType === 'entree') {
-    product = createProductStockAtLocation(selectedProduct, locationId);
-  }
-
+  if (!product && currentMvtType === 'entree') product = createProductStockAtLocation(selectedProduct, locationId);
   const availableStock = Number(product?.qty || 0);
 
   if (currentMvtType === 'sortie' && qty > availableStock) {
     toast(`Stock insuffisant à ${locationName(locationId)} (${availableStock} dispo)`, 'error'); return;
   }
-
   if (!product) { toast('Stock introuvable dans cette localisation','error'); return; }
 
   const dateStr = nowStr();
