@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="agenda-discord-secure-outbox-stock-by-location-v14">
+<meta name="vault-build" content="agenda-discord-secure-outbox-stock-by-location-cash-all-v15">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -204,6 +204,43 @@ body {
 
 .form-input:focus, .form-select:focus { border-color: var(--accent); }
 .form-select option { background: var(--bg3); }
+
+.cash-amount-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.btn.cash-all-button {
+  min-height: 42px;
+  padding-inline: 13px;
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1px solid rgba(232,64,64,0.28);
+}
+
+.btn.cash-all-button:hover:not(:disabled) {
+  background: rgba(232,64,64,0.2);
+  transform: translateY(-1px);
+}
+
+.btn.cash-all-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.cash-balance-note {
+  display: none;
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg3);
+  color: var(--text3);
+  font-family: var(--font-cond);
+  font-size: 12px;
+}
 
 .login-user-select {
   display: grid;
@@ -2652,8 +2689,17 @@ body:not(.logged-in) #app { display: none !important; }
       <button class="modal-close" onclick="closeModal('modal-cash')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label class="form-label">Montant ($)</label><input class="form-input" type="number" id="cash-amount" placeholder="0" min="1" step="1"></div>
-      <div class="form-group"><label class="form-label">Localisation</label><select class="form-select" id="cash-location"></select></div>
+      <div class="form-group"><label class="form-label">Localisation</label><select class="form-select" id="cash-location" onchange="updateCashModalBalance()"></select></div>
+      <div class="form-group">
+        <label class="form-label">Montant ($)</label>
+        <div class="cash-amount-control">
+          <input class="form-input" type="number" id="cash-amount" placeholder="0" min="1" step="1" oninput="markCashAmountManual()">
+          <button class="btn cash-all-button" id="cash-use-all" type="button" onclick="useAllCashForLocation()">
+            <i class="ti ti-wallet-off"></i> Tout retirer
+          </button>
+        </div>
+        <div class="cash-balance-note" id="cash-balance-note"></div>
+      </div>
       <div class="form-group"><label class="form-label">Raison</label><input class="form-input" id="cash-reason" placeholder="Ex: Vente, dépôt, achat matériel…"></div>
     </div>
     <div class="modal-footer">
@@ -2919,9 +2965,6 @@ function migrateLegacyCrossLocationStocks() {
   const parsedLogs = (data.logs || []).map(parsedStockLog).filter(Boolean);
 
   productGroups.forEach(products => {
-    // L'ancien bug déplaçait une ligne unique d'un endroit à l'autre.
-    // On ne reconstruit automatiquement que lorsque le journal complet permet
-    // de retrouver exactement le total actuel, afin de ne jamais inventer du stock.
     if (products.length !== 1) return;
     const sourceProduct = products[0];
     const relatedMovements = (data.movements || []).filter(movement =>
@@ -5215,19 +5258,83 @@ function renderCash() {
 }
 
 let currentCashType = 'entree';
+
+function selectedCashLocationBalance() {
+  const locationId = parseInt(document.getElementById('cash-location')?.value);
+  return locationId ? Math.max(0, Number(data.cashByLocation[locationId] || 0)) : 0;
+}
+
+function markCashAmountManual() {
+  const amountInput = document.getElementById('cash-amount');
+  if (amountInput) amountInput.dataset.filledFromBalance = 'false';
+}
+
+function updateCashModalBalance() {
+  const locationSelect = document.getElementById('cash-location');
+  const amountInput = document.getElementById('cash-amount');
+  const allButton = document.getElementById('cash-use-all');
+  const balanceNote = document.getElementById('cash-balance-note');
+  if (!locationSelect || !amountInput || !allButton || !balanceNote) return;
+
+  const locationId = parseInt(locationSelect.value);
+  const balance = selectedCashLocationBalance();
+  const isWithdrawal = currentCashType === 'sortie';
+
+  allButton.style.display = isWithdrawal ? 'inline-flex' : 'none';
+  balanceNote.style.display = isWithdrawal ? 'block' : 'none';
+  allButton.disabled = !locationId || balance <= 0;
+
+  if (!isWithdrawal) {
+    amountInput.dataset.filledFromBalance = 'false';
+    return;
+  }
+
+  balanceNote.innerHTML = locationId
+    ? `<i class="ti ti-building-bank" style="color:var(--accent)"></i> Disponible à <strong style="color:var(--text)">${locationName(locationId)}</strong> : <strong style="color:${balance > 0 ? 'var(--green)' : 'var(--text3)'}">$${balance.toLocaleString('fr-FR')}</strong>`
+    : '<i class="ti ti-info-circle" style="color:var(--accent)"></i> Choisis une localisation.';
+
+  // Si « Tout retirer » a déjà été utilisé, le montant suit automatiquement
+  // le solde lorsque la personne change de localisation.
+  if (amountInput.dataset.filledFromBalance === 'true') {
+    amountInput.value = balance > 0 ? String(balance) : '';
+  }
+}
+
+function useAllCashForLocation() {
+  if (currentCashType !== 'sortie') return;
+  const locationId = parseInt(document.getElementById('cash-location')?.value);
+  const amountInput = document.getElementById('cash-amount');
+  if (!locationId || !amountInput) {
+    toast('Choisis une localisation', 'error');
+    return;
+  }
+
+  const balance = selectedCashLocationBalance();
+  if (balance <= 0) {
+    toast(`Aucun cash disponible à ${locationName(locationId)}`, 'error');
+    return;
+  }
+
+  amountInput.value = String(balance);
+  amountInput.dataset.filledFromBalance = 'true';
+}
+
 function openCashModal(type) {
   if (!canAddCashMovement()) {
     deny('Le grade Visiteur ne peut faire aucune entrée ni sortie de cash');
     return;
   }
-currentCashType = type;
+  currentCashType = type;
   document.getElementById('modal-cash-title').textContent = type === 'entree' ? "ENTRÉE D'ARGENT" : "SORTIE D'ARGENT";
   const c = document.getElementById('cash-confirm');
   c.className = `btn ${type === 'entree' ? 'btn-success' : 'btn-danger'}`;
   c.innerHTML = `<i class="ti ti-check"></i> Confirmer ${type === 'entree' ? "l'entrée" : 'la sortie'}`;
-  document.getElementById('cash-amount').value = '';
+  const amountInput = document.getElementById('cash-amount');
+  amountInput.value = '';
+  amountInput.dataset.filledFromBalance = 'false';
   document.getElementById('cash-location').innerHTML = locationOptions(data.locations[0]?.id);
   document.getElementById('cash-reason').value = '';
+  updateCashModalBalance();
   openModal('modal-cash');
 }
 
@@ -5238,7 +5345,7 @@ function saveCashMovement() {
     return;
   }
 
-const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
+  const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
   const reason = document.getElementById('cash-reason').value.trim() || 'Non précisé';
   const locationId = parseInt(document.getElementById('cash-location').value);
   if (amount <= 0) { toast('Montant invalide','error'); return; }
