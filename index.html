@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="agenda-picker-minute-france-v12">
+<meta name="vault-build" content="agenda-discord-secure-outbox-v13">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2145,7 +2145,7 @@ body:not(.logged-in) #app { display: none !important; }
             <div class="agenda-live-date" id="agenda-live-date">—</div>
           </div>
           <div class="agenda-access-note">
-            Ici vous retrouverez tous les rendez-vous du groupes.
+            Tous les rendez-vous publics sont visibles du Soldado au Jefe. Les rendez-vous de direction restent réservés au Segundo et au Jefe.
           </div>
         </div>
 
@@ -2871,6 +2871,7 @@ function ensureLocationData() {
     const creator = data.users.find(user => sameId(user.id, appointment.createdBy));
     return {
       ...appointment,
+      eventId: String(appointment.eventId || ''),
       date: String(appointment.date || '').slice(0, 10),
       time: String(appointment.time || '00:00').slice(0, 5),
       reason: String(appointment.reason || ''),
@@ -4541,6 +4542,14 @@ function openAgendaModal(prefillDate = agendaSelectedDate) {
   openModal('modal-agenda');
 }
 
+function createAppointmentEventId() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return window.crypto.randomUUID();
+  }
+  const randomPart = Math.random().toString(36).slice(2, 12);
+  return `agenda-${Date.now()}-${randomPart}`;
+}
+
 function saveAppointment() {
   if (!canViewAgenda() || !data.currentUser) { deny(); return; }
   const date = document.getElementById('agenda-date').value;
@@ -4563,6 +4572,7 @@ function saveAppointment() {
   const creatorRole = role();
   const appointment = {
     id: data.nextId.appointment++,
+    eventId: createAppointmentEventId(),
     date,
     time,
     reason,
