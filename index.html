@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="agenda-discord-secure-outbox-v13">
+<meta name="vault-build" content="agenda-discord-secure-outbox-stock-by-location-v14">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2575,7 +2575,11 @@ body:not(.logged-in) #app { display: none !important; }
         <div class="form-group"><label class="form-label">Quantité</label><input class="form-input" type="number" id="mvt-qty" placeholder="1" min="1"></div>
         <div class="form-group"><label class="form-label">Membre</label><select class="form-select" id="mvt-user"></select></div>
       </div>
-      <div class="form-group"><label class="form-label">Localisation</label><select class="form-select" id="mvt-location"></select></div>
+      <div class="form-group">
+        <label class="form-label">Localisation</label>
+        <select class="form-select" id="mvt-location" onchange="refreshMovementLocationChoice()"></select>
+        <div id="mvt-location-stock-hint" style="margin-top:8px;padding:9px 11px;border:1px solid var(--border);background:var(--bg3);border-radius:var(--radius);color:var(--text3);font-size:12px;font-family:var(--font-cond)"></div>
+      </div>
       <div class="form-group"><label class="form-label">Raison</label><input class="form-input" id="mvt-reason" placeholder="Ex: Livraison planque"></div>
     </div>
     <div class="modal-footer">
@@ -2800,6 +2804,172 @@ function restoreCurrentUser(previousUser) {
   data.currentUser = freshUser || previousUser;
 }
 
+function normalizedProductName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('fr-FR');
+}
+
+function productIdentityKey(product) {
+  return `${String(product?.cat ?? '')}:${normalizedProductName(product?.name)}`;
+}
+
+function sameProductIdentity(first, second) {
+  return Boolean(first && second) && productIdentityKey(first) === productIdentityKey(second);
+}
+
+function findProductStockAtLocation(sourceProduct, locationId) {
+  if (!sourceProduct || !locationId) return null;
+  return (data.products || []).find(product =>
+    sameProductIdentity(product, sourceProduct) && sameId(product.locationId, locationId)
+  ) || null;
+}
+
+function productTotalAcrossLocations(sourceProduct) {
+  if (!sourceProduct) return 0;
+  return (data.products || [])
+    .filter(product => sameProductIdentity(product, sourceProduct))
+    .reduce((sum, product) => sum + Number(product.qty || 0), 0);
+}
+
+function mergeDuplicateProductStocks() {
+  const products = Array.isArray(data.products) ? data.products : [];
+  const uniqueStocks = new Map();
+  const remappedProductIds = new Map();
+
+  products.forEach(product => {
+    product.qty = Math.max(0, Number(product.qty || 0));
+    product.price = Math.max(0, Number(product.price || 0));
+    const key = `${productIdentityKey(product)}:${String(product.locationId || '')}`;
+    const existing = uniqueStocks.get(key);
+
+    if (!existing) {
+      uniqueStocks.set(key, product);
+      return;
+    }
+
+    existing.qty = Number(existing.qty || 0) + Number(product.qty || 0);
+    remappedProductIds.set(String(product.id), existing.id);
+  });
+
+  if (!remappedProductIds.size) return;
+
+  data.products = [...uniqueStocks.values()];
+  (data.movements || []).forEach(movement => {
+    const replacementId = remappedProductIds.get(String(movement.productId));
+    if (replacementId !== undefined) movement.productId = replacementId;
+  });
+
+  const editingReplacement = remappedProductIds.get(String(data.editingProduct));
+  if (editingReplacement !== undefined) data.editingProduct = editingReplacement;
+}
+
+function createProductStockAtLocation(sourceProduct, locationId) {
+  const existing = findProductStockAtLocation(sourceProduct, locationId);
+  if (existing) return existing;
+
+  if (!data.nextId) data.nextId = {};
+  const maxProductId = (data.products || []).reduce(
+    (max, product) => Math.max(max, Number(product.id || 0)),
+    0
+  );
+  const newId = Math.max(Number(data.nextId.product || 1), maxProductId + 1);
+  data.nextId.product = newId + 1;
+
+  const stockLine = {
+    id: newId,
+    name: sourceProduct.name,
+    cat: sourceProduct.cat,
+    qty: 0,
+    price: Number(sourceProduct.price || 0),
+    loc: locationName(locationId),
+    locationId
+  };
+
+  data.products.push(stockLine);
+  return stockLine;
+}
+
+function parsedStockLog(log) {
+  const plainAction = String(log?.action || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const match = plainAction.match(/^(Entrée|Sortie)\s+de\s+(\d+)\s+unité(?:\(s\)|s)?\s+de\s+(.+?)\s+📍\s+(.+?)(?:\s+\(Stock\s*:|$)/i);
+  if (!match) return null;
+  return {
+    delta: match[1].toLocaleLowerCase('fr-FR') === 'entrée' ? Number(match[2]) : -Number(match[2]),
+    productName: normalizedProductName(match[3]),
+    locationName: String(match[4] || '').trim().toLocaleLowerCase('fr-FR')
+  };
+}
+
+function migrateLegacyCrossLocationStocks() {
+  if (Number(data.stockLocationMigrationVersion || 0) >= 1) return;
+
+  const productGroups = new Map();
+  (data.products || []).forEach(product => {
+    const key = productIdentityKey(product);
+    if (!productGroups.has(key)) productGroups.set(key, []);
+    productGroups.get(key).push(product);
+  });
+
+  const parsedLogs = (data.logs || []).map(parsedStockLog).filter(Boolean);
+
+  productGroups.forEach(products => {
+    // L'ancien bug déplaçait une ligne unique d'un endroit à l'autre.
+    // On ne reconstruit automatiquement que lorsque le journal complet permet
+    // de retrouver exactement le total actuel, afin de ne jamais inventer du stock.
+    if (products.length !== 1) return;
+    const sourceProduct = products[0];
+    const relatedMovements = (data.movements || []).filter(movement =>
+      sameId(movement.productId, sourceProduct.id)
+    );
+    const movementLocations = new Set(relatedMovements.map(movement => String(movement.locationId || '')));
+    if (movementLocations.size < 2) return;
+
+    const balances = new Map();
+    parsedLogs
+      .filter(entry => entry.productName === normalizedProductName(sourceProduct.name))
+      .forEach(entry => {
+        const location = (data.locations || []).find(item =>
+          String(item.name || '').trim().toLocaleLowerCase('fr-FR') === entry.locationName
+        );
+        if (!location) return;
+        balances.set(String(location.id), Number(balances.get(String(location.id)) || 0) + entry.delta);
+      });
+
+    if (balances.size < 2 || [...balances.values()].some(quantity => quantity < 0)) return;
+    const reconstructedTotal = [...balances.values()].reduce((sum, quantity) => sum + quantity, 0);
+    if (reconstructedTotal !== Number(sourceProduct.qty || 0)) return;
+
+    const balanceEntries = [...balances.entries()];
+    let primaryEntry = balanceEntries.find(([locationId]) => sameId(locationId, sourceProduct.locationId));
+    if (!primaryEntry) primaryEntry = balanceEntries[0];
+
+    sourceProduct.locationId = Number(primaryEntry[0]);
+    sourceProduct.loc = locationName(primaryEntry[0]);
+    sourceProduct.qty = Number(primaryEntry[1]);
+
+    const stockLines = new Map([[String(sourceProduct.locationId), sourceProduct]]);
+    balanceEntries.forEach(([locationId, quantity]) => {
+      if (sameId(locationId, sourceProduct.locationId)) return;
+      const stockLine = createProductStockAtLocation(sourceProduct, Number(locationId));
+      stockLine.qty = Number(quantity);
+      stockLines.set(String(locationId), stockLine);
+    });
+
+    relatedMovements.forEach(movement => {
+      const stockLine = stockLines.get(String(movement.locationId));
+      if (stockLine) movement.productId = stockLine.id;
+    });
+  });
+
+  data.stockLocationMigrationVersion = 1;
+}
+
 function ensureLocationData() {
   if (!Array.isArray(data.gameScores)) data.gameScores = [];
   if (!Array.isArray(data.appointments)) data.appointments = [];
@@ -2854,6 +3024,13 @@ function ensureLocationData() {
     }
   });
 
+  migrateLegacyCrossLocationStocks();
+
+  // Une ligne d'inventaire correspond toujours à un article dans une localisation.
+  // Les anciennes lignes en double au même endroit sont fusionnées sans mélanger
+  // les stocks portant le même nom dans deux localisations différentes.
+  mergeDuplicateProductStocks();
+
   if (!Object.keys(data.cashByLocation).length && Number(data.cashBalance || 0) > 0) {
     data.cashByLocation[data.locations[0].id] = Number(data.cashBalance || 0);
   }
@@ -2866,6 +3043,8 @@ function ensureLocationData() {
   if (!data.nextId) data.nextId = {};
   const maxLoc = data.locations.reduce((m,l)=>Math.max(m,Number(l.id||0)),0);
   data.nextId.location = Math.max(Number(data.nextId.location || 1), maxLoc + 1);
+  const maxProduct = data.products.reduce((m,p)=>Math.max(m,Number(p.id||0)),0);
+  data.nextId.product = Math.max(Number(data.nextId.product || 1), maxProduct + 1);
 
   data.appointments = data.appointments.map(appointment => {
     const creator = data.users.find(user => sameId(user.id, appointment.createdBy));
@@ -3233,9 +3412,19 @@ function consolidateMovementsByProduct() {
   const movements = Array.isArray(data.movements) ? data.movements : [];
 
   movements.forEach(movement => {
-    const key = `${movement.productId}:${movement.locationId || ''}`;
+    const product = data.products.find(item => sameId(item.id, movement.productId));
+    const identity = product ? productIdentityKey(product) : `id:${String(movement.productId)}`;
+    const stockLine = product ? findProductStockAtLocation(product, movement.locationId) : null;
+    if (stockLine) movement.productId = stockLine.id;
+    const key = `${identity}:${movement.locationId || ''}`;
     const current = grouped.get(key);
-    if (!current || String(movement.date || '') >= String(current.date || '')) {
+    const movementDate = String(movement.date || '');
+    const currentDate = String(current?.date || '');
+    if (
+      !current ||
+      movementDate > currentDate ||
+      (movementDate === currentDate && Number(movement.id || 0) > Number(current.id || 0))
+    ) {
       grouped.set(key, movement);
     }
   });
@@ -5471,15 +5660,27 @@ function saveProduct() {
   const loc = locationName(locationId);
   const cat = parseInt(document.getElementById('p-cat').value);
   if (!name) { toast('Nom requis','error'); return; }
+  if (!locationId) { toast('Localisation requise','error'); return; }
+
+  const productDraft = { name, cat };
+  const duplicate = data.products.find(product =>
+    !sameId(product.id, data.editingProduct) &&
+    sameProductIdentity(product, productDraft) &&
+    sameId(product.locationId, locationId)
+  );
+  if (duplicate) {
+    toast(`Cet article existe déjà à ${loc}`, 'error');
+    return;
+  }
 
   if (data.editingProduct) {
     const p = data.products.find(pr => pr.id === data.editingProduct);
     Object.assign(p, {name,price,loc,locationId,cat});
-    addLog('stock',`Article modifié : <strong>${name}</strong>`, userName());
+    addLog('stock',`Article modifié : <strong>${name}</strong> <span style="color:var(--accent)">📍 ${loc}</span>`, userName());
     toast('Article mis à jour','success');
   } else {
     data.products.push({ id:data.nextId.product++, name,cat,qty:0,price,loc,locationId });
-    addLog('stock',`Nouvel article : <strong>${name}</strong>`, userName());
+    addLog('stock',`Nouvel article : <strong>${name}</strong> <span style="color:var(--accent)">📍 ${loc}</span>`, userName());
     toast('Article ajouté','success');
   }
   closeModal('modal-product');
@@ -5507,29 +5708,68 @@ function updateMovementProductLocation() {
 
   if (!product) {
     locationSelect.innerHTML = '<option value="">Aucune localisation</option>';
+    refreshMovementLocationChoice();
     return;
   }
 
-  locationSelect.innerHTML = locationOptions(product.locationId || data.locations[0]?.id);
+  const previousLocationId = locationSelect.value;
+  const availableLocations = [...(data.locations || [])].sort((a, b) => alphaCompare(a.name, b.name));
+  const preferredLocationId = availableLocations.some(location => sameId(location.id, previousLocationId))
+    ? previousLocationId
+    : product.locationId;
+
+  locationSelect.innerHTML = availableLocations.map(location => {
+    const stockLine = findProductStockAtLocation(product, location.id);
+    const quantity = Number(stockLine?.qty || 0);
+    return `<option value="${location.id}" ${sameId(location.id, preferredLocationId) ? 'selected' : ''}>${location.name} — stock : ${quantity}</option>`;
+  }).join('');
+
+  refreshMovementLocationChoice();
+}
+
+function refreshMovementLocationChoice() {
+  const hint = document.getElementById('mvt-location-stock-hint');
+  if (!hint) return;
+
+  const product = data.products.find(item => sameId(item.id, document.getElementById('mvt-product')?.value));
+  const locationId = document.getElementById('mvt-location')?.value;
+  if (!product || !locationId) {
+    hint.innerHTML = '<i class="ti ti-info-circle" style="color:var(--accent)"></i> Choisis un article et une localisation.';
+    return;
+  }
+
+  const stockLine = findProductStockAtLocation(product, locationId);
+  const quantity = Number(stockLine?.qty || 0);
+  const actionLabel = currentMvtType === 'entree'
+    ? 'L’entrée sera ajoutée uniquement ici.'
+    : 'La sortie sera retirée uniquement ici.';
+  hint.innerHTML = `<i class="ti ti-map-pin" style="color:var(--accent)"></i> Stock actuel à <strong style="color:var(--text)">${locationName(locationId)}</strong> : <strong style="color:${quantity > 0 ? 'var(--green)' : 'var(--text3)'}">${quantity}</strong>. ${actionLabel}`;
 }
 
 function updateMovementProducts() {
   const categoryId = document.getElementById('mvt-category').value;
   const productSelect = document.getElementById('mvt-product');
-  const products = (Array.isArray(data.products) ? data.products : [])
+  const stocks = (Array.isArray(data.products) ? data.products : [])
     .filter(p => sameId(p.cat, categoryId))
     .sort((a, b) => alphaCompare(a.name, b.name));
+  const productsByIdentity = new Map();
+  stocks.forEach(product => {
+    const key = productIdentityKey(product);
+    if (!productsByIdentity.has(key)) productsByIdentity.set(key, product);
+  });
+  const products = [...productsByIdentity.values()];
 
   if (!products.length) {
     productSelect.innerHTML = '<option value="">Aucun article dans cette catégorie</option>';
     productSelect.disabled = true;
     document.getElementById('mvt-location').innerHTML = '<option value="">Aucune localisation</option>';
+    refreshMovementLocationChoice();
     return;
   }
 
   productSelect.disabled = false;
   productSelect.innerHTML = products.map(p =>
-    `<option value="${p.id}">${p.name} (stock: ${p.qty})</option>`
+    `<option value="${p.id}">${p.name} (total : ${productTotalAcrossLocations(p)})</option>`
   ).join('');
 
   updateMovementProductLocation();
@@ -5576,12 +5816,21 @@ function saveMvt() {
   if (qty <= 0) { toast('Quantité invalide','error'); return; }
   if (!locationId) { toast('Choisis une localisation','error'); return; }
 
-  const product = data.products.find(p => sameId(p.id, productId));
-  if (!product) { toast('Article introuvable','error'); return; }
+  const selectedProduct = data.products.find(p => sameId(p.id, productId));
+  if (!selectedProduct) { toast('Article introuvable','error'); return; }
 
-  if (currentMvtType === 'sortie' && qty > Number(product.qty || 0)) {
-    toast(`Stock insuffisant (${product.qty} dispo)`, 'error'); return;
+  let product = findProductStockAtLocation(selectedProduct, locationId);
+  if (!product && currentMvtType === 'entree') {
+    product = createProductStockAtLocation(selectedProduct, locationId);
   }
+
+  const availableStock = Number(product?.qty || 0);
+
+  if (currentMvtType === 'sortie' && qty > availableStock) {
+    toast(`Stock insuffisant à ${locationName(locationId)} (${availableStock} dispo)`, 'error'); return;
+  }
+
+  if (!product) { toast('Stock introuvable dans cette localisation','error'); return; }
 
   const dateStr = nowStr();
   const stockBefore = Number(product.qty || 0);
@@ -5591,11 +5840,14 @@ function saveMvt() {
   // Une seule ligne est conservée par article et par localisation.
   // La ligne affiche toujours la dernière opération effectuée :
   // entrée 5 => +5 / ENTRÉE, puis sortie 2 => -2 / SORTIE sur la même ligne.
-  const existingMovement = data.movements.find(m =>
-    sameId(m.productId, productId) && sameId(m.locationId, locationId)
-  );
+  const existingMovement = data.movements.find(m => {
+    if (!sameId(m.locationId, locationId)) return false;
+    const movementProduct = data.products.find(item => sameId(item.id, m.productId));
+    return movementProduct && sameProductIdentity(movementProduct, product);
+  });
 
   if (existingMovement) {
+    existingMovement.productId = product.id;
     existingMovement.type = currentMvtType;
     existingMovement.qty = qty;
     existingMovement.reason = reason;
@@ -5605,7 +5857,7 @@ function saveMvt() {
     data.movements.push({
       id: data.nextId.mvt++,
       type: currentMvtType,
-      productId,
+      productId: product.id,
       qty,
       reason,
       userId,
@@ -5615,10 +5867,8 @@ function saveMvt() {
   }
 
   product.qty = stockAfter;
-  if (currentMvtType === 'entree') {
-    product.locationId = locationId;
-    product.loc = locationName(locationId);
-  }
+  product.locationId = locationId;
+  product.loc = locationName(locationId);
 
   const user = data.users.find(u => sameId(u.id, userId));
   const uName = user ? `${user.firstname} ${user.lastname}`.trim() : 'Inconnu';
