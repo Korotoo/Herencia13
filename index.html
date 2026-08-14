@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="agenda-discord-secure-outbox-stock-location-cash-all-dashboard-widgets-member-logs-v17">
+<meta name="vault-build" content="herencia-public-portal-hidden-login-dashboard-widgets-member-logs-v18">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2662,8 +2662,585 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .agenda-time-number { height: 60px; font-size: 34px; }
 }
 
+/* ===== PORTAIL PUBLIC HERENCIA 13 ===== */
+html { scroll-behavior: smooth; }
+#public-portal {
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(18,128,64,.12), transparent 24%),
+    radial-gradient(circle at 88% 22%, rgba(180,26,35,.11), transparent 23%),
+    #080908;
+  color: #f1eee7;
+}
+.portal-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 210;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 clamp(20px, 5vw, 76px);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: rgba(8,9,8,.88);
+  backdrop-filter: blur(16px);
+}
+.portal-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #f1eee7;
+  text-decoration: none;
+}
+.portal-brand-mark {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(212,174,69,.42);
+  border-radius: 9px 9px 14px 14px;
+  background: linear-gradient(145deg, rgba(212,174,69,.2), rgba(255,255,255,.02));
+  color: #d4ae45;
+  font-family: var(--font-display);
+  font-size: 23px;
+  transform: rotate(-2deg);
+}
+.portal-brand-mark::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  right: -3px;
+  top: -3px;
+  border-radius: 50%;
+  background: #c72c35;
+  box-shadow: -29px 25px 0 #178947;
+}
+.portal-brand-copy strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 21px;
+  letter-spacing: .08em;
+  line-height: 1;
+}
+.portal-brand-copy small {
+  color: rgba(255,255,255,.42);
+  font: 8px var(--font-cond);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+.portal-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-left: auto;
+}
+.portal-nav a {
+  position: relative;
+  color: rgba(255,255,255,.58);
+  font: 600 10px var(--font-cond);
+  letter-spacing: .12em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color .18s ease;
+}
+.portal-nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -8px;
+  height: 1px;
+  background: #d4ae45;
+  transition: right .18s ease;
+}
+.portal-nav a:hover { color: #fff; }
+.portal-nav a:hover::after { right: 0; }
+.portal-affiliation {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid rgba(23,137,71,.25);
+  border-radius: 20px;
+  background: rgba(23,137,71,.08);
+  color: #75c78e;
+  font: 700 8px var(--font-cond);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.portal-affiliation::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #45c36f;
+  box-shadow: 0 0 0 4px rgba(69,195,111,.08);
+}
+.portal-hero {
+  position: relative;
+  min-height: 760px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+  align-items: center;
+  gap: 40px;
+  padding: 130px clamp(20px, 7vw, 110px) 85px;
+  isolation: isolate;
+}
+.portal-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(115deg, rgba(8,9,8,.98) 0%, rgba(8,9,8,.88) 50%, rgba(8,9,8,.38) 100%),
+    repeating-linear-gradient(155deg, transparent 0 42px, rgba(255,255,255,.018) 43px 44px);
+}
+.portal-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  z-index: -1;
+  height: 160px;
+  opacity: .34;
+  background:
+    linear-gradient(135deg, transparent 16px, #141713 17px) 0 42px / 78px 80px repeat-x,
+    linear-gradient(45deg, #10120f 35%, transparent 36%) 18px 22px / 94px 100px repeat-x;
+  clip-path: polygon(0 56%, 8% 42%, 15% 62%, 23% 31%, 32% 57%, 40% 39%, 49% 66%, 58% 36%, 69% 59%, 78% 29%, 88% 55%, 100% 34%, 100% 100%, 0 100%);
+}
+.portal-hero-copy { position: relative; z-index: 2; max-width: 760px; }
+.portal-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 21px;
+  color: #d4ae45;
+  font: 700 10px var(--font-cond);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+.portal-eyebrow::before { content: ''; width: 34px; height: 1px; background: #d4ae45; }
+.portal-title {
+  max-width: 700px;
+  font-family: var(--font-display);
+  font-size: clamp(76px, 10vw, 142px);
+  font-weight: 400;
+  letter-spacing: -.01em;
+  line-height: .76;
+  text-transform: uppercase;
+  text-shadow: 0 12px 42px rgba(0,0,0,.42);
+}
+.portal-title span {
+  display: inline-block;
+  margin-left: .06em;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(212,174,69,.75);
+  text-shadow: none;
+}
+.portal-motto {
+  max-width: 630px;
+  margin-top: 28px;
+  color: rgba(255,255,255,.7);
+  font: 500 clamp(16px, 2vw, 21px) var(--font-cond);
+  letter-spacing: .1em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+.portal-motto strong { color: #fff; font-weight: 700; }
+.portal-search-block { position: relative; max-width: 680px; margin-top: 35px; }
+.portal-search-label {
+  display: block;
+  margin-bottom: 7px;
+  color: rgba(255,255,255,.43);
+  font: 600 9px var(--font-cond);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+.portal-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 58px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 10px;
+  background: rgba(16,18,15,.86);
+  box-shadow: 0 18px 40px rgba(0,0,0,.24);
+  backdrop-filter: blur(12px);
+  transition: border-color .18s, box-shadow .18s;
+}
+.portal-search-box:focus-within {
+  border-color: rgba(212,174,69,.56);
+  box-shadow: 0 0 0 4px rgba(212,174,69,.06), 0 18px 40px rgba(0,0,0,.26);
+}
+.portal-search-box > i { margin-left: 18px; color: #d4ae45; font-size: 20px; }
+.portal-search-box input {
+  min-width: 0;
+  flex: 1;
+  height: 56px;
+  padding: 0 14px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font: 14px var(--font);
+}
+.portal-search-box input::placeholder { color: rgba(255,255,255,.31); }
+.portal-search-key {
+  margin-right: 14px;
+  padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 5px;
+  color: rgba(255,255,255,.34);
+  font: 9px var(--font-cond);
+  letter-spacing: .08em;
+}
+.portal-search-results {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 9px;
+  background: rgba(15,17,14,.98);
+  box-shadow: 0 20px 50px rgba(0,0,0,.45);
+}
+.portal-search-results[hidden] { display: none; }
+.portal-search-result {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: transparent;
+  color: #f2efe8;
+  text-align: left;
+  cursor: pointer;
+}
+.portal-search-result:last-child { border-bottom: 0; }
+.portal-search-result:hover { background: rgba(212,174,69,.07); }
+.portal-search-result i { color: #d4ae45; font-size: 17px; }
+.portal-search-result strong { display: block; font-size: 12px; }
+.portal-search-result small { display: block; margin-top: 2px; color: rgba(255,255,255,.42); font: 10px var(--font-cond); }
+.portal-search-empty { padding: 14px; color: rgba(255,255,255,.46); font: 11px var(--font-cond); }
+.portal-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.portal-quick-links button {
+  padding: 6px 10px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 20px;
+  background: rgba(255,255,255,.025);
+  color: rgba(255,255,255,.48);
+  font: 9px var(--font-cond);
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.portal-quick-links button:hover { border-color: rgba(212,174,69,.32); color: #d4ae45; }
+.portal-crest-wrap {
+  position: relative;
+  min-height: 470px;
+  display: grid;
+  place-items: center;
+}
+.portal-crest-glow {
+  position: absolute;
+  width: min(34vw, 430px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,174,69,.13), transparent 68%);
+  filter: blur(3px);
+}
+.portal-crest {
+  position: relative;
+  width: min(31vw, 390px);
+  aspect-ratio: .82;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(212,174,69,.27);
+  border-radius: 45% 45% 52% 52% / 34% 34% 66% 66%;
+  background:
+    linear-gradient(90deg, rgba(23,137,71,.18) 0 33%, rgba(255,255,255,.025) 33% 66%, rgba(199,44,53,.16) 66%),
+    linear-gradient(145deg, rgba(255,255,255,.05), rgba(255,255,255,.006));
+  box-shadow: inset 0 0 0 10px rgba(0,0,0,.14), 0 32px 70px rgba(0,0,0,.38);
+  transform: rotate(2deg);
+}
+.portal-crest::before {
+  content: '★';
+  position: absolute;
+  top: -34px;
+  color: #d4ae45;
+  font-size: 34px;
+  text-shadow: -22px 13px 0 rgba(212,174,69,.28), 22px 13px 0 rgba(212,174,69,.28);
+}
+.portal-crest-number {
+  font-family: var(--font-display);
+  font-size: clamp(150px, 18vw, 240px);
+  line-height: .8;
+  color: rgba(238,232,215,.93);
+  text-shadow: 5px 5px 0 rgba(0,0,0,.55), 0 0 40px rgba(212,174,69,.12);
+}
+.portal-crest-ribbon {
+  position: absolute;
+  bottom: 48px;
+  left: -20px;
+  right: -20px;
+  padding: 10px;
+  border-block: 1px solid rgba(212,174,69,.32);
+  background: rgba(7,8,7,.93);
+  color: #d4ae45;
+  font: 700 10px var(--font-cond);
+  letter-spacing: .24em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.portal-section {
+  position: relative;
+  padding: 95px clamp(20px, 7vw, 110px);
+  scroll-margin-top: 70px;
+}
+.portal-hero { scroll-margin-top: 70px; }
+.portal-section.portal-section-muted { background: #0c0e0c; }
+.portal-section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #d4ae45;
+  font: 700 9px var(--font-cond);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+.portal-section-label::before { content: ''; width: 26px; height: 1px; background: #d4ae45; }
+.portal-section-title {
+  max-width: 780px;
+  font-family: var(--font-display);
+  font-size: clamp(42px, 6vw, 76px);
+  font-weight: 400;
+  letter-spacing: .01em;
+  line-height: .95;
+  text-transform: uppercase;
+}
+.portal-section-intro {
+  max-width: 720px;
+  margin-top: 16px;
+  color: rgba(255,255,255,.55);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.portal-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 42px;
+}
+.portal-value-card {
+  min-height: 210px;
+  padding: 23px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.008));
+}
+.portal-value-card i { color: #d4ae45; font-size: 25px; }
+.portal-value-card strong {
+  display: block;
+  margin-top: 29px;
+  font-family: var(--font-display);
+  font-size: 25px;
+  letter-spacing: .05em;
+}
+.portal-value-card p { margin-top: 8px; color: rgba(255,255,255,.47); font-size: 12px; line-height: 1.55; }
+.portal-event-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr);
+  gap: 15px;
+  margin-top: 40px;
+}
+.portal-fight-card {
+  position: relative;
+  min-height: 390px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: clamp(24px, 4vw, 44px);
+  border: 1px solid rgba(199,44,53,.27);
+  border-radius: 12px;
+  background:
+    linear-gradient(0deg, rgba(7,8,7,.98), rgba(7,8,7,.2)),
+    repeating-linear-gradient(128deg, rgba(199,44,53,.13) 0 2px, transparent 2px 34px),
+    radial-gradient(circle at 72% 22%, rgba(199,44,53,.24), transparent 34%),
+    #15110f;
+}
+.portal-fight-card::before {
+  content: '1V1';
+  position: absolute;
+  right: 26px;
+  top: 10px;
+  color: rgba(255,255,255,.045);
+  font-family: var(--font-display);
+  font-size: clamp(110px, 18vw, 230px);
+  line-height: 1;
+}
+.portal-event-kicker { color: #dc5d64; font: 700 10px var(--font-cond); letter-spacing: .16em; text-transform: uppercase; }
+.portal-fight-card h3 { margin-top: 8px; font-family: var(--font-display); font-size: clamp(37px, 5vw, 64px); font-weight: 400; line-height: .95; }
+.portal-fight-card p { max-width: 590px; margin-top: 13px; color: rgba(255,255,255,.58); line-height: 1.6; }
+.portal-event-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 20px; }
+.portal-event-tags span { padding: 6px 9px; border: 1px solid rgba(255,255,255,.11); border-radius: 20px; color: rgba(255,255,255,.62); font: 9px var(--font-cond); letter-spacing: .07em; text-transform: uppercase; }
+.portal-event-side { display: grid; gap: 15px; }
+.portal-event-note {
+  min-height: 187px;
+  padding: 23px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 11px;
+  background: rgba(255,255,255,.02);
+}
+.portal-event-note i { color: #d4ae45; font-size: 23px; }
+.portal-event-note strong { display: block; margin-top: 23px; font-family: var(--font-display); font-size: 23px; letter-spacing: .04em; }
+.portal-event-note p { margin-top: 7px; color: rgba(255,255,255,.47); font-size: 12px; line-height: 1.5; }
+.portal-oven-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, .85fr) minmax(0, 1.15fr);
+  gap: clamp(30px, 6vw, 90px);
+  align-items: center;
+}
+.portal-oven-visual {
+  position: relative;
+  min-height: 430px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(212,174,69,.15);
+  border-radius: 48% 48% 10px 10px;
+  background: radial-gradient(circle at 50% 74%, rgba(226,104,26,.21), transparent 30%), linear-gradient(145deg, #151713, #0a0c0a);
+}
+.portal-oven-arch {
+  width: 58%;
+  aspect-ratio: .88;
+  display: grid;
+  place-items: center;
+  border: 13px solid #27281f;
+  border-bottom-width: 20px;
+  border-radius: 50% 50% 8px 8px;
+  background: radial-gradient(circle at 50% 80%, #d86b25, #7d281e 26%, #160e0b 60%);
+  box-shadow: inset 0 0 40px rgba(0,0,0,.8), 0 20px 50px rgba(0,0,0,.35);
+}
+.portal-oven-arch i { color: #efb150; font-size: 80px; filter: drop-shadow(0 0 18px rgba(239,177,80,.35)); }
+.portal-oven-stamp {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  padding: 9px 11px;
+  border: 1px solid rgba(23,137,71,.24);
+  border-radius: 7px;
+  color: #75c78e;
+  font: 700 9px var(--font-cond);
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.portal-oven-points { display: grid; gap: 13px; margin-top: 30px; }
+.portal-oven-point { display: flex; align-items: flex-start; gap: 13px; padding-top: 13px; border-top: 1px solid rgba(255,255,255,.08); }
+.portal-oven-point i { width: 28px; color: #d4ae45; font-size: 18px; }
+.portal-oven-point strong { display: block; font-size: 13px; }
+.portal-oven-point span { display: block; margin-top: 3px; color: rgba(255,255,255,.45); font-size: 11px; line-height: 1.5; }
+.portal-recruit-box {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 40px;
+  align-items: center;
+  padding: clamp(28px, 5vw, 55px);
+  border: 1px solid rgba(212,174,69,.24);
+  border-radius: 13px;
+  background: linear-gradient(130deg, rgba(212,174,69,.1), rgba(23,137,71,.05) 50%, rgba(199,44,53,.07));
+}
+.portal-recruit-box::after { content: '13'; position: absolute; right: -15px; bottom: -80px; color: rgba(255,255,255,.025); font-family: var(--font-display); font-size: 260px; line-height: 1; }
+.portal-recruit-copy { position: relative; z-index: 1; }
+.portal-recruit-copy h2 { font-family: var(--font-display); font-size: clamp(42px, 6vw, 72px); font-weight: 400; line-height: .95; }
+.portal-recruit-copy p { max-width: 680px; margin-top: 13px; color: rgba(255,255,255,.54); line-height: 1.65; }
+.portal-recruit-list { position: relative; z-index: 1; min-width: 290px; display: grid; gap: 8px; }
+.portal-recruit-list span { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid rgba(255,255,255,.08); border-radius: 7px; background: rgba(0,0,0,.16); color: rgba(255,255,255,.66); font: 10px var(--font-cond); letter-spacing: .07em; text-transform: uppercase; }
+.portal-recruit-list i { color: #56be76; }
+.portal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 30px clamp(20px, 7vw, 110px);
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: #070807;
+  color: rgba(255,255,255,.35);
+  font: 9px var(--font-cond);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.portal-footer strong { color: #d4ae45; font-weight: 700; }
+.login-portal-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text3);
+  font: 700 9px var(--font-cond);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.login-portal-back:hover { color: var(--accent); }
+@media (max-width: 1020px) {
+  .portal-nav { display: none; }
+  .portal-affiliation { margin-left: auto; }
+  .portal-hero { grid-template-columns: 1fr; min-height: 0; padding-top: 135px; }
+  .portal-hero-copy { max-width: 800px; }
+  .portal-crest-wrap { min-height: 380px; }
+  .portal-crest { width: min(62vw, 340px); }
+  .portal-crest-glow { width: min(68vw, 400px); }
+  .portal-event-feature, .portal-oven-layout { grid-template-columns: 1fr; }
+  .portal-event-side { grid-template-columns: 1fr 1fr; }
+  .portal-oven-visual { min-height: 360px; }
+  .portal-recruit-box { grid-template-columns: 1fr; }
+  .portal-recruit-list { min-width: 0; grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
+  .portal-header { height: 62px; padding-inline: 16px; }
+  .portal-brand-copy small { display: none; }
+  .portal-affiliation { padding: 6px 8px; font-size: 7px; }
+  .portal-hero { padding: 112px 18px 64px; gap: 18px; }
+  .portal-title { font-size: clamp(70px, 24vw, 112px); }
+  .portal-motto { font-size: 15px; }
+  .portal-search-key { display: none; }
+  .portal-crest-wrap { min-height: 330px; }
+  .portal-section { padding: 70px 18px; }
+  .portal-values { grid-template-columns: 1fr; }
+  .portal-value-card { min-height: 0; }
+  .portal-value-card strong { margin-top: 18px; }
+  .portal-event-side, .portal-recruit-list { grid-template-columns: 1fr; }
+  .portal-fight-card { min-height: 340px; }
+  .portal-oven-visual { min-height: 310px; }
+  .portal-footer { align-items: flex-start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
 
 /* ===== CORRECTIF ANTI-DÉDOUBLEMENT ===== */
+body:not(.logged-in):not(.login-revealed) #public-portal { display: block !important; }
+body:not(.logged-in):not(.login-revealed) #login-page { display: none !important; }
+body.login-revealed #public-portal,
+body.logged-in #public-portal { display: none !important; }
+body.login-revealed:not(.logged-in) #login-page { display: flex !important; }
 body.logged-in #login-page { display: none !important; }
 body.logged-in #app { display: flex !important; }
 body:not(.logged-in) #app { display: none !important; }
@@ -2674,6 +3251,160 @@ body:not(.logged-in) #app { display: none !important; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<!-- ===== PORTAIL PUBLIC HERENCIA 13 ===== -->
+<div id="public-portal">
+  <header class="portal-header">
+    <a class="portal-brand" href="#portal-home" aria-label="Herencia 13 — Accueil">
+      <span class="portal-brand-mark">13</span>
+      <span class="portal-brand-copy"><strong>HERENCIA 13</strong><small>Los Santos · Favelas</small></span>
+    </a>
+    <nav class="portal-nav" aria-label="Navigation du portail">
+      <a href="#portal-story">Notre héritage</a>
+      <a href="#portal-events">Événements</a>
+      <a href="#portal-oven">Le Four</a>
+      <a href="#portal-recruitment">Nous rejoindre</a>
+    </nav>
+    <span class="portal-affiliation">Affilié Kaida 13</span>
+  </header>
+
+  <main>
+    <section class="portal-hero" id="portal-home">
+      <div class="portal-hero-copy">
+        <div class="portal-eyebrow">Brésil × Mexique · Los Santos</div>
+        <h1 class="portal-title">Herencia <span>13</span></h1>
+        <p class="portal-motto"><strong>Dois países.</strong> Uma herança. Uma família.<br>Deux origines réunies autour d'un même héritage.</p>
+
+        <form class="portal-search-block" role="search" onsubmit="submitPublicPortalSearch(event)">
+          <label class="portal-search-label" for="public-search">Rechercher sur le portail</label>
+          <div class="portal-search-box">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input id="public-search" type="search" placeholder="Rechercher une actualité, un événement, une activité…" autocomplete="off" spellcheck="false" oninput="handlePublicSearch()" aria-controls="public-search-results" aria-expanded="false">
+            <span class="portal-search-key">ENTRÉE</span>
+          </div>
+          <div class="portal-search-results" id="public-search-results" hidden></div>
+          <div class="portal-quick-links" aria-label="Recherches populaires">
+            <button type="button" onclick="runPublicQuickSearch('combat de boxe')">Combat de boxe</button>
+            <button type="button" onclick="runPublicQuickSearch('four à pizza de la favela')">Four à pizza</button>
+            <button type="button" onclick="runPublicQuickSearch('recrutement')">Recrutement</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="portal-crest-wrap" aria-hidden="true">
+        <div class="portal-crest-glow"></div>
+        <div class="portal-crest">
+          <span class="portal-crest-number">13</span>
+          <span class="portal-crest-ribbon">Uma herança · Uma família</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="portal-section" id="portal-story">
+      <div class="portal-section-label">Notre héritage</div>
+      <h2 class="portal-section-title">Deux pays. Une seule famille.</h2>
+      <p class="portal-section-intro">Herencia 13 est née de la rencontre de deux trajectoires, l'une brésilienne et l'autre mexicaine. Installée à Los Santos et liée aux Favelas, la famille avance avec loyauté, discipline et respect de ceux qui l'ont aidée à grandir.</p>
+      <div class="portal-values">
+        <article class="portal-value-card">
+          <i class="ti ti-world-latitude"></i>
+          <strong>BRÉSIL × MEXIQUE</strong>
+          <p>Deux cultures, deux histoires et une identité commune construite dans les rues de Los Santos.</p>
+        </article>
+        <article class="portal-value-card">
+          <i class="ti ti-home-heart"></i>
+          <strong>LES FAVELAS</strong>
+          <p>Notre point d'ancrage, notre quartier et le lieu où prennent vie nos rencontres et nos événements.</p>
+        </article>
+        <article class="portal-value-card">
+          <i class="ti ti-shield-star"></i>
+          <strong>KAIDA 13</strong>
+          <p>Une petite frappe affiliée au groupe officiel brésilien, attachée à son héritage et à sa famille.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="portal-section portal-section-muted" id="portal-events">
+      <div class="portal-section-label">Nos événements</div>
+      <h2 class="portal-section-title">La Favela se retrouve sur le ring.</h2>
+      <p class="portal-section-intro">Des soirées pensées pour rassembler le quartier, créer du spectacle et faire vivre Los Santos au rythme des combats.</p>
+      <div class="portal-event-feature">
+        <article class="portal-fight-card">
+          <div class="portal-event-kicker">Événement signature</div>
+          <h3>SOIRÉE COMBAT DE BOXE</h3>
+          <p>Des affrontements en un contre un organisés au terrain de football de la Favela, en collaboration avec les Black Aces. Du public, des stands et une ambiance faite pour le quartier.</p>
+          <div class="portal-event-tags">
+            <span>Combats 1 contre 1</span>
+            <span>Terrain de football</span>
+            <span>Avec les Black Aces</span>
+          </div>
+        </article>
+        <div class="portal-event-side">
+          <article class="portal-event-note">
+            <i class="ti ti-tools-kitchen-2"></i>
+            <strong>STANDS SUR PLACE</strong>
+            <p>De quoi manger et profiter de la soirée autour du terrain entre deux combats.</p>
+          </article>
+          <article class="portal-event-note">
+            <i class="ti ti-confetti"></i>
+            <strong>POUR LE QUARTIER</strong>
+            <p>Des rendez-vous ouverts, vivants et organisés pour réunir les habitants de Los Santos.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="portal-section" id="portal-oven">
+      <div class="portal-oven-layout">
+        <div class="portal-oven-visual" aria-hidden="true">
+          <div class="portal-oven-arch"><i class="ti ti-flame"></i></div>
+          <span class="portal-oven-stamp">Installé aux Favelas</span>
+        </div>
+        <div>
+          <div class="portal-section-label">Au cœur de la Favela</div>
+          <h2 class="portal-section-title">Le Four à pizza de la Favela.</h2>
+          <p class="portal-section-intro">Notre four à pizza est devenu un point de rencontre de la famille. Il accompagne les rassemblements, les soirées et les événements organisés aux Favelas, avec de quoi manger et accueillir le quartier comme il se doit.</p>
+          <div class="portal-oven-points">
+            <div class="portal-oven-point">
+              <i class="ti ti-map-pin"></i>
+              <div><strong>Un lieu ancré dans le quartier</strong><span>Présent directement aux Favelas, au plus près de la vie et des habitants.</span></div>
+            </div>
+            <div class="portal-oven-point">
+              <i class="ti ti-users-group"></i>
+              <div><strong>Un point de rassemblement</strong><span>Pour retrouver la famille, préparer les événements et recevoir le public.</span></div>
+            </div>
+            <div class="portal-oven-point">
+              <i class="ti ti-calendar-event"></i>
+              <div><strong>Présent pendant nos événements</strong><span>Le Four participe à l'ambiance des combats, soirées et rencontres du quartier.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="portal-section portal-section-muted" id="portal-recruitment">
+      <div class="portal-recruit-box">
+        <div class="portal-recruit-copy">
+          <div class="portal-section-label">Recrutement</div>
+          <h2>PLUS QU'UN GROUPE.<br>UNE FAMILLE.</h2>
+          <p>Herencia 13 recherche des profils présents, sérieux et prêts à développer une petite frappe reconnue. Braquages, événements, missions de rue et activités de groupe : chacun doit apporter quelque chose à la famille.</p>
+        </div>
+        <div class="portal-recruit-list">
+          <span><i class="ti ti-check"></i> 19 ans minimum</span>
+          <span><i class="ti ti-check"></i> Bon micro</span>
+          <span><i class="ti ti-check"></i> Disponibilité régulière</span>
+          <span><i class="ti ti-check"></i> Pas de mentalité GF / WIN RP</span>
+          <span><i class="ti ti-check"></i> Expérience illégale recommandée</span>
+          <span><i class="ti ti-message-circle"></i> Contacter Jesús Velázquez</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="portal-footer">
+    <span><strong>Herencia 13</strong> · Los Santos · Favelas</span>
+    <span>Dois países · Uma herança · Uma família</span>
+  </footer>
+</div>
 
 <!-- ===== LOGIN PAGE ===== -->
 <div id="login-page">
@@ -2693,6 +3424,7 @@ body:not(.logged-in) #app { display: none !important; }
   </div>
 
   <div class="login-right">
+    <button class="login-portal-back" type="button" onclick="returnToPublicPortal()"><i class="ti ti-arrow-left"></i> Retour aux informations</button>
     <div class="login-form-title">CONNEXION</div>
     <div class="login-form-sub">Identifie-toi, frérot</div>
 
@@ -4172,6 +4904,151 @@ async function resetSavedData() {
   location.reload();
 }
 
+// ===================== PORTAIL PUBLIC =====================
+const PUBLIC_PORTAL_SEARCH_INDEX = [
+  {
+    title:'Notre héritage',
+    summary:'Brésil, Mexique, Favelas et affiliation Kaida 13',
+    keywords:'herencia histoire heritage brésil bresil mexique famille favelas kaida 13 origine groupe',
+    target:'portal-story',
+    icon:'ti-shield-star'
+  },
+  {
+    title:'Soirées combat de boxe',
+    summary:'Combats 1 contre 1, terrain de football et Black Aces',
+    keywords:'boxe combat ring 1v1 black aces terrain football soirée evenement événement stand nourriture',
+    target:'portal-events',
+    icon:'ti-boxing'
+  },
+  {
+    title:'Le Four à pizza de la Favela',
+    summary:'Le point de rencontre et de restauration Herencia 13 aux Favelas',
+    keywords:'four pizza favela favelas cuisine nourriture manger feu rassemblement quartier restauration',
+    target:'portal-oven',
+    icon:'ti-flame'
+  },
+  {
+    title:'Rejoindre Herencia 13',
+    summary:'Prérequis, activités et contact recrutement',
+    keywords:'recrutement rejoindre candidature membre micro 19 ans disponibilité gf win rp braquage mission rue jesus velazquez',
+    target:'portal-recruitment',
+    icon:'ti-user-plus'
+  }
+];
+
+function normalizePublicSearch(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function publicSearchMatches(query) {
+  const normalized = normalizePublicSearch(query);
+  if (!normalized) return [];
+  const words = normalized.split(' ').filter(Boolean);
+  return PUBLIC_PORTAL_SEARCH_INDEX.filter(entry => {
+    const haystack = normalizePublicSearch(`${entry.title} ${entry.summary} ${entry.keywords}`);
+    return words.every(word => haystack.includes(word));
+  });
+}
+
+function hidePublicSearchResults() {
+  const results = document.getElementById('public-search-results');
+  const input = document.getElementById('public-search');
+  if (results) {
+    results.hidden = true;
+    results.innerHTML = '';
+    delete results.dataset.firstTarget;
+  }
+  if (input) input.setAttribute('aria-expanded', 'false');
+}
+
+function handlePublicSearch() {
+  const input = document.getElementById('public-search');
+  const results = document.getElementById('public-search-results');
+  if (!input || !results) return;
+  const rawValue = input.value.trim();
+
+  if (rawValue.toLocaleUpperCase('fr-FR') === 'SEL') {
+    hidePublicSearchResults();
+    input.value = '';
+    revealLoginPortal();
+    return;
+  }
+
+  if (normalizePublicSearch(rawValue).length < 2) {
+    hidePublicSearchResults();
+    return;
+  }
+
+  const matches = publicSearchMatches(rawValue);
+  results.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
+  if (!matches.length) {
+    results.innerHTML = '<div class="portal-search-empty">Aucun résultat dans les informations publiques.</div>';
+    delete results.dataset.firstTarget;
+    return;
+  }
+
+  results.dataset.firstTarget = matches[0].target;
+  results.innerHTML = matches.map(entry => `
+    <button class="portal-search-result" type="button" onclick="openPublicPortalSection('${entry.target}')">
+      <i class="ti ${entry.icon}"></i>
+      <span><strong>${entry.title}</strong><small>${entry.summary}</small></span>
+    </button>`).join('');
+}
+
+function submitPublicPortalSearch(event) {
+  event.preventDefault();
+  const input = document.getElementById('public-search');
+  const results = document.getElementById('public-search-results');
+  if (input && input.value.trim().toLocaleUpperCase('fr-FR') === 'SEL') {
+    revealLoginPortal();
+    return;
+  }
+  handlePublicSearch();
+  if (results?.dataset.firstTarget) openPublicPortalSection(results.dataset.firstTarget);
+}
+
+function runPublicQuickSearch(query) {
+  const input = document.getElementById('public-search');
+  if (!input) return;
+  input.value = query;
+  handlePublicSearch();
+  input.focus();
+}
+
+function openPublicPortalSection(targetId) {
+  hidePublicSearchResults();
+  const target = document.getElementById(targetId);
+  if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function revealLoginPortal() {
+  if (data.currentUser) return;
+  document.body.classList.add('login-revealed');
+  document.getElementById('public-portal')?.setAttribute('aria-hidden', 'true');
+  document.getElementById('login-page')?.removeAttribute('aria-hidden');
+  window.scrollTo({ top:0, behavior:'auto' });
+  setTimeout(() => document.getElementById('login-pwd')?.focus(), 180);
+}
+
+function returnToPublicPortal() {
+  if (data.currentUser) return;
+  document.body.classList.remove('login-revealed');
+  document.getElementById('public-portal')?.removeAttribute('aria-hidden');
+  document.getElementById('login-page')?.setAttribute('aria-hidden', 'true');
+  const error = document.getElementById('login-error');
+  const password = document.getElementById('login-pwd');
+  if (error) error.style.display = 'none';
+  if (password) password.value = '';
+  window.scrollTo({ top:0, behavior:'auto' });
+  setTimeout(() => document.getElementById('public-search')?.focus(), 120);
+}
+
 // ===================== LOGIN =====================
 let selectedUserId = null;
 
@@ -4334,6 +5211,7 @@ function restoreSession() {
   if (!session || Number(session.expiresAt || 0) <= Date.now()) {
     clearStoredSession();
     document.body.classList.remove('logged-in');
+    document.body.classList.remove('login-revealed');
     document.getElementById('app')?.classList.remove('visible');
     return false;
   }
@@ -4341,12 +5219,14 @@ function restoreSession() {
   const user = data.users.find(u => sameId(u.id, session.userId) && u.active);
   if (!user) {
     clearStoredSession();
+    document.body.classList.remove('login-revealed');
     return false;
   }
 
   data.currentUser = user;
   selectedUserId = user.id;
   showLoggedInUser(user);
+  document.body.classList.remove('login-revealed');
   document.body.classList.add('logged-in');
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('app').classList.add('visible');
@@ -4376,6 +5256,7 @@ function doLogin() {
   showLoggedInUser(user);
   addLog('user', `Connexion de <strong>${getCurrentUserName(user)}</strong>`, getCurrentUserName(user));
 
+  document.body.classList.remove('login-revealed');
   document.body.classList.add('logged-in');
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('app').classList.add('visible');
@@ -4407,7 +5288,10 @@ function doLogout(reason = 'manual') {
   const pwd = document.getElementById('login-pwd');
   if (pwd) pwd.value = '';
   document.body.classList.remove('logged-in');
-  document.getElementById('login-page').style.display = 'flex';
+  document.body.classList.remove('login-revealed');
+  document.getElementById('login-page').style.display = '';
+  document.getElementById('login-page').setAttribute('aria-hidden', 'true');
+  document.getElementById('public-portal')?.removeAttribute('aria-hidden');
   document.getElementById('app').classList.remove('visible');
   buildLoginPage();
 
@@ -7587,6 +8471,11 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); });
 });
 
+document.addEventListener('click', event => {
+  const searchBlock = event.target.closest?.('.portal-search-block');
+  if (!searchBlock) hidePublicSearchResults();
+});
+
 // Met automatiquement le compteur journalier à zéro au passage à minuit,
 // même si le site reste ouvert toute la nuit.
 let midnightRefreshTimer = null;
@@ -7625,6 +8514,9 @@ async function initApp() {
 
   // Reconnexion automatique si la session de 5 minutes est encore valide.
   if (!restoreSession()) {
+    document.body.classList.remove('login-revealed');
+    document.getElementById('public-portal')?.removeAttribute('aria-hidden');
+    document.getElementById('login-page')?.setAttribute('aria-hidden', 'true');
     const firstActiveUser = data.users.find(u => u.active);
     if (firstActiveUser) selectUser(firstActiveUser.id);
   }
