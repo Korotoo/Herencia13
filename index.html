@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="agenda-discord-secure-outbox-stock-location-cash-all-dashboard-widgets-v16">
+<meta name="vault-build" content="agenda-discord-secure-outbox-stock-location-cash-all-dashboard-widgets-member-logs-v17">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1334,6 +1334,276 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .logs-toolbar{align-items:stretch;}
   .logs-search{min-width:100%;}
   .log-type-label{margin-left:0;}
+}
+
+/* JOURNAL D'ACTIVITÉ — FILTRAGE PAR MEMBRE */
+.activity-log-shell {
+  display: grid;
+  gap: 14px;
+}
+.activity-log-filter-card {
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  border-radius: 11px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(232,160,32,.09), transparent 34%),
+    var(--bg2);
+}
+.activity-log-filter-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 16px 13px;
+  border-bottom: 1px solid var(--border);
+}
+.activity-log-filter-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 18px;
+}
+.activity-log-filter-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: .05em;
+}
+.activity-log-filter-subtitle {
+  margin-top: 2px;
+  color: var(--text3);
+  font: 10px var(--font-cond);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.activity-log-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(190px, .8fr) minmax(190px, .8fr) minmax(240px, 1.4fr);
+  gap: 11px;
+  padding: 14px 16px;
+}
+.activity-log-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.activity-log-field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text3);
+  font: 700 9px var(--font-cond);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.activity-log-step {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 9px;
+}
+.activity-log-control,
+.activity-log-search {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  background: var(--bg3);
+  color: var(--text);
+  font: 12px var(--font);
+}
+.activity-log-control {
+  padding: 0 34px 0 11px;
+}
+.activity-log-control:disabled {
+  color: var(--text3);
+  cursor: not-allowed;
+  opacity: .58;
+}
+.activity-log-search-wrap {
+  position: relative;
+}
+.activity-log-search-wrap > i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text3);
+  pointer-events: none;
+}
+.activity-log-search {
+  padding: 0 11px 0 37px;
+  outline: none;
+}
+.activity-log-search:focus,
+.activity-log-control:focus {
+  border-color: rgba(232,160,32,.5);
+  box-shadow: 0 0 0 3px rgba(232,160,32,.07);
+}
+.activity-log-filter-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--border);
+  background: rgba(255,255,255,.014);
+  color: var(--text3);
+  font: 10.5px var(--font-cond);
+}
+.activity-log-filter-status strong { color: var(--text2); }
+.activity-log-results {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg2);
+}
+.activity-log-results-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--border);
+}
+.activity-log-results-head > i { color: var(--green); font-size: 18px; }
+.activity-log-results-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: .04em;
+}
+.activity-log-count {
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--bg4);
+  color: var(--text3);
+  font: 10px var(--font-cond);
+}
+.activity-log-results-actions { margin-left: auto; }
+.activity-log-day + .activity-log-day { border-top: 1px solid var(--border2); }
+.activity-log-day-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  background: rgba(255,255,255,.018);
+  color: var(--text2);
+  font: 700 10px var(--font-cond);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.activity-log-day-head i { color: var(--accent); }
+.activity-log-day-count {
+  margin-left: auto;
+  color: var(--text3);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.activity-log-item {
+  --activity-color: var(--text2);
+  --activity-soft: var(--bg4);
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 15px;
+  border-top: 1px solid var(--border);
+  transition: background .15s ease;
+}
+.activity-log-item:hover { background: rgba(255,255,255,.02); }
+.activity-log-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--activity-soft);
+  color: var(--activity-color);
+  font-size: 17px;
+}
+.activity-log-copy { min-width: 0; }
+.activity-log-action {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.activity-log-sentence {
+  margin-top: 6px;
+  color: var(--text3);
+  font: 10.5px var(--font-cond);
+  line-height: 1.45;
+}
+.activity-log-sentence strong { color: var(--text2); font-weight: 700; }
+.activity-log-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  max-width: 690px;
+  margin-top: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.activity-log-reason i { margin-top: 1px; color: var(--accent); }
+.activity-log-reason-label {
+  color: var(--text3);
+  font: 700 9px var(--font-cond);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.activity-log-category {
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: var(--activity-soft);
+  color: var(--activity-color);
+  font: 700 8.5px var(--font-cond);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.activity-log-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text3);
+}
+.activity-log-empty i { display: block; margin-bottom: 9px; font-size: 34px; opacity: .34; }
+.activity-log-empty strong {
+  display: block;
+  color: var(--text2);
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: .04em;
+}
+.activity-log-empty span {
+  display: block;
+  margin-top: 4px;
+  font: 10px var(--font-cond);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+@media (max-width: 850px) {
+  .activity-log-filter-grid { grid-template-columns: 1fr 1fr; }
+  .activity-log-field:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .activity-log-filter-grid { grid-template-columns: 1fr; }
+  .activity-log-field:last-child { grid-column: auto; }
+  .activity-log-item { grid-template-columns: 36px minmax(0, 1fr); }
+  .activity-log-category { grid-column: 2; justify-self: start; }
+  .activity-log-results-head { flex-wrap: wrap; }
+  .activity-log-results-actions { width: 100%; margin-left: 0; }
 }
 
 /* GRID */
@@ -2714,53 +2984,53 @@ body:not(.logged-in) #app { display: none !important; }
           <h2>JOURNAL D'ACTIVITÉ</h2>
           <div class="accent-line"></div>
         </div>
-
-        <div class="logs-overview" id="logs-overview">
-          <div class="log-summary active" data-log-filter="" onclick="setLogFilter('',this)" style="--log-color:var(--text2);--log-soft:var(--bg4)">
-            <div class="log-summary-head"><div class="log-summary-icon"><i class="ti ti-list-details"></i></div></div>
-            <div class="log-summary-number" id="log-total-all">0</div>
-            <div class="log-summary-label">Toutes les activités</div>
-          </div>
-          <div class="log-summary" data-log-filter="stock" onclick="setLogFilter('stock',this)" style="--log-color:var(--accent);--log-soft:var(--accent-soft)">
-            <div class="log-summary-head"><div class="log-summary-icon"><i class="ti ti-box"></i></div></div>
-            <div class="log-summary-number" id="log-total-stock">0</div>
-            <div class="log-summary-label">Stock & mouvements</div>
-          </div>
-          <div class="log-summary" data-log-filter="cash" onclick="setLogFilter('cash',this)" style="--log-color:var(--green);--log-soft:var(--green-soft)">
-            <div class="log-summary-head"><div class="log-summary-icon"><i class="ti ti-cash"></i></div></div>
-            <div class="log-summary-number" id="log-total-cash">0</div>
-            <div class="log-summary-label">Entrées & sorties cash</div>
-          </div>
-          <div class="log-summary" data-log-filter="user" onclick="setLogFilter('user',this)" style="--log-color:var(--purple);--log-soft:var(--purple-soft)">
-            <div class="log-summary-head"><div class="log-summary-icon"><i class="ti ti-users"></i></div></div>
-            <div class="log-summary-number" id="log-total-user">0</div>
-            <div class="log-summary-label">Membres & organisation</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <i class="ti ti-shield-check" style="color:var(--green)"></i>
-            <span class="card-title">Historique détaillé</span>
-            <span class="card-count" id="logs-count">0</span>
-            <div class="card-actions">
-              <button class="btn btn-ghost btn-sm" onclick="clearLogs()"><i class="ti ti-trash"></i> Vider le journal</button>
+        <div class="activity-log-shell">
+          <div class="activity-log-filter-card">
+            <div class="activity-log-filter-head">
+              <div class="activity-log-filter-icon"><i class="ti ti-adjustments-horizontal"></i></div>
+              <div>
+                <div class="activity-log-filter-title">RETROUVER UNE ACTIVITÉ</div>
+                <div class="activity-log-filter-subtitle">Choisis d'abord le membre, puis sa catégorie d'action</div>
+              </div>
+            </div>
+            <div class="activity-log-filter-grid">
+              <label class="activity-log-field">
+                <span class="activity-log-field-label"><span class="activity-log-step">1</span> Membre</span>
+                <select class="activity-log-control" id="filter-log-member" onchange="handleLogMemberChange()">
+                  <option value="">Tous les membres</option>
+                </select>
+              </label>
+              <label class="activity-log-field">
+                <span class="activity-log-field-label"><span class="activity-log-step">2</span> Catégorie liée au membre</span>
+                <select class="activity-log-control" id="filter-log-type" onchange="renderLogs()" disabled>
+                  <option value="">Choisis d'abord un membre</option>
+                </select>
+              </label>
+              <label class="activity-log-field">
+                <span class="activity-log-field-label"><i class="ti ti-search"></i> Action ou raison</span>
+                <span class="activity-log-search-wrap">
+                  <i class="ti ti-search"></i>
+                  <input class="activity-log-search" id="log-search" type="search" placeholder="Ex. livraison, rendez-vous, sous-sol…" oninput="renderLogs()">
+                </span>
+              </label>
+            </div>
+            <div class="activity-log-filter-status" id="logs-filter-status">
+              <i class="ti ti-info-circle"></i>
+              <span>Toutes les activités sont affichées.</span>
             </div>
           </div>
-          <div class="logs-toolbar">
-            <div class="logs-search">
-              <i class="ti ti-search"></i>
-              <input id="log-search" type="text" placeholder="Rechercher une action, un membre, une date…" oninput="renderLogs()">
+
+          <div class="activity-log-results">
+            <div class="activity-log-results-head">
+              <i class="ti ti-shield-check"></i>
+              <span class="activity-log-results-title">HISTORIQUE DÉTAILLÉ</span>
+              <span class="activity-log-count" id="logs-count">0</span>
+              <div class="activity-log-results-actions">
+                <button class="btn btn-ghost btn-sm" onclick="clearLogs()"><i class="ti ti-trash"></i> Vider le journal</button>
+              </div>
             </div>
-            <select class="form-select" style="width:auto;min-width:170px;padding:7px 10px;font-family:var(--font-cond);font-size:12px" id="filter-log-type" onchange="syncLogCards();renderLogs()">
-              <option value="">Toutes les catégories</option>
-              <option value="stock">Stock & mouvements</option>
-              <option value="cash">Cash</option>
-              <option value="user">Membres</option>
-              <option value="system">Système</option>
-            </select>
+            <div id="logs-list"></div>
           </div>
-          <div id="logs-list"></div>
         </div>
       </section>
 
@@ -3856,8 +4126,8 @@ function cashKey(reason) {
 }
 
 function nowStr() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const now = parisDateTimeParts(new Date());
+  return `${now.year}-${now.month}-${now.day} ${now.hour}:${now.minute}`;
 }
 
 function syncCashLines() {
@@ -5192,7 +5462,12 @@ function saveAppointment() {
   agendaCursor = new Date(`${date}T12:00:00`);
   agendaCursor.setDate(1);
   agendaSelectedDate = date;
-  addLog('system', `${visibility === 'leadership' ? 'Rendez-vous Direction' : 'Rendez-vous'} ajouté le <strong>${date}</strong> à <strong>${time}</strong>`, userName());
+  addLog(
+    'system',
+    `${visibility === 'leadership' ? 'Rendez-vous Direction' : 'Rendez-vous'} ajouté le <strong>${escapeHtml(date)}</strong> à <strong>${escapeHtml(time)}</strong>`,
+    userName(),
+    { reason, memberId:data.currentUser.id, entityId:appointment.id }
+  );
   closeModal('modal-agenda');
   render();
   toast('Rendez-vous ajouté à l’agenda', 'success');
@@ -6336,11 +6611,17 @@ function saveCashMovement() {
   data.cashBalance = Object.values(data.cashByLocation)
     .reduce((sum, value) => sum + Number(value || 0), 0);
 
+  const safeReason = escapeHtml(reason);
+  const safeLocation = escapeHtml(locationName(locationId));
   const action = currentCashType === 'entree'
-    ? `Entrée cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${reason} <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`
-    : `Sortie cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${reason} <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`;
+    ? `Entrée cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${safeReason} <span style="color:var(--accent)">📍 ${safeLocation}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`
+    : `Sortie cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${safeReason} <span style="color:var(--accent)">📍 ${safeLocation}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`;
 
-  addLog('cash', action, userName());
+  addLog('cash', action, userName(), {
+    reason,
+    memberId:data.currentUser ? data.currentUser.id : null,
+    locationId
+  });
   toast('Solde cash mis à jour', 'success');
   closeModal('modal-cash');
   render();
@@ -6372,21 +6653,6 @@ async function deleteCashMovement(id) {
 }
 
 // ===================== LOGS =====================
-function setLogFilter(type, card) {
-  const select = document.getElementById('filter-log-type');
-  if (select) select.value = type;
-  document.querySelectorAll('.log-summary').forEach(c => c.classList.remove('active'));
-  if (card) card.classList.add('active');
-  renderLogs();
-}
-
-function syncLogCards() {
-  const type = document.getElementById('filter-log-type')?.value || '';
-  document.querySelectorAll('.log-summary').forEach(c => {
-    c.classList.toggle('active', (c.dataset.logFilter || '') === type);
-  });
-}
-
 function logCategoryConfig(type) {
   return {
     stock:  { label:'Stock & mouvements', color:'var(--accent)', soft:'var(--accent-soft)', icon:'ti-box' },
@@ -6402,93 +6668,299 @@ function cleanLogText(value) {
   return (tmp.textContent || tmp.innerText || '').trim();
 }
 
-function logDateGroup(dateValue) {
-  const raw = String(dateValue || '');
-  const lower = raw.toLowerCase();
-  if (lower.includes("aujourd")) return "Aujourd'hui";
-  if (lower.includes("hier")) return "Hier";
-  const datePart = raw.split(/[,\s]/).find(p => /^\d{2}\/\d{2}\/\d{4}$/.test(p));
-  return datePart || raw.split(' à ')[0] || 'Date inconnue';
+function normalizeLogMemberName(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function logMemberEntries() {
+  const byName = new Map();
+  const addMember = (name, active = null) => {
+    const cleanName = String(name || '').trim().replace(/\s+/g, ' ');
+    const key = normalizeLogMemberName(cleanName);
+    if (!key || key === 'systeme') return;
+    const current = byName.get(key);
+    if (!current || active === true) byName.set(key, { name:cleanName, active });
+  };
+
+  (Array.isArray(data.users) ? data.users : []).forEach(user => {
+    addMember(`${user.firstname || ''} ${user.lastname || ''}`, user.active !== false);
+  });
+  (Array.isArray(data.logs) ? data.logs : []).forEach(log => addMember(log.user, null));
+
+  return [...byName.values()].sort((a, b) => alphaCompare(a.name, b.name));
+}
+
+function sameLogMember(log, memberName) {
+  if (!memberName) return true;
+  return normalizeLogMemberName(log?.user) === normalizeLogMemberName(memberName);
+}
+
+function refreshLogMemberOptions() {
+  const select = document.getElementById('filter-log-member');
+  if (!select) return;
+  const selected = select.value;
+  const entries = logMemberEntries();
+  select.innerHTML = '<option value="">Tous les membres</option>' + entries.map(entry =>
+    `<option value="${escapeHtml(entry.name)}">${escapeHtml(entry.name)}${entry.active === false ? ' · ancien membre' : ''}</option>`
+  ).join('');
+  if (entries.some(entry => normalizeLogMemberName(entry.name) === normalizeLogMemberName(selected))) {
+    select.value = entries.find(entry => normalizeLogMemberName(entry.name) === normalizeLogMemberName(selected)).name;
+  }
+}
+
+function refreshLogCategoryOptions() {
+  const memberName = document.getElementById('filter-log-member')?.value || '';
+  const select = document.getElementById('filter-log-type');
+  if (!select) return;
+  const previous = select.value;
+
+  if (!memberName) {
+    select.disabled = true;
+    select.innerHTML = '<option value="">Choisis d’abord un membre</option>';
+    return;
+  }
+
+  const available = new Set((Array.isArray(data.logs) ? data.logs : [])
+    .filter(log => sameLogMember(log, memberName))
+    .map(log => log.type || 'other'));
+  const preferredOrder = ['stock', 'cash', 'user', 'system', 'other'];
+  const types = [...available].sort((a, b) => {
+    const aIndex = preferredOrder.indexOf(a);
+    const bIndex = preferredOrder.indexOf(b);
+    return (aIndex < 0 ? 99 : aIndex) - (bIndex < 0 ? 99 : bIndex);
+  });
+
+  select.disabled = false;
+  select.innerHTML = '<option value="">Toutes ses catégories</option>' + types.map(type =>
+    `<option value="${escapeHtml(type)}">${escapeHtml(logCategoryConfig(type).label)}</option>`
+  ).join('');
+  select.value = types.includes(previous) ? previous : '';
+}
+
+function handleLogMemberChange() {
+  refreshLogCategoryOptions();
+  renderLogs();
+}
+
+function parseLogDateParts(dateValue) {
+  const raw = String(dateValue || '').trim();
+  let match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T,]+)(\d{1,2}):?(\d{2})?/);
+  if (match) {
+    return {
+      year:Number(match[1]), month:Number(match[2]), day:Number(match[3]),
+      hour:Number(match[4] || 0), minute:Number(match[5] || 0)
+    };
+  }
+
+  match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ ,]+(?:à\s*)?(\d{1,2})(?:[:h](\d{2}))?)?/i);
+  if (match) {
+    return {
+      year:Number(match[3]), month:Number(match[2]), day:Number(match[1]),
+      hour:Number(match[4] || 0), minute:Number(match[5] || 0)
+    };
+  }
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return {
+      year:parsed.getFullYear(), month:parsed.getMonth() + 1, day:parsed.getDate(),
+      hour:parsed.getHours(), minute:parsed.getMinutes()
+    };
+  }
+  return null;
+}
+
+function validLogDateParts(parts) {
+  if (!parts) return false;
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 12));
+  return date.getUTCFullYear() === parts.year
+    && date.getUTCMonth() === parts.month - 1
+    && date.getUTCDate() === parts.day
+    && parts.hour >= 0 && parts.hour <= 23
+    && parts.minute >= 0 && parts.minute <= 59;
+}
+
+function capitalizeFrenchDate(value) {
+  const text = String(value || '');
+  return text ? text.charAt(0).toLocaleUpperCase('fr-FR') + text.slice(1) : text;
+}
+
+function formatLogDay(dateValue) {
+  const parts = parseLogDateParts(dateValue);
+  if (!validLogDateParts(parts)) return String(dateValue || 'Date inconnue');
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 12));
+  const text = new Intl.DateTimeFormat('fr-FR', {
+    weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'UTC'
+  }).format(date);
+  return capitalizeFrenchDate(text);
+}
+
+function formatLogMoment(dateValue) {
+  const parts = parseLogDateParts(dateValue);
+  if (!validLogDateParts(parts)) return String(dateValue || 'date inconnue');
+  return `${formatLogDay(dateValue)} à ${parts.hour} h ${String(parts.minute).padStart(2, '0')}`;
+}
+
+function logDateKey(dateValue) {
+  const parts = parseLogDateParts(dateValue);
+  if (!validLogDateParts(parts)) return `unknown:${String(dateValue || '')}`;
+  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+}
+
+function logSortKey(log) {
+  const parts = parseLogDateParts(log?.date);
+  if (!validLogDateParts(parts)) return `000000000000:${String(log?.date || '')}`;
+  return `${parts.year}${String(parts.month).padStart(2, '0')}${String(parts.day).padStart(2, '0')}${String(parts.hour).padStart(2, '0')}${String(parts.minute).padStart(2, '0')}`;
+}
+
+function reasonIsUseful(value) {
+  const reason = String(value || '').trim();
+  return reason && !/^non pr[eé]cis[eé]e?$/i.test(reason);
+}
+
+function inferredLogReason(log) {
+  if (reasonIsUseful(log?.reason)) return String(log.reason).trim();
+  const actionText = cleanLogText(log?.action);
+  const memberName = normalizeLogMemberName(log?.user);
+  const sameActorAndDate = entry => {
+    const user = (Array.isArray(data.users) ? data.users : []).find(item => sameId(item.id, entry.userId));
+    const entryMember = user ? `${user.firstname || ''} ${user.lastname || ''}` : '';
+    return String(entry.date || '') === String(log?.date || '')
+      && normalizeLogMemberName(entryMember) === memberName;
+  };
+
+  if (log?.type === 'stock') {
+    const matches = (Array.isArray(data.movements) ? data.movements : []).filter(sameActorAndDate);
+    const exact = matches.find(movement => {
+      const product = (data.products || []).find(item => sameId(item.id, movement.productId));
+      return product && actionText.toLowerCase().includes(String(product.name || '').toLowerCase());
+    }) || matches[0];
+    if (reasonIsUseful(exact?.reason)) return String(exact.reason).trim();
+  }
+
+  if (log?.type === 'cash') {
+    const exact = (Array.isArray(data.cashMovements) ? data.cashMovements : []).find(sameActorAndDate);
+    if (reasonIsUseful(exact?.reason)) return String(exact.reason).trim();
+    if (/^(Entrée|Sortie) cash/i.test(actionText)) {
+      const dashIndex = actionText.indexOf('—');
+      const locationIndex = actionText.indexOf('📍');
+      if (dashIndex >= 0) {
+        const parsed = actionText.slice(dashIndex + 1, locationIndex > dashIndex ? locationIndex : undefined).trim();
+        if (reasonIsUseful(parsed)) return parsed;
+      }
+    }
+  }
+
+  return '';
+}
+
+function logActionSummary(log) {
+  let text = cleanLogText(log?.action) || 'Action enregistrée';
+  if (log?.type === 'cash' && /^(Entrée|Sortie) cash/i.test(text)) {
+    const dashIndex = text.indexOf('—');
+    const locationIndex = text.indexOf('📍');
+    if (dashIndex >= 0) {
+      text = `${text.slice(0, dashIndex).trim()}${locationIndex > dashIndex ? ` ${text.slice(locationIndex).trim()}` : ''}`;
+    }
+  }
+  return text.replace(/\s*\((?:Stock|solde emplacement)\s*:[^)]+\)\s*$/i, '').trim();
 }
 
 function renderLogs() {
+  refreshLogMemberOptions();
+  refreshLogCategoryOptions();
+
+  const memberName = document.getElementById('filter-log-member')?.value || '';
   const type = document.getElementById('filter-log-type')?.value || '';
   const query = (document.getElementById('log-search')?.value || '').trim().toLowerCase();
-  const allLogs = [...data.logs].reverse();
+  const allLogs = [...(Array.isArray(data.logs) ? data.logs : [])].sort((a, b) => {
+    const dateCompare = logSortKey(b).localeCompare(logSortKey(a));
+    return dateCompare || Number(b.id || 0) - Number(a.id || 0);
+  });
 
-  const totals = {
-    all: allLogs.length,
-    stock: allLogs.filter(l => l.type === 'stock').length,
-    cash: allLogs.filter(l => l.type === 'cash').length,
-    user: allLogs.filter(l => l.type === 'user').length
-  };
-  const setText = (id, value) => { const el=document.getElementById(id); if(el) el.textContent=value; };
-  setText('log-total-all', totals.all);
-  setText('log-total-stock', totals.stock);
-  setText('log-total-cash', totals.cash);
-  setText('log-total-user', totals.user);
-
-  let logs = allLogs;
-  if (type) logs = logs.filter(l => l.type === type);
+  let logs = memberName ? allLogs.filter(log => sameLogMember(log, memberName)) : allLogs;
+  if (type) logs = logs.filter(log => log.type === type);
   if (query) {
-    logs = logs.filter(l => {
-      const haystack = `${cleanLogText(l.action)} ${l.user || ''} ${l.date || ''} ${l.type || ''}`.toLowerCase();
+    logs = logs.filter(log => {
+      const reason = inferredLogReason(log);
+      const cfg = logCategoryConfig(log.type);
+      const haystack = `${cleanLogText(log.action)} ${reason} ${log.user || ''} ${log.date || ''} ${formatLogMoment(log.date)} ${cfg.label}`.toLowerCase();
       return haystack.includes(query);
     });
   }
 
-  setText('logs-count', logs.length);
-  syncLogCards();
+  const count = document.getElementById('logs-count');
+  if (count) count.textContent = logs.length;
+
+  const status = document.getElementById('logs-filter-status');
+  if (status) {
+    const memberLogs = memberName ? allLogs.filter(log => sameLogMember(log, memberName)) : allLogs;
+    const categoryCount = new Set(memberLogs.map(log => log.type || 'other')).size;
+    const categoryLabel = type ? logCategoryConfig(type).label : '';
+    const details = memberName
+      ? `<strong>${escapeHtml(memberName)}</strong> · ${memberLogs.length} action${memberLogs.length > 1 ? 's' : ''} · ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''}${categoryLabel ? ` · filtre <strong>${escapeHtml(categoryLabel)}</strong>` : ''}`
+      : `Toutes les activités de <strong>${logMemberEntries().length} membre${logMemberEntries().length > 1 ? 's' : ''}</strong> sont affichées.`;
+    status.innerHTML = `<i class="ti ti-info-circle"></i><span>${details}</span>`;
+  }
 
   const container = document.getElementById('logs-list');
+  if (!container) return;
   if (!logs.length) {
-    container.innerHTML = `<div class="logs-empty-filter">
-      <i class="ti ti-file-search" style="font-size:32px;opacity:.35;display:block;margin-bottom:9px"></i>
-      <div style="font-family:var(--font-display);font-size:18px;color:var(--text2)">AUCUNE ACTIVITÉ TROUVÉE</div>
-      <div style="font-family:var(--font-cond);font-size:11px;margin-top:4px;text-transform:uppercase;letter-spacing:.08em">
-        Modifie les filtres ou la recherche
-      </div>
+    container.innerHTML = `<div class="activity-log-empty">
+      <i class="ti ti-file-search"></i>
+      <strong>AUCUNE ACTIVITÉ TROUVÉE</strong>
+      <span>Change le membre, la catégorie ou les mots recherchés</span>
     </div>`;
     return;
   }
 
-  const groups = {};
+  const groups = new Map();
   logs.forEach(log => {
-    const key = logDateGroup(log.date);
-    (groups[key] ||= []).push(log);
+    const key = logDateKey(log.date);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(log);
   });
 
-  container.innerHTML = Object.entries(groups).map(([day, items]) => `
-    <div class="log-day">
-      <div class="log-day-title">
+  container.innerHTML = [...groups.values()].map(items => {
+    const day = formatLogDay(items[0]?.date);
+    return `<div class="activity-log-day">
+      <div class="activity-log-day-head">
         <i class="ti ti-calendar-event"></i>
-        <span>${day}</span>
-        <span class="log-day-count">${items.length} action${items.length > 1 ? 's' : ''}</span>
+        <span>${escapeHtml(day)}</span>
+        <span class="activity-log-day-count">${items.length} action${items.length > 1 ? 's' : ''}</span>
       </div>
-      ${items.map(l => {
-        const cfg = logCategoryConfig(l.type);
-        return `
-          <div class="log-item" style="--log-color:${cfg.color};--log-soft:${cfg.soft}">
-            <div class="log-icon"><i class="ti ${cfg.icon}" style="font-size:16px"></i></div>
-            <div class="log-content">
-              <div class="log-action">${l.action}</div>
-              <div class="log-meta">
-                <span class="log-user"><i class="ti ti-user-circle"></i>${l.user || 'Système'}</span>
-                <span class="log-time"><i class="ti ti-clock"></i>${l.date || 'Date inconnue'}</span>
-                <span class="log-type-label">${cfg.label}</span>
-              </div>
-            </div>
-          </div>`;
+      ${items.map(log => {
+        const cfg = logCategoryConfig(log.type);
+        const actor = String(log.user || 'Système').trim() || 'Système';
+        const moment = formatLogMoment(log.date);
+        const reason = inferredLogReason(log);
+        return `<article class="activity-log-item" style="--activity-color:${cfg.color};--activity-soft:${cfg.soft}">
+          <div class="activity-log-icon"><i class="ti ${cfg.icon}"></i></div>
+          <div class="activity-log-copy">
+            <div class="activity-log-action">${escapeHtml(logActionSummary(log))}</div>
+            <div class="activity-log-sentence"><strong>${escapeHtml(actor)}</strong> a effectué cette action le <strong>${escapeHtml(moment)}</strong>.</div>
+            ${reason ? `<div class="activity-log-reason">
+              <i class="ti ti-message-2"></i>
+              <div><span class="activity-log-reason-label">Raison</span><br>${escapeHtml(reason)}</div>
+            </div>` : ''}
+          </div>
+          <span class="activity-log-category">${escapeHtml(cfg.label)}</span>
+        </article>`;
       }).join('')}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 async function clearLogs() {
   if (!canClearLogs()) { deny(); return; }
   if (!(await siteConfirm('Effacer tous les logs ?', 'Effacer'))) return;
   data.logs = [];
-  addLog('system','Journal effacé',data.currentUser?data.currentUser.firstname:'Système');
+  addLog('system','Journal effacé',userName());
   renderLogs();
   toast('Logs effacés','info');
 }
@@ -6904,11 +7376,13 @@ function saveMvt() {
 
   const user = data.users.find(u => sameId(u.id, userId));
   const uName = user ? `${user.firstname} ${user.lastname}`.trim() : 'Inconnu';
+  const safeProductName = escapeHtml(product.name);
+  const safeLocation = escapeHtml(locationName(locationId));
   const action = currentMvtType === 'entree'
-    ? `Entrée de ${qty} unité(s) de <strong>${product.name}</strong> <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`
-    : `Sortie de ${qty} unité(s) de <strong>${product.name}</strong> <span style="color:var(--accent)">📍 ${locationName(locationId)}</span> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`;
+    ? `Entrée de ${qty} unité(s) de <strong>${safeProductName}</strong> <span style="color:var(--accent)">📍 ${safeLocation}</span> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`
+    : `Sortie de ${qty} unité(s) de <strong>${safeProductName}</strong> <span style="color:var(--accent)">📍 ${safeLocation}</span> <span style="color:var(--text3)">(Stock : ${stockBefore} → ${stockAfter})</span>`;
 
-  addLog('stock', action, uName);
+  addLog('stock', action, uName, { reason, memberId:userId, locationId, entityId:product.id });
   toast(currentMvtType === 'entree' ? 'Entrée enregistrée' : 'Sortie enregistrée', 'success');
   closeModal('modal-mvt');
   render();
@@ -7077,10 +7551,22 @@ async function deleteCat(id) {
   render();
 }
 
-function addLog(type, action, user) {
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  data.logs.push({ id:data.nextId.log++, type, action, user: user||'Système', date:dateStr });
+function addLog(type, action, user, details = {}) {
+  const actor = String(user || 'Système').trim() || 'Système';
+  const matchedUser = (Array.isArray(data.users) ? data.users : []).find(item =>
+    normalizeLogMemberName(`${item.firstname || ''} ${item.lastname || ''}`) === normalizeLogMemberName(actor)
+  );
+  data.logs.push({
+    id:data.nextId.log++,
+    type,
+    action,
+    user:actor,
+    date:nowStr(),
+    reason:reasonIsUseful(details.reason) ? String(details.reason).trim() : '',
+    memberId:details.memberId ?? matchedUser?.id ?? null,
+    locationId:details.locationId ?? null,
+    entityId:details.entityId ?? null
+  });
   saveData();
 }
 
