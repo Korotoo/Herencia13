@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="herencia-cascade-deletions-v22">
+<meta name="vault-build" content="herencia-connected-operations-category-edit-stock-all-v23">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -205,13 +205,15 @@ body {
 .form-input:focus, .form-select:focus { border-color: var(--accent); }
 .form-select option { background: var(--bg3); }
 
-.cash-amount-control {
+.cash-amount-control,
+.stock-quantity-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: stretch;
 }
-.btn.cash-all-button {
+.btn.cash-all-button,
+.btn.stock-all-button {
   min-height: 42px;
   padding-inline: 13px;
   background: var(--red-soft);
@@ -220,6 +222,8 @@ body {
 }
 .btn.cash-all-button:hover:not(:disabled) { background: rgba(232,64,64,0.2); transform: translateY(-1px); }
 .btn.cash-all-button:disabled { cursor: not-allowed; opacity: 0.42; }
+.btn.stock-all-button:hover:not(:disabled) { background: rgba(232,64,64,0.2); transform: translateY(-1px); }
+.btn.stock-all-button:disabled { cursor: not-allowed; opacity: 0.42; }
 .cash-balance-note {
   display: none;
   margin-top: 8px;
@@ -4579,14 +4583,17 @@ body:not(.logged-in) #app { display: none !important; }
         <label class="form-label">Article</label>
         <select class="form-select" id="mvt-product" onchange="updateMovementProductLocation()"></select>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Quantité</label><input class="form-input" type="number" id="mvt-qty" placeholder="1" min="1"></div>
-        <div class="form-group"><label class="form-label">Membre</label><select class="form-select" id="mvt-user"></select></div>
-      </div>
       <div class="form-group">
-        <label class="form-label">Localisation</label>
+        <label class="form-label" for="mvt-location">Localisation</label>
         <select class="form-select" id="mvt-location" onchange="refreshMovementLocationChoice()"></select>
         <div id="mvt-location-stock-hint" style="margin-top:8px;padding:9px 11px;border:1px solid var(--border);background:var(--bg3);border-radius:var(--radius);color:var(--text3);font-size:12px;font-family:var(--font-cond)"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="mvt-qty">Quantité</label>
+        <div class="stock-quantity-control">
+          <input class="form-input" type="number" id="mvt-qty" placeholder="1" min="1" step="1" oninput="markStockQuantityManual()">
+          <button class="btn stock-all-button" id="mvt-use-all" type="button" style="display:none" disabled onclick="useAllStockForLocation()"><i class="ti ti-package-export"></i> Tout retirer</button>
+        </div>
       </div>
       <div class="form-group"><label class="form-label">Raison</label><input class="form-input" id="mvt-reason" placeholder="Ex: Livraison planque"></div>
     </div>
@@ -4637,7 +4644,7 @@ body:not(.logged-in) #app { display: none !important; }
   <div class="modal" style="width:360px">
     <div class="modal-header">
       <i class="ti ti-tag" style="color:var(--accent)"></i>
-      <span class="modal-title">NOUVELLE CATÉGORIE</span>
+      <span class="modal-title" id="modal-cat-title">NOUVELLE CATÉGORIE</span>
       <button class="modal-close" onclick="closeModal('modal-cat')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
@@ -4646,7 +4653,7 @@ body:not(.logged-in) #app { display: none !important; }
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-cat')">Annuler</button>
-      <button class="btn btn-primary" onclick="saveCat()"><i class="ti ti-check"></i> Créer</button>
+      <button class="btn btn-primary" type="button" id="cat-save-btn" onclick="saveCat()"><i class="ti ti-check"></i> Créer</button>
     </div>
   </div>
 </div>
@@ -6314,6 +6321,12 @@ function canAddCashMovement() { return !!data.currentUser && !isVisiteur(); }
 function canViewLogs() { return !!data.currentUser; }
 function canViewCategories() { return !!data.currentUser; }
 function canAddCategory() { return isBoss() || isSegundo(); }
+function canEditCategory() { return isBoss() || isSegundo(); }
+
+function connectedOperationMember() {
+  if (!data.currentUser) return null;
+  return data.users.find(user => sameId(user.id, data.currentUser.id) && user.active !== false) || null;
+}
 function canManageTargetUser(target) {
   if (!target) return false;
   if (isBoss()) return true;
@@ -6418,7 +6431,11 @@ function nav(section, el) {
   }
 }
 
-function render() { ensureLocationData(); updatePermissionsUI(); renderDashboard(); renderAgenda(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); renderLocations(); }
+function render() {
+  ensureLocationData(); updatePermissionsUI(); renderDashboard(); renderAgenda(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); renderLocations();
+  if (document.getElementById('modal-mvt')?.classList.contains('open')) refreshMovementLocationChoice();
+  if (document.getElementById('modal-cash')?.classList.contains('open')) updateCashModalBalance();
+}
 
 // ===================== AGENDA =====================
 function parisDateTimeParts(date = new Date()) {
@@ -7718,10 +7735,11 @@ function locationOptions(selected = null) {
 function renderStock() {
   const search = (document.getElementById('global-search')?.value || '').toLowerCase();
 
+
   const catSel = document.getElementById('filter-cat');
   if (catSel) {
     const cur = catSel.value;
-    catSel.innerHTML = '<option value="">Toutes catégories</option>' + [...data.categories].sort((a,b)=>alphaCompare(a.name,b.name)).map(c => `<option value="${c.id}" ${cur==c.id?'selected':''}>${c.name}</option>`).join('');
+    catSel.innerHTML = '<option value="">Toutes catégories</option>' + [...data.categories].sort((a,b)=>alphaCompare(a.name,b.name)).map(c => `<option value="${c.id}" ${cur==c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
   }
 
   const locationSel = document.getElementById('filter-location');
@@ -7747,11 +7765,11 @@ function renderStock() {
   }
 
   tbody.innerHTML = products.map(p => {
-    const cat = data.categories.find(c => c.id === p.cat);
+    const cat = data.categories.find(c => sameId(c.id, p.cat));
 
     return `<tr>
       <td><div style="font-weight:600">${p.name}</div></td>
-      <td><span class="badge badge-blue">${cat?cat.name:'—'}</span></td>
+      <td><span class="badge badge-blue">${cat?escapeHtml(cat.name):'—'}</span></td>
       <td><span class="badge badge-amber"><i class="ti ti-map-pin"></i>${locationName(p.locationId)}</span></td>
       <td style="font-family:var(--font-display);font-size:20px;letter-spacing:0.04em">${p.qty}</td>
       <td style="color:var(--accent);font-family:var(--font-cond);font-weight:600">$${Number(p.price || 0).toLocaleString('fr-FR')}</td>
@@ -7769,11 +7787,12 @@ function renderStock() {
 // ===================== MOUVEMENTS =====================
 function renderMoves() {
 
+
   const catSel = document.getElementById('filter-move-cat');
   if (catSel) {
     const current = catSel.value;
     const cats = [...(Array.isArray(data.categories) ? data.categories : [])].sort((a,b) => alphaCompare(a.name, b.name));
-    catSel.innerHTML = '<option value="">Toutes catégories</option>' + cats.map(c => `<option value="${c.id}" ${sameId(current,c.id)?'selected':''}>${c.name}</option>`).join('');
+    catSel.innerHTML = '<option value="">Toutes catégories</option>' + cats.map(c => `<option value="${c.id}" ${sameId(current,c.id)?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
   }
 
   const locationSel = document.getElementById('filter-move-location');
@@ -7970,6 +7989,8 @@ function saveCashMovement() {
     closeModal('modal-cash');
     return;
   }
+  const member = connectedOperationMember();
+  if (!member) { deny('Reconnecte-toi pour enregistrer une opération cash'); closeModal('modal-cash'); return; }
 
   const amount = parseFloat(document.getElementById('cash-amount').value) || 0;
   const reason = document.getElementById('cash-reason').value.trim() || 'Non précisé';
@@ -7999,7 +8020,7 @@ function saveCashMovement() {
     existingLine.type = currentCashType;
     existingLine.amount = amount;
     existingLine.reason = reason;
-    existingLine.userId = data.currentUser ? data.currentUser.id : null;
+    existingLine.userId = member.id;
     existingLine.date = dateStr;
   } else {
     data.cashMovements.push({
@@ -8007,7 +8028,7 @@ function saveCashMovement() {
       type: currentCashType,
       amount,
       reason,
-      userId: data.currentUser ? data.currentUser.id : null,
+      userId: member.id,
       locationId,
       date: dateStr
     });
@@ -8022,9 +8043,9 @@ function saveCashMovement() {
     ? `Entrée cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${safeReason} <span style="color:var(--accent)">📍 ${safeLocation}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`
     : `Sortie cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${safeReason} <span style="color:var(--accent)">📍 ${safeLocation}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`;
 
-  addLog('cash', action, userName(), {
+  addLog('cash', action, `${member.firstname} ${member.lastname}`.trim(), {
     reason,
-    memberId:data.currentUser ? data.currentUser.id : null,
+    memberId:member.id,
     locationId
   });
   toast('Solde cash mis à jour', 'success');
@@ -8403,10 +8424,13 @@ function renderCats() {
   document.getElementById('cats-tbody').innerHTML = data.categories.map(c => {
     const count = data.products.filter(p => sameId(p.cat, c.id)).length;
     return `<tr>
-      <td><div style="font-weight:600;display:flex;align-items:center;gap:8px;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em"><i class="ti ti-tag" style="color:var(--accent)"></i>${c.name}</div></td>
-      <td style="color:var(--text2)">${c.desc}</td>
+      <td><div style="font-weight:600;display:flex;align-items:center;gap:8px;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em"><i class="ti ti-tag" style="color:var(--accent)"></i>${escapeHtml(c.name)}</div></td>
+      <td style="color:var(--text2)">${escapeHtml(c.desc || "")}</td>
       <td><span class="badge badge-amber">${count} article${count>1?'s':''}</span></td>
-      <td>${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="deleteCat(${c.id})"><i class="ti ti-trash"></i></button>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
+      <td>${canEditCategory() || canDelete() ? `<div style="display:flex;gap:6px">
+        ${canEditCategory() ? `<button class="btn btn-ghost btn-sm" type="button" onclick="editCat(${c.id})" title="Modifier la catégorie" aria-label="Modifier la catégorie"><i class="ti ti-edit"></i></button>` : ''}
+        ${canDelete() ? `<button class="btn btn-danger btn-sm" type="button" onclick="deleteCat(${c.id})" title="Supprimer la catégorie" aria-label="Supprimer la catégorie"><i class="ti ti-trash"></i></button>` : ''}
+      </div>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
     </tr>`;
   }).join('');
 }
@@ -8495,7 +8519,6 @@ async function deleteInventoryEntity(kind, id) {
   let plan = inventoryDeletionPlan(kind, id);
   if (!plan) { toast('Élément introuvable ou déjà supprimé', 'error'); return; }
   let changed = false;
-
   while (plan) {
     const name = plan.target.name;
     const title = kind === 'location'
@@ -8508,14 +8531,10 @@ async function deleteInventoryEntity(kind, id) {
     if (!canDelete()) { deny(); return; }
     const currentPlan = inventoryDeletionPlan(kind, id);
     if (!currentPlan) { toast('Cet élément a déjà été supprimé', 'info'); return; }
-    if (currentPlan.signature === plan.signature) {
-      plan = currentPlan;
-      break;
-    }
+    if (currentPlan.signature === plan.signature) { plan = currentPlan; break; }
     plan = currentPlan;
     changed = true;
   }
-
   const productIds = new Set(plan.products.map(product => String(product.id)));
   const movementIds = new Set(plan.movements.map(movement => String(movement.id)));
   data.products = data.products.filter(product => !productIds.has(String(product.id)));
@@ -8526,6 +8545,10 @@ async function deleteInventoryEntity(kind, id) {
     plan.cashEntries.forEach(([key]) => { delete data.cashByLocation[key]; });
   } else if (kind === 'category') {
     data.categories = data.categories.filter(category => !sameId(category.id, id));
+    if (sameId(editingCategoryId, id)) {
+      editingCategoryId = null;
+      closeModal('modal-cat');
+    }
   }
   // Recalcul avant la sauvegarde et la migration du cash, pour ne pas recréer
   // le solde de la dernière localisation supprimée à partir de cashBalance.
@@ -8629,7 +8652,7 @@ function openAddModal() {
   ['p-name','p-price'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('p-loc').innerHTML = locationOptions(data.locations[0]?.id);
   const catSel = document.getElementById('p-cat');
-  catSel.innerHTML = [...data.categories].sort((a,b)=>alphaCompare(a.name,b.name)).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  catSel.innerHTML = [...data.categories].sort((a,b)=>alphaCompare(a.name,b.name)).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   openModal('modal-product');
 }
 
@@ -8643,7 +8666,7 @@ function editProduct(id) {
   document.getElementById('p-price').value = p.price;
   document.getElementById('p-loc').innerHTML = locationOptions(p.locationId);
   const catSel = document.getElementById('p-cat');
-  catSel.innerHTML = data.categories.map(c => `<option value="${c.id}" ${c.id===p.cat?'selected':''}>${c.name}</option>`).join('');
+  catSel.innerHTML = data.categories.map(c => `<option value="${c.id}" ${sameId(c.id,p.cat)?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
   openModal('modal-product');
 }
 
@@ -8686,6 +8709,32 @@ async function deleteProduct(id) {
 
 let currentMvtType = 'entree';
 
+function selectedMovementStock() {
+  const productId = document.getElementById('mvt-product')?.value;
+  const locationId = document.getElementById('mvt-location')?.value;
+  const product = data.products.find(item => sameId(item.id, productId));
+  const location = data.locations.find(item => sameId(item.id, locationId));
+  if (!product || !location) return null;
+  const stock = findProductStockAtLocation(product, location.id);
+  return { product, location, quantity:Math.max(0, Number(stock?.qty || 0)) };
+}
+
+function markStockQuantityManual() {
+  const input = document.getElementById('mvt-qty');
+  if (input) input.dataset.filledFromStock = 'false';
+}
+
+function useAllStockForLocation() {
+  if (currentMvtType !== 'sortie') return;
+  if (!canAddMovement()) { deny(); return; }
+  const selection = selectedMovementStock();
+  const input = document.getElementById('mvt-qty');
+  if (!selection || !input) { toast('Choisis un article et une localisation existants', 'error'); return; }
+  if (selection.quantity <= 0) { toast('Aucun stock disponible dans cette localisation', 'error'); return; }
+  input.dataset.filledFromStock = 'true';
+  refreshMovementLocationChoice();
+}
+
 function updateMovementProductLocation() {
   const productSelect = document.getElementById('mvt-product');
   const product = data.products.find(p => p.id == productSelect.value);
@@ -8710,16 +8759,27 @@ function updateMovementProductLocation() {
 
 function refreshMovementLocationChoice() {
   const hint = document.getElementById('mvt-location-stock-hint');
-  if (!hint) return;
-  const product = data.products.find(item => sameId(item.id, document.getElementById('mvt-product')?.value));
-  const locationId = document.getElementById('mvt-location')?.value;
-  if (!product || !locationId) {
+  const input = document.getElementById('mvt-qty');
+  const allButton = document.getElementById('mvt-use-all');
+  if (!hint || !input || !allButton) return;
+  const selection = selectedMovementStock();
+  const quantity = selection?.quantity || 0;
+  const isWithdrawal = currentMvtType === 'sortie';
+  allButton.style.display = isWithdrawal ? 'inline-flex' : 'none';
+  allButton.disabled = !selection || quantity <= 0 || !canAddMovement();
+  allButton.title = selection
+    ? `Retirer ${quantity} unité(s) de ${selection.product.name} à ${selection.location.name}`
+    : 'Choisis un article et une localisation';
+  if (isWithdrawal && selection) input.max = String(quantity);
+  else input.removeAttribute('max');
+  if (!isWithdrawal) input.dataset.filledFromStock = 'false';
+  if (input.dataset.filledFromStock === 'true') input.value = quantity > 0 ? String(quantity) : '';
+  if (!selection) {
     hint.innerHTML = '<i class="ti ti-info-circle" style="color:var(--accent)"></i> Choisis un article et une localisation.';
     return;
   }
-  const quantity = Number(findProductStockAtLocation(product, locationId)?.qty || 0);
   const actionLabel = currentMvtType === 'entree' ? 'L’entrée sera ajoutée uniquement ici.' : 'La sortie sera retirée uniquement ici.';
-  hint.innerHTML = `<i class="ti ti-map-pin" style="color:var(--accent)"></i> Stock actuel à <strong style="color:var(--text)">${locationName(locationId)}</strong> : <strong style="color:${quantity > 0 ? 'var(--green)' : 'var(--text3)'}">${quantity}</strong>. ${actionLabel}`;
+  hint.innerHTML = `<i class="ti ti-map-pin" style="color:var(--accent)"></i> Stock actuel à <strong style="color:var(--text)">${escapeHtml(selection.location.name)}</strong> : <strong style="color:${quantity > 0 ? 'var(--green)' : 'var(--text3)'}">${quantity}</strong>. ${actionLabel}`;
 }
 
 function updateMovementProducts() {
@@ -8754,6 +8814,9 @@ function updateMovementProducts() {
 function openMvtModal(type) {
   if (!canAddMovement()) { deny(); return; }
   currentMvtType = type;
+  const quantityInput = document.getElementById('mvt-qty');
+  quantityInput.value = '';
+  quantityInput.dataset.filledFromStock = 'false';
   document.getElementById('modal-mvt-title').textContent = type==='entree'?'ENTRÉE DE STOCK':'SORTIE DE STOCK';
   const c = document.getElementById('mvt-confirm');
   c.className = `btn ${type==='entree'?'btn-success':'btn-danger'}`;
@@ -8767,26 +8830,24 @@ function openMvtModal(type) {
     .sort((a, b) => alphaCompare(a.name, b.name));
 
   categorySelect.innerHTML = categoriesWithProducts.length
-    ? categoriesWithProducts.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')
+    ? categoriesWithProducts.map(cat => `<option value="${cat.id}">${escapeHtml(cat.name)}</option>`).join('')
     : '<option value="">Aucune catégorie disponible</option>';
 
   categorySelect.disabled = !categoriesWithProducts.length;
   updateMovementProducts();
 
-  const us = (Array.isArray(data.users) ? data.users : []).filter(u => u.active).sort((a,b) => alphaCompare(`${a.firstname} ${a.lastname}`, `${b.firstname} ${b.lastname}`));
-  document.getElementById('mvt-user').innerHTML = us.map(u => `<option value="${u.id}" ${data.currentUser&&u.id===data.currentUser.id?'selected':''}>${u.firstname} ${u.lastname}</option>`).join('');
-  document.getElementById('mvt-qty').value = '';
-  updateMovementProductLocation();
   document.getElementById('mvt-reason').value = '';
   openModal('modal-mvt');
 }
 
 function saveMvt() {
   if (!canAddMovement()) { deny(); return; }
+  const member = connectedOperationMember();
+  if (!member) { deny('Reconnecte-toi pour enregistrer un mouvement'); closeModal('modal-mvt'); return; }
   const productId = parseInt(document.getElementById('mvt-product').value);
   const qty = parseInt(document.getElementById('mvt-qty').value) || 0;
   const reason = document.getElementById('mvt-reason').value.trim() || 'Non précisé';
-  const userId = parseInt(document.getElementById('mvt-user').value);
+  const userId = member.id;
   const locationId = parseInt(document.getElementById('mvt-location').value);
   if (!productId) { toast('Choisis un article','error'); return; }
   if (qty <= 0) { toast('Quantité invalide','error'); return; }
@@ -8841,8 +8902,7 @@ function saveMvt() {
   product.locationId = locationId;
   product.loc = locationName(locationId);
 
-  const user = data.users.find(u => sameId(u.id, userId));
-  const uName = user ? `${user.firstname} ${user.lastname}`.trim() : 'Inconnu';
+  const uName = `${member.firstname} ${member.lastname}`.trim();
   const safeProductName = escapeHtml(product.name);
   const safeLocation = escapeHtml(locationName(locationId));
   const action = currentMvtType === 'entree'
@@ -8981,21 +9041,56 @@ async function deleteUser(id) {
   render();
 }
 
+let editingCategoryId = null;
+
+function setCategoryModalMode(isEditing) {
+  document.getElementById('modal-cat-title').textContent = isEditing ? 'MODIFIER LA CATÉGORIE' : 'NOUVELLE CATÉGORIE';
+  document.getElementById('cat-save-btn').innerHTML = `<i class="ti ti-check"></i> ${isEditing ? 'Enregistrer' : 'Créer'}`;
+}
+
 function openCatModal() {
   if (!canAddCategory()) { deny(); return; }
+  editingCategoryId = null;
+  setCategoryModalMode(false);
   document.getElementById('cat-name').value='';
   document.getElementById('cat-desc').value='';
   openModal('modal-cat');
 }
 
+function editCat(id) {
+  if (!canEditCategory()) { deny('Seuls le Jefe et le Segundo peuvent modifier les catégories'); return; }
+  const category = data.categories.find(item => sameId(item.id, id));
+  if (!category) { toast('Catégorie introuvable', 'error'); return; }
+  editingCategoryId = category.id;
+  setCategoryModalMode(true);
+  document.getElementById('cat-name').value = category.name || '';
+  document.getElementById('cat-desc').value = category.desc || '';
+  openModal('modal-cat');
+}
+
 function saveCat() {
-  if (!canAddCategory()) { deny(); return; }
+  const isEditing = editingCategoryId !== null;
+  if (isEditing ? !canEditCategory() : !canAddCategory()) { deny(); return; }
   const name = document.getElementById('cat-name').value.trim();
   const desc = document.getElementById('cat-desc').value.trim();
   if (!name) { toast('Nom requis','error'); return; }
-  data.categories.push({ id:data.nextId.cat++, name, desc });
-  addLog('system', `Catégorie créée : <strong>${name}</strong>`, userName());
-  toast('Catégorie créée','success');
+  if (isEditing) {
+    const category = data.categories.find(item => sameId(item.id, editingCategoryId));
+    if (!category) { toast('Cette catégorie a été supprimée', 'error'); closeModal('modal-cat'); return; }
+    const changes = [];
+    if (category.name !== name) changes.push(`Nom : « ${category.name} » → « ${name} »`);
+    if ((category.desc || '') !== desc) changes.push(`Description : « ${category.desc || 'Aucune'} » → « ${desc || 'Aucune'} »`);
+    if (!changes.length) { toast('Aucune modification', 'info'); closeModal('modal-cat'); return; }
+    category.name = name;
+    category.desc = desc;
+    addLog('system', `Catégorie modifiée : <strong>${escapeHtml(name)}</strong>`, userName(), { entityId:category.id, reason:changes.join(' · ') });
+  } else {
+    const category = { id:data.nextId.cat++, name, desc };
+    data.categories.push(category);
+    addLog('system', `Catégorie créée : <strong>${escapeHtml(name)}</strong>`, userName(), { entityId:category.id });
+  }
+  editingCategoryId = null;
+  toast(isEditing ? 'Catégorie modifiée' : 'Catégorie créée','success');
   closeModal('modal-cat');
   render();
 }
