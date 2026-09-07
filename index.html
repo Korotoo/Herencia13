@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="herencia-firstname-phone-onboarding-v25">
+<meta name="vault-build" content="herencia-navigation-performance-v26">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3224,8 +3224,6 @@ html { scroll-behavior: smooth; }
   --radius: 10px;
   --radius-lg: 14px;
   --sidebar: 236px;
-  --motion-x: 72vw;
-  --motion-y: 18vh;
 }
 
 body {
@@ -3256,9 +3254,8 @@ body.logged-in { background: #080a0c; }
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(520px circle at var(--motion-x) var(--motion-y), rgba(216,179,91,.055), transparent 64%),
+    radial-gradient(520px circle at 72% 18%, rgba(216,179,91,.055), transparent 64%),
     radial-gradient(440px circle at 82% 82%, rgba(45,136,78,.035), transparent 70%);
-  transition: background-position .2s linear;
 }
 
 /* Navigation latérale en relief */
@@ -3269,7 +3266,7 @@ body.logged-in { background: #080a0c; }
     radial-gradient(circle at 24% 0%, rgba(216,179,91,.085), transparent 26%),
     linear-gradient(180deg, rgba(17,20,23,.985), rgba(10,12,14,.99));
   box-shadow: 18px 0 60px rgba(0,0,0,.28);
-  backdrop-filter: blur(18px);
+  backdrop-filter: none;
 }
 .sidebar::after {
   content: '';
@@ -3441,12 +3438,12 @@ body.logged-in { background: #080a0c; }
   padding: 26px;
 }
 .section.active {
-  animation: uiSectionEnter .38s cubic-bezier(.2,.72,.24,1) both;
+  animation: uiSectionEnter .22s cubic-bezier(.2,.72,.24,1) both;
   transform-origin: top center;
 }
 @keyframes uiSectionEnter {
-  from { opacity: 0; transform: translateY(10px) scale(.995); filter: blur(2px); }
-  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .section-header { margin-bottom: 22px; }
 .section-header h2 { font-size: 30px; letter-spacing: .07em; }
@@ -3635,7 +3632,7 @@ tr:hover td:first-child { box-shadow: inset 2px 0 rgba(216,179,91,.32); }
   background: rgba(3,4,5,.76);
   backdrop-filter: blur(9px) saturate(80%);
 }
-.modal-overlay.open .modal { animation: uiModalIn .32s cubic-bezier(.18,.78,.22,1) both; }
+.modal-overlay.open .modal { animation: uiModalIn .22s cubic-bezier(.18,.78,.22,1) both; }
 .modal {
   border-color: rgba(255,255,255,.13);
   border-radius: 16px;
@@ -3643,8 +3640,8 @@ tr:hover td:first-child { box-shadow: inset 2px 0 rgba(216,179,91,.32); }
   box-shadow: 0 35px 100px rgba(0,0,0,.52), inset 0 1px rgba(255,255,255,.03);
 }
 @keyframes uiModalIn {
-  from { opacity: 0; transform: translateY(20px) scale(.96); filter: blur(5px); }
-  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .modal-header,
 .modal-footer { border-color: rgba(255,255,255,.07); background: rgba(255,255,255,.02); }
@@ -3729,7 +3726,7 @@ tr:hover td:first-child { box-shadow: inset 2px 0 rgba(216,179,91,.32); }
     border-radius: 18px;
     background: rgba(13,16,18,.9);
     box-shadow: 0 18px 55px rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.035);
-    backdrop-filter: blur(22px) saturate(120%);
+    backdrop-filter: blur(6px);
   }
   .sidebar::after { display: none; }
   .sidebar-nav { gap: 7px; padding: 8px; }
@@ -3800,6 +3797,14 @@ body:not(.logged-in) #app { display: none !important; }
 .member-access-code input { min-width:0; text-align:center; font-size:24px; letter-spacing:.15em; font-family:var(--font-cond); color:var(--accent); }
 #login-identification, #login-setup { width:100%; }
 #login-setup .login-form-title { overflow-wrap:anywhere; }
+/* Les appareils tactiles conservent le relief avec moins de filtres coûteux. */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .topbar, .portal-header, .modal-overlay, .login-right, .toast { backdrop-filter:none; }
+  .portal-official-logo { animation:none; }
+}
+.activity-log-pagination { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px; border-top:1px solid var(--border); }
+#logs-page-status { color:var(--text2); text-align:center; font-size:12px; }
+.activity-log-pagination button:disabled { opacity:.4; cursor:default; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -4048,7 +4053,7 @@ body:not(.logged-in) #app { display: none !important; }
       <div class="spacer"></div>
       <div class="search-bar">
         <i class="ti ti-search"></i>
-        <input type="text" id="global-search" placeholder="Chercher un article…" oninput="renderStock()">
+        <input type="text" id="global-search" placeholder="Chercher un article…" oninput="scheduleListSearch('stock')">
       </div>
       <button class="btn btn-primary" id="topbar-action" type="button" onclick="openAddModal()" style="display:none"></button>
     </header>
@@ -4299,7 +4304,7 @@ body:not(.logged-in) #app { display: none !important; }
                 <span class="activity-log-field-label"><i class="ti ti-search"></i> Action ou raison</span>
                 <span class="activity-log-search-wrap">
                   <i class="ti ti-search"></i>
-                  <input class="activity-log-search" id="log-search" type="search" placeholder="Ex. livraison, rendez-vous, sous-sol…" oninput="renderLogs()">
+                  <input class="activity-log-search" id="log-search" type="search" placeholder="Ex. livraison, rendez-vous, sous-sol…" oninput="scheduleListSearch('logs')">
                 </span>
               </label>
             </div>
@@ -4319,6 +4324,11 @@ body:not(.logged-in) #app { display: none !important; }
               </div>
             </div>
             <div id="logs-list"></div>
+            <div class="activity-log-pagination" id="logs-pagination" style="display:none" aria-label="Pages du journal">
+              <button class="btn btn-ghost btn-sm" id="logs-prev" type="button" onclick="changeLogPage(-1)"><i class="ti ti-chevron-left"></i> Précédent</button>
+              <span id="logs-page-status" aria-live="polite"></span>
+              <button class="btn btn-ghost btn-sm" id="logs-next" type="button" onclick="changeLogPage(1)">Suivant <i class="ti ti-chevron-right"></i></button>
+            </div>
           </div>
         </div>
       </section>
@@ -4766,6 +4776,27 @@ body:not(.logged-in) #app { display: none !important; }
 // ===================== DATA =====================
 const PASS = '1234';
 let currentSection = 'dashboard';
+let interfaceNeedsRefresh = false;
+const listSearchTimers = { stock:null, logs:null };
+const frenchDateFormatters = new Map();
+
+function frenchDateFormatter(options) {
+  const key = JSON.stringify(options);
+  if (!frenchDateFormatters.has(key)) frenchDateFormatters.set(key, new Intl.DateTimeFormat('fr-FR', options));
+  return frenchDateFormatters.get(key);
+}
+
+function scheduleListSearch(section) {
+  if (!Object.prototype.hasOwnProperty.call(listSearchTimers, section)) return;
+  clearTimeout(listSearchTimers[section]);
+  listSearchTimers[section] = setTimeout(() => {
+    listSearchTimers[section] = null;
+    if (document.hidden || currentSection !== section || !canAccessSection(section)) return;
+    if (section === 'logs') renderLogs();
+    else renderStock();
+  }, 110);
+}
+
 const AGENDA_TIME_ZONE = 'Europe/Paris';
 let agendaCursor = parisCalendarMonthDate(new Date());
 let agendaSelectedDate = parisDateKey(new Date());
@@ -4868,7 +4899,7 @@ function hasSupabaseConfig() {
   return normalizedSupabaseUrl().startsWith('https://') && SUPABASE_ANON_KEY.length > 20;
 }
 
-function cleanDataForSave() {
+function serializeDataForSave() {
   const snapshot = {
     ...data,
     currentUser: null,
@@ -4876,8 +4907,12 @@ function cleanDataForSave() {
     editingUser: null
   };
 
-  // Produit un objet JSON simple : aucune valeur undefined, fonction ou référence spéciale.
-  return JSON.parse(JSON.stringify(snapshot));
+  return JSON.stringify(snapshot);
+}
+
+function cleanDataForSave() {
+  // Copie indépendante pour un envoi réseau en cours ; le cache local est sérialisé une seule fois.
+  return JSON.parse(serializeDataForSave());
 }
 
 function restoreCurrentUser(previousUser) {
@@ -4973,10 +5008,15 @@ function cleanupRemovedMembers() {
   });
   // Reconstitue les anciens noms d'un compte renommé, sans confondre les IDs.
   for (let pass = 0; pass < renamePairs.length; pass++) {
+    let changed = false;
     renamePairs.forEach(([before, after]) => {
       const user = usersByName.get(normalizeLogMemberName(after)) || usersByName.get(normalizeLogMemberName(before));
-      if (user) { usersByName.set(normalizeLogMemberName(before), user); usersByName.set(normalizeLogMemberName(after), user); }
+      if (user) [before, after].forEach(name => {
+        const key = normalizeLogMemberName(name);
+        if (usersByName.get(key) !== user) { usersByName.set(key, user); changed = true; }
+      });
     });
+    if (!changed) break;
   }
   const rememberMissingId = id => {
     if (id !== null && id !== undefined && String(id) && !usersById.has(String(id))) deletedIds.add(String(id));
@@ -4999,7 +5039,9 @@ function cleanupRemovedMembers() {
   });
   for (let pass = 0; pass < renamePairs.length; pass++) {
     const names = new Set([...removedNames].map(normalizeLogMemberName));
+    const sizeBefore = removedNames.size;
     renamePairs.forEach(pair => { if (pair.some(name => names.has(normalizeLogMemberName(name)))) pair.forEach(addRemovedName); });
+    if (removedNames.size === sizeBefore) break;
   }
   // Un homonyme toujours présent reste identifié par son propre compte.
   const retiredNames = [...removedNames].filter(name => !usersByName.has(normalizeLogMemberName(name))).sort((a,b) => b.length - a.length);
@@ -5277,7 +5319,7 @@ function applySavedData(savedData) {
 
   ensureLocationData();
   consolidateMovementsByProduct();
-  consolidateCashMovements();
+  consolidateCashMovements(false);
   restoreCurrentUser(previousUser);
   syncMemberAccessState();
   syncStreetFlightState();
@@ -5307,7 +5349,7 @@ function initSupabaseClient() {
 function renderAfterRemoteUpdate() {
   const app = document.getElementById('app');
   if (app && app.classList.contains('visible')) {
-    render();
+    render(false);
   } else {
     buildLoginPage();
   }
@@ -5315,7 +5357,7 @@ function renderAfterRemoteUpdate() {
 
 function saveData() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave()));
+    localStorage.setItem(STORAGE_KEY, serializeDataForSave());
   } catch (e) {
     console.error('Erreur sauvegarde locale', e);
   }
@@ -5469,7 +5511,7 @@ function applyRemoteRow(row) {
     savedRevision = 0;
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDataForSave()));
+      localStorage.setItem(STORAGE_KEY, serializeDataForSave());
     } catch (e) {
       console.error('Erreur mise en cache locale après synchronisation', e);
     }
@@ -5481,7 +5523,18 @@ function applyRemoteRow(row) {
   }
 }
 
-async function refreshRemoteData(silent = false) {
+let remoteReadPromise = null;
+let lastRemoteReadAt = 0;
+
+function refreshRemoteData(silent = false) {
+  if (remoteReadPromise) return remoteReadPromise;
+  if (silent && Date.now() - lastRemoteReadAt < 1000) return Promise.resolve(false);
+  lastRemoteReadAt = Date.now();
+  remoteReadPromise = performRemoteRefresh(silent).finally(() => { remoteReadPromise = null; });
+  return remoteReadPromise;
+}
+
+async function performRemoteRefresh(silent = false) {
   const client = initSupabaseClient();
   if (!client) return false;
 
@@ -5534,7 +5587,7 @@ function startRemotePolling() {
   remotePollTimer = setInterval(() => {
     // Polling de secours, même si Realtime semble connecté.
     // Il garantit une actualisation régulière après une reconnexion ou un événement manqué.
-    if (!saveInProgress && localRevision <= savedRevision) {
+    if (!document.hidden && !saveInProgress && localRevision <= savedRevision) {
       refreshRemoteData(true);
     }
 
@@ -5584,6 +5637,7 @@ function subscribeRemoteData() {
 // Synchronisation immédiate au retour sur l'onglet.
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
+    if (interfaceNeedsRefresh) render(false);
     refreshRemoteData(true);
     if (localRevision > savedRevision) saveRemoteData();
   }
@@ -5641,8 +5695,8 @@ function nowStr() {
   return `${now.year}-${now.month}-${now.day} ${now.hour}:${now.minute}`;
 }
 
-function syncCashLines() {
-  ensureLocationData();
+function syncCashLines(normalize = true) {
+  if (normalize) ensureLocationData();
 
   const latestByLocation = new Map();
 
@@ -5672,8 +5726,8 @@ function syncCashLines() {
     .reduce((sum, value) => sum + Number(value || 0), 0);
 }
 
-function consolidateCashMovements() {
-  syncCashLines();
+function consolidateCashMovements(normalize = true) {
+  syncCashLines(normalize);
 }
 
 async function resetSavedData() {
@@ -5952,6 +6006,10 @@ let sessionTimer = null;
 let sessionHeartbeat = null;
 let sessionListenersReady = false;
 let sessionLogoutInProgress = false;
+let sessionLastWriteAt = 0;
+let sessionLastActivityAt = 0;
+let sessionLastUserId = null;
+const SESSION_WRITE_INTERVAL_MS = 15000;
 
 function getCurrentUserName(user = data.currentUser) {
   return user ? String(user.firstname || '').trim() : 'Utilisateur';
@@ -5991,6 +6049,9 @@ function writeStoredSession(userId, expiresAt) {
 }
 
 function clearStoredSession() {
+  sessionLastWriteAt = 0;
+  sessionLastActivityAt = 0;
+  sessionLastUserId = null;
   try {
     localStorage.removeItem(SESSION_STORAGE_KEY);
   } catch (e) {
@@ -6021,8 +6082,19 @@ function scheduleSessionExpiry() {
 
 function extendSession() {
   if (!data.currentUser || sessionLogoutInProgress) return;
-  const expiresAt = Date.now() + SESSION_DURATION_MS;
-  writeStoredSession(data.currentUser.id, expiresAt);
+  const now = Date.now();
+  sessionLastActivityAt = now;
+  if (sameId(sessionLastUserId, data.currentUser.id) && now - sessionLastWriteAt < SESSION_WRITE_INTERVAL_MS) return;
+  sessionLastUserId = data.currentUser.id;
+  sessionLastWriteAt = now;
+  writeStoredSession(data.currentUser.id, now + SESSION_DURATION_MS);
+  scheduleSessionExpiry();
+}
+
+function flushSessionActivity() {
+  if (!data.currentUser || !sessionLastActivityAt || !sameId(sessionLastUserId, data.currentUser.id)) return;
+  writeStoredSession(data.currentUser.id, sessionLastActivityAt + SESSION_DURATION_MS);
+  sessionLastWriteAt = Date.now();
   scheduleSessionExpiry();
 }
 
@@ -6039,6 +6111,7 @@ function registerSessionActivity() {
 
   document.addEventListener('visibilitychange', () => {
     if (!data.currentUser) return;
+    if (document.hidden) { flushSessionActivity(); return; }
     if (document.visibilityState === 'visible') {
       const session = readStoredSession();
       if (!session || Number(session.expiresAt || 0) <= Date.now()) {
@@ -6052,6 +6125,9 @@ function registerSessionActivity() {
   window.addEventListener('focus', () => {
     if (data.currentUser) extendSession();
   });
+
+  window.addEventListener('pagehide', flushSessionActivity);
+  window.addEventListener('blur', flushSessionActivity);
 
   // Vérification régulière : si le site reste ouvert et visible, on reconduit la session.
   sessionHeartbeat = setInterval(() => {
@@ -6139,6 +6215,8 @@ function doLogin() {
 
 function doLogout(reason = 'manual') {
   closeStreetFlightGame();
+  cancelDashboardWidgetInteraction();
+  Object.values(listSearchTimers).forEach(clearTimeout);
   if (sessionLogoutInProgress) return;
   sessionLogoutInProgress = true;
 
@@ -6792,7 +6870,7 @@ function nav(section, el) {
     deny(section === 'agenda' ? 'L’agenda est accessible du Soldado au Jefe' : 'Cette section est réservée au Segundo et au Jefe');
     return;
   }
-  if (!canAccessSection(section)) { deny(); return; }
+  if (dashboardInteraction && section !== currentSection) cancelDashboardWidgetInteraction();
   document.querySelectorAll('.section').forEach(s => {
     s.classList.toggle('active', s.id === 'sec-' + section);
   });
@@ -6819,8 +6897,7 @@ function nav(section, el) {
     }
   }
 
-  updatePermissionsUI();
-  render();
+  render(false);
 
   // À chaque changement d'onglet, on récupère aussi la dernière version en ligne.
   if (typeof refreshRemoteData === 'function') {
@@ -6828,17 +6905,30 @@ function nav(section, el) {
   }
 }
 
-function render() {
-  ensureLocationData(); updatePermissionsUI(); renderDashboard(); renderAgenda(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); renderLocations();
-  if (document.getElementById('modal-mvt')?.classList.contains('open')) refreshMovementLocationChoice();
-  if (document.getElementById('modal-cash')?.classList.contains('open')) updateCashModalBalance();
+function render(normalize = true) {
+  if (normalize) ensureLocationData();
+  updatePermissionsUI();
   syncMemberAccessState();
   syncStreetFlightState();
+  if (!connectedOperationMember()) return;
+  if (!canAccessSection(currentSection)) { nav('dashboard'); return; }
+  if (document.hidden) { interfaceNeedsRefresh = true; return; }
+  interfaceNeedsRefresh = false;
+  // Seule la page consultée est reconstruite. Les autres liront les données à leur ouverture.
+  const renderSection = {
+    dashboard:renderDashboard, agenda:renderAgenda, stock:renderStock,
+    mouvements:renderMoves, cash:renderCash, logs:renderLogs,
+    users:renderUsers, categories:renderCats, locations:renderLocations
+  }[currentSection];
+  if (renderSection) renderSection();
+  if (document.getElementById('modal-mvt')?.classList.contains('open')) refreshMovementLocationChoice();
+  if (document.getElementById('modal-cash')?.classList.contains('open')) updateCashModalBalance();
+  if (currentSection === 'agenda') updateAgendaClock();
 }
 
 // ===================== AGENDA =====================
 function parisDateTimeParts(date = new Date()) {
-  const parts = new Intl.DateTimeFormat('fr-FR', {
+  const parts = frenchDateFormatter({
     timeZone: AGENDA_TIME_ZONE,
     year:'numeric', month:'2-digit', day:'2-digit',
     hour:'2-digit', minute:'2-digit', second:'2-digit',
@@ -6925,7 +7015,7 @@ function updateAppointmentPickerSummary() {
   const dateValue = document.getElementById('agenda-date')?.value;
   const timeValue = document.getElementById('agenda-time')?.value;
   if (!summary || !dateValue || !timeValue) return;
-  const dayLabel = new Intl.DateTimeFormat('fr-FR', {
+  const dayLabel = frenchDateFormatter({
     weekday:'long', day:'numeric', month:'long', year:'numeric'
   }).format(appointmentPickerDate(dateValue));
   summary.textContent = `${dayLabel} · ${displayAppointmentTime(timeValue)}`;
@@ -6945,7 +7035,7 @@ function renderAppointmentDatePicker() {
   const todayKey = parisDateKey(new Date());
   const selectedKey = dateInput.value;
 
-  title.textContent = new Intl.DateTimeFormat('fr-FR', { month:'long', year:'numeric' }).format(firstDay);
+  title.textContent = frenchDateFormatter({ month:'long', year:'numeric' }).format(firstDay);
   const currentMonth = parisCalendarMonthDate(new Date());
   const previousButton = document.getElementById('agenda-picker-prev');
   if (previousButton) previousButton.disabled = year === currentMonth.getFullYear() && month === currentMonth.getMonth();
@@ -6956,7 +7046,7 @@ function renderAppointmentDatePicker() {
     const key = localDateKey(date);
     const outside = date.getMonth() !== month;
     const disabled = key < todayKey;
-    const label = new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' }).format(date);
+    const label = frenchDateFormatter({ weekday:'long', day:'numeric', month:'long', year:'numeric' }).format(date);
     cells.push(`<button class="agenda-picker-day ${outside ? 'outside' : ''} ${key === todayKey ? 'today' : ''} ${key === selectedKey ? 'selected' : ''}" style="--picker-delay:${Math.min(index, 14) * 8}ms" type="button" role="gridcell" ${disabled ? 'disabled' : ''} onclick="selectAppointmentPickerDate('${key}')" aria-label="${escapeHtml(label)}" aria-selected="${key === selectedKey}">${date.getDate()}</button>`);
   }
   grid.innerHTML = cells.join('');
@@ -7151,7 +7241,7 @@ function renderAgenda() {
   const year = agendaCursor.getFullYear();
   const month = agendaCursor.getMonth();
   const monthTitle = document.getElementById('agenda-month-title');
-  if (monthTitle) monthTitle.textContent = new Intl.DateTimeFormat('fr-FR', { month:'long', year:'numeric' }).format(agendaCursor);
+  if (monthTitle) monthTitle.textContent = frenchDateFormatter({ month:'long', year:'numeric' }).format(agendaCursor);
 
   const firstDay = new Date(year, month, 1);
   const mondayOffset = (firstDay.getDay() + 6) % 7;
@@ -7177,7 +7267,7 @@ function renderAgenda() {
 
   const selected = new Date(`${agendaSelectedDate}T12:00:00`);
   const selectedTitle = document.getElementById('agenda-selected-title');
-  if (selectedTitle) selectedTitle.textContent = new Intl.DateTimeFormat('fr-FR', { weekday:'long', day:'numeric', month:'long' }).format(selected);
+  if (selectedTitle) selectedTitle.textContent = frenchDateFormatter({ weekday:'long', day:'numeric', month:'long' }).format(selected);
 
   const dayAppointments = grouped.get(agendaSelectedDate) || [];
   if (!dayAppointments.length) {
@@ -7320,18 +7410,25 @@ async function deleteAppointment(id) {
 }
 
 function updateAgendaClock() {
+  if (document.hidden || !connectedOperationMember()) return;
   const now = new Date();
   const frenchParts = parisDateTimeParts(now);
-  const timeElement = document.getElementById('agenda-live-time');
-  const dateElement = document.getElementById('agenda-live-date');
-  if (timeElement) timeElement.textContent = new Intl.DateTimeFormat('fr-FR', { timeZone:AGENDA_TIME_ZONE, hour:'2-digit', minute:'2-digit', second:'2-digit' }).format(now);
-  if (dateElement) dateElement.textContent = new Intl.DateTimeFormat('fr-FR', { timeZone:AGENDA_TIME_ZONE, weekday:'long', day:'numeric', month:'long', year:'numeric' }).format(now);
-  const minuteKey = `${parisDateKey(now)}-${frenchParts.hour}-${frenchParts.minute}`;
-  if (agendaLastMinuteKey && minuteKey !== agendaLastMinuteKey) {
+  if (currentSection === 'agenda') {
+    const timeElement = document.getElementById('agenda-live-time');
+    const dateElement = document.getElementById('agenda-live-date');
+    if (timeElement) timeElement.textContent = `${frenchParts.hour}:${frenchParts.minute}:${frenchParts.second}`;
+    if (dateElement) {
+      const dateText = frenchDateFormatter({ timeZone:AGENDA_TIME_ZONE, weekday:'long', day:'numeric', month:'long', year:'numeric' }).format(now);
+      if (dateElement.textContent !== dateText) dateElement.textContent = dateText;
+    }
+  }
+  const minuteKey = `${frenchParts.year}-${frenchParts.month}-${frenchParts.day}-${frenchParts.hour}-${frenchParts.minute}`;
+  const minuteChanged = agendaLastMinuteKey && minuteKey !== agendaLastMinuteKey;
+  agendaLastMinuteKey = minuteKey;
+  if (minuteChanged) {
     if (currentSection === 'agenda') renderAgenda();
     if (currentSection === 'dashboard') renderDashboard();
   }
-  agendaLastMinuteKey = minuteKey;
 }
 
 function startAgendaClock() {
@@ -7376,6 +7473,8 @@ const DASHBOARD_WIDGET_DEFINITIONS = [
 let dashboardEditMode = false;
 let dashboardCatalogFilter = 'all';
 let dashboardInteraction = null;
+let dashboardPointerFrame = null;
+const dashboardMarkupCache = new WeakMap();
 let dashboardLastUserId = null;
 let dashboardResizeTimer = null;
 
@@ -7624,13 +7723,30 @@ function dashboardTodayOperationCount() {
 }
 
 function dashboardLocationStats() {
-  return (data.locations || []).map(locationItem => {
-    const products = (data.products || []).filter(product => sameId(product.locationId, locationItem.id));
-    const units = products.reduce((sum, product) => sum + Number(product.qty || 0), 0);
-    const stock = products.reduce((sum, product) => sum + Number(product.qty || 0) * Number(product.price || 0), 0);
+  const byLocation = new Map((data.locations || []).map(locationItem => {
     const cash = Number(data.cashByLocation?.[locationItem.id] || 0);
-    return { location:locationItem, products, units, stock, cash, total:stock + cash };
-  }).sort((first, second) => second.total - first.total || alphaCompare(first.location.name, second.location.name));
+    return [String(locationItem.id), { location:locationItem, products:[], units:0, stock:0, cash, total:cash }];
+  }));
+  (data.products || []).forEach(product => {
+    const item = byLocation.get(String(product.locationId));
+    if (!item) return;
+    const quantity = Number(product.qty || 0);
+    const value = quantity * Number(product.price || 0);
+    item.products.push(product);
+    item.units += quantity;
+    item.stock += value;
+    item.total = item.stock + item.cash;
+  });
+  return [...byLocation.values()].sort((first, second) => second.total - first.total || alphaCompare(first.location.name, second.location.name));
+}
+
+function dashboardRenderMetrics() {
+  return {
+    stockValueTotal:stockValue(),
+    totalUnits:(data.products || []).reduce((sum, product) => sum + Number(product.qty || 0), 0),
+    cashTotal:Number(data.cashBalance || 0),
+    locationStats:dashboardLocationStats()
+  };
 }
 
 function dashboardWidgetEmpty(icon, text) {
@@ -7690,7 +7806,7 @@ function dashboardAppointmentRows(mode) {
   appointments = appointments.slice(0, 8);
   if (!appointments.length) return dashboardWidgetEmpty('ti-calendar-off', mode === 'today' ? "Aucun rendez-vous aujourd'hui" : 'Aucun rendez-vous à venir');
   return `<div class="dashboard-widget-list">${appointments.map(appointment => {
-    const dateLabel = new Intl.DateTimeFormat('fr-FR', { day:'2-digit', month:'short' }).format(new Date(`${appointment.date}T12:00:00`));
+    const dateLabel = frenchDateFormatter({ day:'2-digit', month:'short' }).format(new Date(`${appointment.date}T12:00:00`));
     const visibility = appointment.visibility === 'leadership' ? ' · Direction' : '';
     return dashboardWidgetRow(
       appointment.visibility === 'leadership' ? 'ti-lock' : 'ti-calendar-event',
@@ -7702,11 +7818,8 @@ function dashboardAppointmentRows(mode) {
   }).join('')}</div>`;
 }
 
-function dashboardWidgetContent(widgetId) {
-  const stockValueTotal = stockValue();
-  const totalUnits = (data.products || []).reduce((sum, product) => sum + Number(product.qty || 0), 0);
-  const cashTotal = Number(data.cashBalance || 0);
-  const locationStats = dashboardLocationStats();
+function dashboardWidgetContent(widgetId, metrics = dashboardRenderMetrics()) {
+  const { stockValueTotal, totalUnits, cashTotal, locationStats } = metrics;
 
   if (widgetId === 'stock_value') return dashboardKpiContent(dashboardMoney(stockValueTotal), 'Valeur totale de tous les objets');
   if (widgetId === 'cash_total') return dashboardKpiContent(dashboardMoney(cashTotal), 'Toutes localisations réunies');
@@ -7771,7 +7884,7 @@ function dashboardWidgetContent(widgetId) {
   return dashboardWidgetEmpty('ti-widget', 'Widget indisponible');
 }
 
-function dashboardWidgetMarkup(widget) {
+function dashboardWidgetMarkup(widget, metrics) {
   const definition = dashboardWidgetDefinition(widget.id);
   const category = DASHBOARD_WIDGET_CATEGORIES[definition.category];
   return `<article class="dashboard-widget" data-widget-id="${definition.id}" style="grid-column:${widget.x + 1} / span ${widget.w};grid-row:${widget.y + 1} / span ${widget.h};--widget-color:${definition.color}">
@@ -7787,7 +7900,7 @@ function dashboardWidgetMarkup(widget) {
         <button class="dashboard-widget-control remove" type="button" onclick="removeDashboardWidget('${definition.id}')" title="Retirer le widget" aria-label="Retirer le widget"><i class="ti ti-x"></i></button>
       </span>
     </header>
-    <div class="dashboard-widget-body">${dashboardWidgetContent(definition.id)}</div>
+    <div class="dashboard-widget-body">${dashboardWidgetContent(definition.id, metrics)}</div>
     <span class="dashboard-widget-resize" onpointerdown="startDashboardWidgetResize(event,'${definition.id}')" title="Redimensionner"><i class="ti ti-corner-right-down"></i></span>
   </article>`;
 }
@@ -7796,6 +7909,12 @@ function renderDashboard() {
   const grid = document.getElementById('personal-dashboard-grid');
   const empty = document.getElementById('personal-dashboard-empty');
   if (!grid || !empty || !data.currentUser) return;
+  if (document.hidden) { interfaceNeedsRefresh = true; return; }
+  if (dashboardInteraction) {
+    const widget = currentDashboardProfile(false)?.widgets.find(item => item.id === dashboardInteraction.widgetId);
+    if (sameId(dashboardInteraction.userId, data.currentUser.id) && widget && canUseDashboardWidget(dashboardWidgetDefinition(widget.id))) return;
+    cancelDashboardWidgetInteraction();
+  }
 
   const currentUserId = String(data.currentUser.id);
   if (dashboardLastUserId !== currentUserId) {
@@ -7809,7 +7928,12 @@ function renderDashboard() {
   const profile = currentDashboardProfile();
   const visibleWidgets = (profile?.widgets || []).filter(widget => canUseDashboardWidget(dashboardWidgetDefinition(widget.id)));
   grid.classList.toggle('is-editing', dashboardEditMode);
-  grid.innerHTML = visibleWidgets.map(dashboardWidgetMarkup).join('');
+  const metrics = dashboardRenderMetrics();
+  const markup = visibleWidgets.map(widget => dashboardWidgetMarkup(widget, metrics)).join('');
+  if (dashboardMarkupCache.get(grid) !== markup) {
+    grid.innerHTML = markup;
+    dashboardMarkupCache.set(grid, markup);
+  }
   grid.style.display = visibleWidgets.length ? 'grid' : 'none';
   empty.classList.toggle('visible', !visibleWidgets.length);
 
@@ -7840,7 +7964,7 @@ function startDashboardWidgetDrag(event, widgetId) {
   event.preventDefault();
   const metrics = dashboardGridMetrics();
   dashboardInteraction = {
-    type:'drag', widgetId, element, pointerId:event.pointerId,
+    type:'drag', widgetId, element, pointerId:event.pointerId, userId:data.currentUser.id, captureTarget:event.currentTarget,
     startClientX:event.clientX, startClientY:event.clientY,
     original:{ ...widget }, metrics
   };
@@ -7861,7 +7985,7 @@ function startDashboardWidgetResize(event, widgetId) {
   event.preventDefault();
   event.stopPropagation();
   dashboardInteraction = {
-    type:'resize', widgetId, element, definition, pointerId:event.pointerId,
+    type:'resize', widgetId, element, definition, pointerId:event.pointerId, userId:data.currentUser.id, captureTarget:event.currentTarget,
     startClientX:event.clientX, startClientY:event.clientY,
     original:{ ...widget }, previewW:widget.w, previewH:widget.h,
     metrics:dashboardGridMetrics()
@@ -7877,38 +8001,67 @@ function handleDashboardWidgetPointerMove(event) {
   const interaction = dashboardInteraction;
   if (!interaction || event.pointerId !== interaction.pointerId) return;
   event.preventDefault();
-  const deltaX = event.clientX - interaction.startClientX;
-  const deltaY = event.clientY - interaction.startClientY;
+  interaction.latestX = event.clientX;
+  interaction.latestY = event.clientY;
+  if (dashboardPointerFrame !== null) return;
+  dashboardPointerFrame = requestAnimationFrame(() => {
+    dashboardPointerFrame = null;
+    if (dashboardInteraction === interaction) updateDashboardWidgetPreview(interaction);
+  });
+}
 
+function updateDashboardWidgetPreview(interaction) {
+  const deltaX = (interaction.latestX ?? interaction.startClientX) - interaction.startClientX;
+  const deltaY = (interaction.latestY ?? interaction.startClientY) - interaction.startClientY;
   if (interaction.type === 'drag') {
     interaction.element.style.transform = `translate3d(${deltaX}px,${deltaY}px,0)`;
     return;
   }
-
   const definition = interaction.definition;
   const widthDelta = Math.round(deltaX / (interaction.metrics.columnWidth + DASHBOARD_GAP));
   const heightDelta = Math.round(deltaY / interaction.metrics.rowStep);
-  interaction.previewW = dashboardClamp(interaction.original.w + widthDelta, definition.minW || 2, Math.min(DASHBOARD_COLUMNS, definition.maxW || DASHBOARD_COLUMNS));
-  interaction.previewH = dashboardClamp(interaction.original.h + heightDelta, definition.minH || 2, definition.maxH || 10);
-  interaction.element.style.gridColumn = `${interaction.original.x + 1} / span ${interaction.previewW}`;
-  interaction.element.style.gridRow = `${interaction.original.y + 1} / span ${interaction.previewH}`;
+  const width = dashboardClamp(interaction.original.w + widthDelta, definition.minW || 3, Math.min(definition.maxW || 12, DASHBOARD_COLUMNS));
+  const height = dashboardClamp(interaction.original.h + heightDelta, definition.minH || 2, definition.maxH || 10);
+  if (width !== interaction.previewW) interaction.element.style.gridColumn = `${interaction.original.x + 1} / span ${width}`;
+  if (height !== interaction.previewH) interaction.element.style.gridRow = `${interaction.original.y + 1} / span ${height}`;
+  interaction.previewW = width;
+  interaction.previewH = height;
+}
+
+function cancelDashboardWidgetInteraction() {
+  const interaction = dashboardInteraction;
+  if (!interaction) return;
+  window.removeEventListener('pointermove', handleDashboardWidgetPointerMove);
+  window.removeEventListener('pointerup', finishDashboardWidgetInteraction);
+  window.removeEventListener('pointercancel', finishDashboardWidgetInteraction);
+  if (dashboardPointerFrame !== null) cancelAnimationFrame(dashboardPointerFrame);
+  dashboardPointerFrame = null;
+  dashboardInteraction = null;
+  interaction.element.classList.remove('is-dragging', 'is-resizing');
+  interaction.element.style.transform = '';
+  interaction.element.style.gridColumn = `${interaction.original.x + 1} / span ${interaction.original.w}`;
+  interaction.element.style.gridRow = `${interaction.original.y + 1} / span ${interaction.original.h}`;
+  try { interaction.captureTarget?.releasePointerCapture?.(interaction.pointerId); } catch (error) {}
 }
 
 function finishDashboardWidgetInteraction(event) {
   const interaction = dashboardInteraction;
   if (!interaction || (event.pointerId !== undefined && event.pointerId !== interaction.pointerId)) return;
-  window.removeEventListener('pointermove', handleDashboardWidgetPointerMove);
-  window.removeEventListener('pointerup', finishDashboardWidgetInteraction);
-  window.removeEventListener('pointercancel', finishDashboardWidgetInteraction);
-  interaction.element.classList.remove('is-dragging', 'is-resizing');
-  interaction.element.style.transform = '';
-
+  if (event.type === 'pointercancel' || !connectedOperationMember() || !sameId(interaction.userId, data.currentUser.id)) {
+    cancelDashboardWidgetInteraction();
+    renderDashboard();
+    return;
+  }
+  // La dernière position est appliquée même si le prochain raf n'a pas encore eu lieu.
+  interaction.latestX = event.clientX ?? interaction.latestX ?? interaction.startClientX;
+  interaction.latestY = event.clientY ?? interaction.latestY ?? interaction.startClientY;
+  updateDashboardWidgetPreview(interaction);
   const profile = currentDashboardProfile();
   const widget = profile?.widgets.find(item => item.id === interaction.widgetId);
-  if (widget) {
+  if (widget && canUseDashboardWidget(dashboardWidgetDefinition(widget.id))) {
     if (interaction.type === 'drag') {
-      const deltaX = (event.clientX ?? interaction.startClientX) - interaction.startClientX;
-      const deltaY = (event.clientY ?? interaction.startClientY) - interaction.startClientY;
+      const deltaX = interaction.latestX - interaction.startClientX;
+      const deltaY = interaction.latestY - interaction.startClientY;
       const mobile = window.innerWidth <= 760;
       const columnDelta = mobile ? 0 : Math.round(deltaX / (interaction.metrics.columnWidth + DASHBOARD_GAP));
       const rowDelta = Math.round(deltaY / interaction.metrics.rowStep);
@@ -7922,8 +8075,7 @@ function finishDashboardWidgetInteraction(event) {
     profile.widgets = normalizeDashboardLayout(profile.widgets, widget.id);
     savePersonalDashboard();
   }
-
-  dashboardInteraction = null;
+  cancelDashboardWidgetInteraction();
   renderDashboard();
 }
 
@@ -8132,6 +8284,7 @@ function locationOptions(selected = null) {
 }
 
 function renderStock() {
+  clearTimeout(listSearchTimers.stock);
   const search = (document.getElementById('global-search')?.value || '').toLowerCase();
 
 
@@ -8249,8 +8402,7 @@ function stockValue() {
 }
 
 function renderCash() {
-  ensureLocationData();
-  syncCashLines();
+  syncCashLines(false);
 
   const balancesContainer = document.getElementById('cash-location-balances');
   if (!balancesContainer) return;
@@ -8487,10 +8639,13 @@ function logCategoryConfig(type) {
   }[type] || { label:'Autre', color:'var(--text2)', soft:'var(--bg4)', icon:'ti-dots' };
 }
 
+let logTextDecoder = null;
 function cleanLogText(value) {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = value || '';
-  return (tmp.textContent || tmp.innerText || '').trim();
+  const text = String(value || '');
+  if (!/[<&]/.test(text)) return text.trim();
+  if (!logTextDecoder) logTextDecoder = document.createElement('div');
+  logTextDecoder.innerHTML = text;
+  return (logTextDecoder.textContent || logTextDecoder.innerText || '').trim();
 }
 
 function normalizeLogMemberName(value) {
@@ -8607,7 +8762,7 @@ function formatLogDay(dateValue) {
   const parts = parseLogDateParts(dateValue);
   if (!validLogDateParts(parts)) return String(dateValue || 'Date inconnue');
   const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 12));
-  const text = new Intl.DateTimeFormat('fr-FR', {
+  const text = frenchDateFormatter({
     weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'UTC'
   }).format(date);
   return capitalizeFrenchDate(text);
@@ -8684,17 +8839,41 @@ function logActionSummary(log) {
   return text.replace(/\s*\((?:Stock|solde emplacement)\s*:[^)]+\)\s*$/i, '').trim();
 }
 
+const LOG_PAGE_SIZE = 60;
+const logPageState = { page:0, key:'', total:0 };
+
+function updateLogPagination(total) {
+  logPageState.total = total;
+  const lastPage = Math.max(0, Math.ceil(total / LOG_PAGE_SIZE) - 1);
+  logPageState.page = Math.max(0, Math.min(logPageState.page, lastPage));
+  const pager = document.getElementById('logs-pagination');
+  if (pager) pager.style.display = total > LOG_PAGE_SIZE ? 'flex' : 'none';
+  document.getElementById('logs-prev').disabled = logPageState.page === 0;
+  document.getElementById('logs-next').disabled = logPageState.page >= lastPage;
+  const start = total ? logPageState.page * LOG_PAGE_SIZE + 1 : 0;
+  const end = Math.min(total, (logPageState.page + 1) * LOG_PAGE_SIZE);
+  document.getElementById('logs-page-status').textContent = `${start}–${end} sur ${total}`;
+}
+
+function changeLogPage(direction) {
+  logPageState.page += direction < 0 ? -1 : 1;
+  renderLogs();
+  document.getElementById('logs-list')?.scrollIntoView({ block:'start', behavior:'auto' });
+}
+
 function renderLogs() {
+  clearTimeout(listSearchTimers.logs);
   refreshLogMemberOptions();
   refreshLogCategoryOptions();
 
   const memberName = document.getElementById('filter-log-member')?.value || '';
   const type = document.getElementById('filter-log-type')?.value || '';
   const query = (document.getElementById('log-search')?.value || '').trim().toLowerCase();
-  const allLogs = [...(Array.isArray(data.logs) ? data.logs : [])].sort((a, b) => {
-    const dateCompare = logSortKey(b).localeCompare(logSortKey(a));
-    return dateCompare || Number(b.id || 0) - Number(a.id || 0);
-  });
+  const filterKey = JSON.stringify([data.currentUser?.id, memberName, type, query]);
+  if (filterKey !== logPageState.key) { logPageState.page = 0; logPageState.key = filterKey; }
+  const allLogs = (Array.isArray(data.logs) ? data.logs : []).map(log => ({ log, key:logSortKey(log) }))
+    .sort((a, b) => b.key.localeCompare(a.key) || Number(b.log.id || 0) - Number(a.log.id || 0))
+    .map(entry => entry.log);
 
   let logs = memberName ? allLogs.filter(log => sameLogMember(log, memberName)) : allLogs;
   if (type) logs = logs.filter(log => log.type === type);
@@ -8709,6 +8888,7 @@ function renderLogs() {
 
   const count = document.getElementById('logs-count');
   if (count) count.textContent = logs.length;
+  updateLogPagination(logs.length);
 
   const status = document.getElementById('logs-filter-status');
   if (status) {
@@ -8717,7 +8897,7 @@ function renderLogs() {
     const categoryLabel = type ? logCategoryConfig(type).label : '';
     const details = memberName
       ? `<strong>${escapeHtml(logMemberEntries().find(entry => entry.key === memberName)?.name || memberName)}</strong> · ${memberLogs.length} action${memberLogs.length > 1 ? 's' : ''} · ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''}${categoryLabel ? ` · filtre <strong>${escapeHtml(categoryLabel)}</strong>` : ''}`
-      : `Toutes les activités de <strong>${logMemberEntries().length} membre${logMemberEntries().length > 1 ? 's' : ''}</strong> sont affichées.`;
+      : `Historique de <strong>${logMemberEntries().length} membre${logMemberEntries().length > 1 ? 's' : ''}</strong>.`;
     status.innerHTML = `<i class="ti ti-info-circle"></i><span>${details}</span>`;
   }
 
@@ -8733,7 +8913,7 @@ function renderLogs() {
   }
 
   const groups = new Map();
-  logs.forEach(log => {
+  logs.slice(logPageState.page * LOG_PAGE_SIZE, (logPageState.page + 1) * LOG_PAGE_SIZE).forEach(log => {
     const key = logDateKey(log.date);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(log);
@@ -9611,7 +9791,7 @@ function initInterfaceMotion() {
 
   document.addEventListener('pointerdown', event => {
     const target = event.target.closest?.('.btn, .btn-login, .nav-item');
-    if (!target || target.disabled) return;
+    if (!target || target.disabled || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const rect = target.getBoundingClientRect();
     const ripple = document.createElement('span');
     ripple.className = 'ui-ripple';
@@ -9621,20 +9801,6 @@ function initInterfaceMotion() {
     setTimeout(() => ripple.remove(), 650);
   });
 
-  let motionFrame = null;
-  let pointerX = 0;
-  let pointerY = 0;
-  document.addEventListener('pointermove', event => {
-    if (!document.body.classList.contains('logged-in')) return;
-    pointerX = event.clientX;
-    pointerY = event.clientY;
-    if (motionFrame) return;
-    motionFrame = requestAnimationFrame(() => {
-      document.documentElement.style.setProperty('--motion-x', `${pointerX}px`);
-      document.documentElement.style.setProperty('--motion-y', `${pointerY}px`);
-      motionFrame = null;
-    });
-  }, { passive:true });
 }
 
 document.querySelectorAll('.modal-overlay').forEach(o => {
@@ -9657,21 +9823,12 @@ function scheduleMidnightDashboardReset() {
   const delay = Math.max(1000, nextMidnight.getTime() - now.getTime() + 250);
 
   midnightRefreshTimer = setTimeout(() => {
-    if (document.getElementById('app')?.classList.contains('visible')) {
+    if (!document.hidden && currentSection === 'dashboard' && document.getElementById('app')?.classList.contains('visible')) {
       renderDashboard();
     }
     scheduleMidnightDashboardReset();
   }, delay);
 }
-
-// Quand quelqu'un revient sur l'onglet ou la fenêtre, on resynchronise aussi.
-window.addEventListener('focus', () => {
-  if (typeof refreshRemoteData === 'function') refreshRemoteData(true);
-});
-
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && typeof refreshRemoteData === 'function') refreshRemoteData(true);
-});
 
 // INIT
 async function initApp() {
