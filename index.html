@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="herencia-member-cleanup-flight-reset-v24">
+<meta name="vault-build" content="herencia-firstname-phone-onboarding-v25">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3794,6 +3794,12 @@ body:not(.logged-in) #app { display: none !important; }
 .section:not(.active) { display: none !important; }
 .section.active { display: block !important; }
 
+.member-access-help { color:var(--text2); font-size:13px; line-height:1.6; margin:0 0 16px; }
+.member-access-help strong { color:var(--text); }
+.member-access-code { display:flex; gap:8px; margin-bottom:18px; }
+.member-access-code input { min-width:0; text-align:center; font-size:24px; letter-spacing:.15em; font-family:var(--font-cond); color:var(--accent); }
+#login-identification, #login-setup { width:100%; }
+#login-setup .login-form-title { overflow-wrap:anywhere; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -3953,6 +3959,7 @@ body:not(.logged-in) #app { display: none !important; }
 
   <div class="login-right">
     <button class="login-portal-back" type="button" onclick="returnToPublicPortal()"><i class="ti ti-arrow-left"></i> Retour aux informations</button>
+    <div id="login-identification">
     <div class="login-form-title">CONNEXION</div>
     <div class="login-form-sub">Identifie-toi, frérot</div>
 
@@ -3962,15 +3969,37 @@ body:not(.logged-in) #app { display: none !important; }
     <div id="login-error" class="login-error"><i class="ti ti-alert-circle"></i> Mauvais mot de passe, essaie encore.</div>
 
     <div class="form-group">
-      <label class="form-label">Mot de passe</label>
-      <input class="form-input" type="password" id="login-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+      <label class="form-label" for="login-pwd">Code ou mot de passe temporaire</label>
+      <input class="form-input" type="password" id="login-pwd" autocomplete="current-password" placeholder="Ton code" onkeydown="if(event.key==='Enter') doLogin()">
     </div>
 
     <div style="font-size:11px;color:var(--text3);margin-bottom:16px;font-family:var(--font-cond);letter-spacing:0.05em">
       💡 En cas de problème contacter <strong style="color:var(--accent)">.korotoo</strong>
     </div>
 
-    <button class="btn-login" onclick="doLogin()">ENTRER</button>
+    <button class="btn-login" type="button" onclick="doLogin()">ENTRER</button>
+    </div>
+    <form id="login-setup" style="display:none" onsubmit="event.preventDefault(); completeMemberSetup()">
+      <div class="login-form-title">BIENVENUE <span id="setup-firstname"></span></div>
+      <div class="login-form-sub">Renseigne ton téléphone et choisis ton code personnel pour tes prochaines connexions.</div>
+      <div class="form-group">
+        <label class="form-label" for="setup-phone">Téléphone</label>
+        <input class="form-input" type="tel" inputmode="numeric" autocomplete="tel-national" id="setup-phone" oninput="formatMemberPhoneInput(this)" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="setup-pin">Ton code à 4 chiffres</label>
+          <input class="form-input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" id="setup-pin" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="setup-pin-confirm">Confirmer le code</label>
+          <input class="form-input" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" id="setup-pin-confirm" required>
+        </div>
+      </div>
+      <div id="setup-error" class="login-error" role="alert"></div>
+      <button class="btn-login" type="submit">ENREGISTRER ET ENTRER</button>
+      <button class="btn btn-ghost" type="button" style="margin-top:12px" onclick="cancelMemberSetup()">Retour à la connexion</button>
+    </form>
   </div>
 </div>
 
@@ -4306,7 +4335,7 @@ body:not(.logged-in) #app { display: none !important; }
             </div>
           </div>
           <table>
-            <thead><tr><th>Membre</th><th>Contact</th><th>Grade</th><th>Rejoint le</th><th>Statut</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Membre</th><th>Téléphone</th><th>Grade</th><th>Rejoint le</th><th>Statut</th><th>Actions</th></tr></thead>
             <tbody id="users-tbody"></tbody>
           </table>
         </div>
@@ -4614,31 +4643,57 @@ body:not(.logged-in) #app { display: none !important; }
     <div class="modal-header">
       <i class="ti ti-user-plus" style="color:var(--purple)"></i>
       <span class="modal-title" id="modal-user-title">RECRUTER UN MEMBRE</span>
-      <button class="modal-close" onclick="closeModal('modal-user')"><i class="ti ti-x"></i></button>
+      <button class="modal-close" type="button" onclick="closeModal('modal-user')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Prénom</label><input class="form-input" id="u-firstname" placeholder="Ex: Trevor"></div>
-        <div class="form-group"><label class="form-label">Nom / Surnom</label><input class="form-input" id="u-lastname" placeholder="Ex: Philips"></div>
+      <div class="form-group">
+        <label class="form-label" for="u-firstname">Prénom</label>
+        <input class="form-input" id="u-firstname" autocomplete="given-name" placeholder="Ex: Trevor">
       </div>
-      <div class="form-group"><label class="form-label">Contact (email)</label><input class="form-input" type="email" id="u-email" placeholder="trevor@maze-bank.com"></div>
-      <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="u-role">Grade</label>
+        <select class="form-select" id="u-role"></select>
+      </div>
+      <div id="user-edit-fields" style="display:none">
         <div class="form-group">
-          <label class="form-label">Grade</label>
-          <select class="form-select" id="u-role">
-            <option value="boss">Jefe</option>
-            <option value="segundo" selected>Segundo</option>
-            <option value="teniente">Teniente</option>
-            <option value="soldado">Soldado</option>
-            <option value="visiteur">Visiteur</option>
-          </select>
+          <label class="form-label" for="u-phone">Téléphone</label>
+          <input class="form-input" type="tel" inputmode="numeric" id="u-phone" autocomplete="off" oninput="formatMemberPhoneInput(this)">
         </div>
-        <div class="form-group"><label class="form-label">Mot de passe</label><input class="form-input" type="password" id="u-pwd" placeholder="••••••••"></div>
+        <div class="form-group">
+          <label class="form-label" for="u-pwd">Nouveau code à 4 chiffres</label>
+          <input class="form-input" type="password" inputmode="numeric" id="u-pwd" maxlength="4" autocomplete="new-password" placeholder="Laisser vide pour conserver le code">
+        </div>
+        <div id="user-setup-pending" style="display:none">
+          <p class="member-access-help">Ce membre doit encore configurer son accès.</p>
+          <button class="btn btn-ghost btn-sm" type="button" onclick="renewMemberTemporaryPassword()"><i class="ti ti-key"></i> Nouveau mot de passe temporaire</button>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-user')">Annuler</button>
-      <button class="btn btn-primary" onclick="saveUser()"><i class="ti ti-check"></i> Recruter</button>
+      <button class="btn btn-ghost" type="button" onclick="closeModal('modal-user')">Annuler</button>
+      <button class="btn btn-primary" type="button" id="user-save-btn" onclick="saveUser()"><i class="ti ti-check"></i> Créer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-member-access">
+  <div class="modal" style="width:420px" role="dialog" aria-modal="true" aria-labelledby="member-access-title">
+    <div class="modal-header">
+      <i class="ti ti-key" style="color:var(--accent)"></i>
+      <span class="modal-title" id="member-access-title">ACCÈS DU MEMBRE</span>
+      <button class="modal-close" type="button" onclick="closeModal('modal-member-access')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="member-access-help">Transmets ce mot de passe temporaire à <strong id="member-access-name"></strong>.</p>
+      <label class="form-label" for="member-access-password">Mot de passe temporaire</label>
+      <div class="member-access-code">
+        <input class="form-input" type="text" readonly id="member-access-password" autocomplete="off" spellcheck="false" onclick="this.select()">
+        <button class="btn btn-ghost" type="button" onclick="copyMemberTemporaryPassword()"><i class="ti ti-copy"></i> Copier</button>
+      </div>
+      <p class="member-access-help">À sa première connexion, le membre choisira son code à 4 chiffres et renseignera son téléphone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" onclick="closeModal('modal-member-access')"><i class="ti ti-check"></i> Terminé</button>
     </div>
   </div>
 </div>
@@ -4744,10 +4799,10 @@ let data = {
     { id:8, name:'Gilet pare-balles', cat:4, qty:4, price:3000, loc:'Planque Nord', locationId:1 },
   ],
   users: [
-    { id:1, firstname:'Franklin', lastname:'Clinton', email:'franklin@maze-bank.com', role:'boss', active:true, created:'2024-01-10', pwd:'1234' },
-    { id:2, firstname:'Trevor', lastname:'Philips', email:'trevor@gtamail.com', role:'segundo', active:true, created:'2024-01-15', pwd:'1234' },
-    { id:3, firstname:'Michael', lastname:'De Santa', email:'michael@maze-bank.com', role:'teniente', active:true, created:'2024-02-05', pwd:'1234' },
-    { id:4, firstname:'Lamar', lastname:'Davis', email:'lamar@gtamail.com', role:'soldado', active:false, created:'2024-04-20', pwd:'1234' },
+    { id:1, firstname:'Franklin', phone:'', role:'boss', active:true, created:'2024-01-10', pwd:'1234' },
+    { id:2, firstname:'Trevor', phone:'', role:'segundo', active:true, created:'2024-01-15', pwd:'1234' },
+    { id:3, firstname:'Michael', phone:'', role:'teniente', active:true, created:'2024-02-05', pwd:'1234' },
+    { id:4, firstname:'Lamar', phone:'', role:'soldado', active:false, created:'2024-04-20', pwd:'1234' },
   ],
   movements: [
     { id:1, type:'entree', productId:1, qty:5, reason:'Livraison Merryweather', userId:2, date:'2025-05-16 09:12' },
@@ -4831,12 +4886,46 @@ function restoreCurrentUser(previousUser) {
     return;
   }
   const freshUser = data.users.find(u => sameId(u.id, previousUser.id) && u.active !== false);
-  if (!freshUser) {
+  if (!freshUser || needsMemberSetup(freshUser)) {
     data.currentUser = previousUser;
     doLogout('removed');
     return;
   }
   data.currentUser = freshUser;
+}
+
+// Les anciens noms servent uniquement à relier les historiques aux comptes existants.
+function memberNameAliases(user) {
+  if (!user) return [];
+  return [...new Set([
+    getCurrentUserName(user),
+    `${user.firstname || ''} ${user.lastname || ''}`.trim(),
+    ...(Array.isArray(user.memberNameAliases) ? user.memberNameAliases : [])
+  ].filter(Boolean))];
+}
+
+function normalizedMemberPhone(value) {
+  const match = String(value ?? '').trim().match(/^(\d{3})-?(\d{4})$/);
+  return match ? `${match[1]}-${match[2]}` : '';
+}
+
+function formatMemberPhoneInput(input) {
+  const raw = input.value;
+  const digits = raw.replace(/[\s-]/g, '');
+  if (!/^\d{0,7}$/.test(digits)) return;
+  const caret = input.selectionStart;
+  const digitsBefore = raw.slice(0, caret ?? raw.length).replace(/\D/g, '').length;
+  input.value = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3)}` : digits;
+  if (caret != null) {
+    const position = digitsBefore + (digitsBefore > 3 ? 1 : 0);
+    input.setSelectionRange(position, position);
+  }
+}
+
+function needsMemberSetup(user) { return user?.requiresSetup === true; }
+
+function updateMemberCredentialsVersion(user) {
+  user.credentialsUpdatedAt = Math.max(Date.now(), Number(user.credentialsUpdatedAt || 0) + 1);
 }
 
 function memberReferenceText(value) {
@@ -4864,11 +4953,12 @@ function cleanupRemovedMembers() {
     if (name && !['systeme','system'].includes(normalizeLogMemberName(name))) removedNames.add(name);
   };
   data.users.forEach(user => {
-    if (deletedIds.has(String(user.id))) { addRemovedName(getCurrentUserName(user)); addRemovedName(user.email); }
+    if (deletedIds.has(String(user.id))) { memberNameAliases(user).forEach(addRemovedName); addRemovedName(user.email); addRemovedName(user.phone); }
   });
   data.users = data.users.filter(user => !deletedIds.has(String(user.id)));
   const usersById = new Map(data.users.map(user => [String(user.id), user]));
-  const usersByName = new Map(data.users.map(user => [normalizeLogMemberName(getCurrentUserName(user)), user]));
+  const usersByName = new Map();
+  data.users.forEach(user => memberNameAliases(user).forEach(name => usersByName.set(normalizeLogMemberName(name), user)));
   const renamePairs = data.logs.filter(log => /^Informations membre modifi/i.test(memberReferenceText(log.action))).map(log =>
     [...String(log.action || '').matchAll(/<strong[^>]*>([\s\S]*?)<\/strong>/gi)].map(match => memberReferenceText(match[1]))
   ).filter(names => names.length === 2);
@@ -5071,6 +5161,9 @@ function ensureLocationData() {
   };
   data.users.forEach(user => {
     if (roleMigration[user.role]) user.role = roleMigration[user.role];
+    user.firstname = String(user.firstname || '').trim();
+    user.phone = normalizedMemberPhone(user.phone);
+    if (user.pwd != null) user.pwd = String(user.pwd);
   });
   if (data.currentUser && roleMigration[data.currentUser.role]) {
     data.currentUser.role = roleMigration[data.currentUser.role];
@@ -5145,7 +5238,7 @@ function ensureLocationData() {
       withWho: String(appointment.withWho || appointment.with || ''),
       visibility: appointment.visibility === 'leadership' ? 'leadership' : 'public',
       createdByRole: appointment.createdByRole || creator?.role || 'soldado',
-      creatorName: appointment.creatorName || (creator ? `${creator.firstname} ${creator.lastname}`.trim() : 'Ancien membre'),
+      creatorName: appointment.creatorName || (creator ? getCurrentUserName(creator) : 'Ancien membre'),
       responses: appointment.responses && typeof appointment.responses === 'object' ? appointment.responses : {}
     };
   });
@@ -5158,6 +5251,13 @@ function applySavedData(savedData) {
   if (!savedData) return;
 
   const previousUser = data.currentUser;
+  // Un ancien instantané ne doit pas réactiver un mot de passe temporaire consommé.
+  const previousUsers = new Map(data.users.map(user => [String(user.id), user]));
+  const users = (Array.isArray(savedData.users) ? savedData.users : data.users).map(user => {
+    const previous = previousUsers.get(String(user.id));
+    if (!previous || Number(previous.credentialsUpdatedAt || 0) <= Number(user.credentialsUpdatedAt || 0)) return user;
+    return { ...user, pwd:previous.pwd, phone:previous.phone, requiresSetup:previous.requiresSetup === true, credentialsUpdatedAt:previous.credentialsUpdatedAt };
+  });
   const deletedMemberIds = [...new Set([...(data.deletedMemberIds || []), ...(savedData.deletedMemberIds || [])].map(String))];
   const previousResetAt = Number(data.gameScoresResetAt || 0);
   const incomingResetAt = Number(savedData.gameScoresResetAt || 0);
@@ -5165,12 +5265,13 @@ function applySavedData(savedData) {
   data = {
     ...data,
     ...savedData,
+    users,
     deletedMemberIds,
     gameScores,
     gameScoresResetAt:Math.max(previousResetAt, incomingResetAt),
     currentUser: previousUser || null,
     editingProduct: null,
-    editingUser: null,
+    editingUser: data.editingUser,
     nextId: { ...data.nextId, ...(savedData.nextId || {}) }
   };
 
@@ -5178,6 +5279,7 @@ function applySavedData(savedData) {
   consolidateMovementsByProduct();
   consolidateCashMovements();
   restoreCurrentUser(previousUser);
+  syncMemberAccessState();
   syncStreetFlightState();
 }
 
@@ -5708,6 +5810,7 @@ function revealLoginPortal() {
 
 function returnToPublicPortal() {
   if (data.currentUser) return;
+  cancelMemberSetup();
   document.body.classList.remove('login-revealed');
   document.getElementById('public-portal')?.removeAttribute('aria-hidden');
   document.getElementById('login-page')?.setAttribute('aria-hidden', 'true');
@@ -5721,6 +5824,94 @@ function returnToPublicPortal() {
 
 // ===================== LOGIN =====================
 let selectedUserId = null;
+let pendingMemberSetup = null;
+let pendingMemberAccessId = null;
+
+function setMemberSetupError(message) {
+  const error = document.getElementById('setup-error');
+  error.textContent = message;
+  error.style.display = message ? 'flex' : 'none';
+}
+
+function cancelMemberSetup() {
+  pendingMemberSetup = null;
+  ['setup-phone','setup-pin','setup-pin-confirm','login-pwd'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('setup-firstname').textContent = '';
+  document.getElementById('login-setup').style.display = 'none';
+  document.getElementById('login-identification').style.display = '';
+  setMemberSetupError('');
+}
+
+function validPendingMemberSetup() {
+  if (!pendingMemberSetup) return null;
+  return data.users.find(user => sameId(user.id, pendingMemberSetup.userId)
+    && user.active !== false && needsMemberSetup(user)
+    && user.pwd === pendingMemberSetup.password
+    && Number(user.credentialsUpdatedAt || 0) === pendingMemberSetup.credentialsUpdatedAt) || null;
+}
+
+function beginMemberSetup(user) {
+  data.currentUser = null;
+  clearStoredSession();
+  cancelMemberSetup();
+  pendingMemberSetup = { userId:user.id, password:user.pwd, credentialsUpdatedAt:Number(user.credentialsUpdatedAt || 0) };
+  document.body.classList.remove('logged-in');
+  document.body.classList.add('login-revealed');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-page').style.display = '';
+  document.getElementById('login-page').removeAttribute('aria-hidden');
+  document.getElementById('login-identification').style.display = 'none';
+  document.getElementById('login-setup').style.display = '';
+  document.getElementById('setup-firstname').textContent = getCurrentUserName(user);
+  document.getElementById('setup-phone').value = user.phone || '';
+  document.getElementById('setup-phone').focus();
+}
+
+function completeMemberSetup() {
+  const user = validPendingMemberSetup();
+  if (!user) {
+    cancelMemberSetup();
+    const error = document.getElementById('login-error');
+    error.textContent = 'Cet accès a changé. Reconnecte-toi avec le dernier mot de passe reçu.';
+    error.style.display = 'flex';
+    return;
+  }
+  const phone = normalizedMemberPhone(document.getElementById('setup-phone').value);
+  const pin = document.getElementById('setup-pin').value;
+  const confirmation = document.getElementById('setup-pin-confirm').value;
+  if (!phone) { setMemberSetupError('Renseigne un numéro de téléphone valide.'); return; }
+  if (!/^\d{4}$/.test(pin)) { setMemberSetupError('Choisis un code de 4 chiffres.'); return; }
+  if (pin !== confirmation) { setMemberSetupError('Les deux codes ne correspondent pas.'); return; }
+  user.phone = phone;
+  user.pwd = pin;
+  user.requiresSetup = false;
+  updateMemberCredentialsVersion(user);
+  cancelMemberSetup();
+  finishMemberLogin(user, true);
+}
+
+function syncMemberAccessState() {
+  if (pendingMemberSetup) {
+    const user = validPendingMemberSetup();
+    if (!user) {
+      cancelMemberSetup();
+      const error = document.getElementById('login-error');
+      error.textContent = 'Cet accès a changé. Reconnecte-toi avec le dernier mot de passe reçu.';
+      error.style.display = 'flex';
+    } else document.getElementById('setup-firstname').textContent = getCurrentUserName(user);
+  }
+  if (pendingMemberAccessId !== null) {
+    const user = data.users.find(member => sameId(member.id, pendingMemberAccessId));
+    if (!canEditMembers() || !canManageTargetUser(user) || !needsMemberSetup(user)
+      || document.getElementById('member-access-password').value !== user.pwd) closeModal('modal-member-access');
+    else document.getElementById('member-access-name').textContent = getCurrentUserName(user);
+  }
+  if (document.getElementById('modal-user').classList.contains('open')) {
+    const target = data.editingUser !== null ? data.users.find(user => sameId(user.id, data.editingUser)) : null;
+    if (!canRecruit() || (data.editingUser !== null && !canManageTargetUser(target))) closeModal('modal-user');
+  }
+}
+
 
 function buildLoginPage() {
   if (!data.users.some(user => sameId(user.id, selectedUserId) && user.active)) selectedUserId = null;
@@ -5729,11 +5920,11 @@ function buildLoginPage() {
   const gradeLabel = { boss:'Jefe', segundo:'Segundo', teniente:'Teniente', soldado:'Soldado', visiteur:'Visiteur' };
 
   container.innerHTML = data.users.filter(u => u.active).map(u => {
-    const initials = (u.firstname[0] + (u.lastname[0] || '')).toUpperCase();
+    const initials = getCurrentUserName(u).slice(0, 1).toUpperCase();
     return `<div class="user-card" id="ucard-${u.id}" onclick="selectUser(${u.id})">
-      <div class="av ${gradeCls[u.role] || ''}">${initials}</div>
+      <div class="av ${gradeCls[u.role] || ''}">${escapeHtml(initials)}</div>
       <div>
-        <div class="uname">${u.firstname}</div>
+        <div class="uname">${escapeHtml(getCurrentUserName(u))}</div>
         <div class="urole">${gradeLabel[u.role] || u.role}</div>
       </div>
     </div>`;
@@ -5745,6 +5936,7 @@ function buildLoginPage() {
 }
 
 function selectUser(id) {
+  if (pendingMemberSetup) cancelMemberSetup();
   selectedUserId = id;
   document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
   const el = document.getElementById('ucard-' + id);
@@ -5762,7 +5954,7 @@ let sessionListenersReady = false;
 let sessionLogoutInProgress = false;
 
 function getCurrentUserName(user = data.currentUser) {
-  return user ? `${user.firstname || ''} ${user.lastname || ''}`.trim() : 'Utilisateur';
+  return user ? String(user.firstname || '').trim() : 'Utilisateur';
 }
 
 function showLoggedInUser(user) {
@@ -5772,7 +5964,7 @@ function showLoggedInUser(user) {
   const av = document.getElementById('sidebar-avatar');
   if (av) {
     av.className = 'avatar ' + (gradeCls[user.role] || '');
-    av.textContent = ((user.firstname?.[0] || '') + (user.lastname?.[0] || '')).toUpperCase();
+    av.textContent = getCurrentUserName(user).slice(0, 1).toUpperCase();
   }
   const nameEl = document.getElementById('sidebar-name');
   const roleEl = document.getElementById('sidebar-role');
@@ -5888,9 +6080,12 @@ function restoreSession() {
   }
 
   const user = data.users.find(u => sameId(u.id, session.userId) && u.active);
-  if (!user) {
+  if (!user || needsMemberSetup(user)) {
+    data.currentUser = null;
     clearStoredSession();
+    document.body.classList.remove('logged-in');
     document.body.classList.remove('login-revealed');
+    document.getElementById('app').classList.remove('visible');
     return false;
   }
 
@@ -5906,34 +6101,40 @@ function restoreSession() {
   return true;
 }
 
-function doLogin() {
-  const errEl = document.getElementById('login-error');
-  if (!selectedUserId) {
-    errEl.style.display = 'flex';
-    errEl.innerHTML = '<i class="ti ti-alert-circle"></i> Sélectionne un membre d\'abord.';
-    return;
-  }
-
-  const user = data.users.find(u => sameId(u.id, selectedUserId));
-  const pwd = document.getElementById('login-pwd').value;
-  if (!user || user.active === false || pwd !== user.pwd) {
-    errEl.style.display = 'flex';
-    errEl.innerHTML = '<i class="ti ti-alert-circle"></i> Mauvais mot de passe, frérot.';
-    return;
-  }
-
-  errEl.style.display = 'none';
+function finishMemberLogin(user, firstConnection = false) {
+  if (!user || user.active === false || needsMemberSetup(user)) return;
   data.currentUser = user;
+  selectedUserId = user.id;
+  document.getElementById('login-pwd').value = '';
+  document.getElementById('login-error').style.display = 'none';
   showLoggedInUser(user);
-  addLog('user', `Connexion de <strong>${getCurrentUserName(user)}</strong>`, getCurrentUserName(user));
-
+  addLog('user', `${firstConnection ? 'Première connexion' : 'Connexion'} de <strong>${escapeHtml(getCurrentUserName(user))}</strong>`, getCurrentUserName(user), { memberId:user.id });
   document.body.classList.remove('login-revealed');
   document.body.classList.add('logged-in');
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('app').classList.add('visible');
-
   extendSession();
   nav('dashboard');
+}
+
+function doLogin() {
+  if (data.currentUser || pendingMemberSetup) return;
+  const errEl = document.getElementById('login-error');
+  if (selectedUserId === null) {
+    errEl.style.display = 'flex';
+    errEl.textContent = 'Sélectionne un membre d’abord.';
+    return;
+  }
+  const user = data.users.find(u => sameId(u.id, selectedUserId));
+  const pwd = document.getElementById('login-pwd').value;
+  if (!user || user.active === false || !pwd || pwd !== user.pwd) {
+    errEl.style.display = 'flex';
+    errEl.textContent = 'Code ou mot de passe incorrect.';
+    return;
+  }
+  errEl.style.display = 'none';
+  if (needsMemberSetup(user)) { beginMemberSetup(user); return; }
+  finishMemberLogin(user);
 }
 
 function doLogout(reason = 'manual') {
@@ -5957,6 +6158,8 @@ function doLogout(reason = 'manual') {
   data.currentUser = null;
   selectedUserId = null;
   data.editingUser = null;
+  cancelMemberSetup();
+  closeModal('modal-member-access');
   document.querySelectorAll('.modal-overlay.open').forEach(modal => modal.classList.remove('open'));
   closeSiteConfirm(false);
   ['sidebar-name','sidebar-role','sidebar-avatar','street-flight-player'].forEach(id => {
@@ -6476,7 +6679,7 @@ function drawGameMessage(ctx, title, subtitle) {
 function role() {
   if (!data.currentUser) return null;
   const freshUser = (data.users || []).find(u => sameId(u.id, data.currentUser.id));
-  if (!freshUser || freshUser.active === false) return null;
+  if (!freshUser || freshUser.active === false || needsMemberSetup(freshUser)) return null;
   const rawRole = freshUser.role ?? '';
   return String(rawRole).trim().toLowerCase();
 }
@@ -6509,16 +6712,16 @@ function canManageInventory() { return canAddProduct(); }
 function canRecruit() { return isBoss() || isSegundo(); }
 function canManageMembers() { return isBoss() || isSegundo(); }
 function canEditMembers() { return isBoss() || isSegundo(); }
-function canAddMovement() { return !!data.currentUser && !isVisiteur(); }
-function canAddCashMovement() { return !!data.currentUser && !isVisiteur(); }
-function canViewLogs() { return !!data.currentUser; }
-function canViewCategories() { return !!data.currentUser; }
+function canAddMovement() { return !!connectedOperationMember() && !isVisiteur(); }
+function canAddCashMovement() { return !!connectedOperationMember() && !isVisiteur(); }
+function canViewLogs() { return !!connectedOperationMember(); }
+function canViewCategories() { return !!connectedOperationMember(); }
 function canAddCategory() { return isBoss() || isSegundo(); }
 function canEditCategory() { return isBoss() || isSegundo(); }
 
 function connectedOperationMember() {
   if (!data.currentUser) return null;
-  return data.users.find(user => sameId(user.id, data.currentUser.id) && user.active !== false) || null;
+  return data.users.find(user => sameId(user.id, data.currentUser.id) && user.active !== false && !needsMemberSetup(user)) || null;
 }
 function canManageTargetUser(target) {
   if (!target) return false;
@@ -6526,11 +6729,12 @@ function canManageTargetUser(target) {
   return isSegundo() && target.role !== 'boss';
 }
 function canAssignRole(targetRole) {
+  if (!['boss','segundo','teniente','soldado','visiteur'].includes(targetRole)) return false;
   if (isBoss()) return true;
   return isSegundo() && targetRole !== 'boss';
 }
 function canAccessSection(section) {
-  if (!data.currentUser) return false;
+  if (!connectedOperationMember()) return false;
 
   if (section === 'agenda') return canViewAgenda();
 
@@ -6628,6 +6832,7 @@ function render() {
   ensureLocationData(); updatePermissionsUI(); renderDashboard(); renderAgenda(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); renderLocations();
   if (document.getElementById('modal-mvt')?.classList.contains('open')) refreshMovementLocationChoice();
   if (document.getElementById('modal-cash')?.classList.contains('open')) updateCashModalBalance();
+  syncMemberAccessState();
   syncStreetFlightState();
 }
 
@@ -6890,7 +7095,7 @@ function visibleAppointments() {
 
 function appointmentCreatorName(appointment) {
   const freshCreator = data.users.find(user => sameId(user.id, appointment.createdBy));
-  return freshCreator ? `${freshCreator.firstname} ${freshCreator.lastname}`.trim() : '';
+  return freshCreator ? getCurrentUserName(freshCreator) : '';
 }
 
 function responseNames(appointment, response) {
@@ -6898,7 +7103,7 @@ function responseNames(appointment, response) {
     .filter(([, value]) => value === response)
     .map(([userId]) => {
       const user = data.users.find(candidate => sameId(candidate.id, userId));
-      return user ? `${user.firstname} ${user.lastname}`.trim() : '';
+      return user ? getCurrentUserName(user) : '';
     }).filter(Boolean);
 }
 
@@ -7021,8 +7226,8 @@ function openAgendaModal(prefillDate = agendaSelectedDate) {
   document.getElementById('agenda-with').value = '';
   document.getElementById('agenda-member-list').innerHTML = data.users
     .filter(user => user.active && !['visiteur','visitor'].includes(String(user.role).toLowerCase()))
-    .sort((a,b) => alphaCompare(`${a.firstname} ${a.lastname}`, `${b.firstname} ${b.lastname}`))
-    .map(user => `<option value="${escapeHtml(`${user.firstname} ${user.lastname}`.trim())}"></option>`).join('');
+    .sort((a,b) => alphaCompare(getCurrentUserName(a), getCurrentUserName(b)))
+    .map(user => `<option value="${escapeHtml(getCurrentUserName(user))}"></option>`).join('');
   const visibilityGroup = document.getElementById('agenda-visibility-group');
   const visibilitySelect = document.getElementById('agenda-visibility');
   visibilityGroup.style.display = canCreateLeadershipAppointment() ? 'block' : 'none';
@@ -8032,7 +8237,7 @@ function renderMoves() {
       <td style="font-family:var(--font-display);font-size:20px;color:${isE?'var(--green)':'var(--red)'}">${isE?'+':'-'}${Number(m.qty || 0)}</td>
       <td><span class="badge badge-amber"><i class="ti ti-map-pin"></i>${locationName(m.locationId)}</span></td>
       <td style="color:var(--text2)">${m.reason}</td>
-      <td>${user?(user.firstname+' '+user.lastname).trim():'—'}</td>
+      <td>${user?escapeHtml(getCurrentUserName(user)):'—'}</td>
       <td>${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="deleteMvt(${m.id})"><i class="ti ti-trash"></i></button>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
     </tr>`;
   }).join('');
@@ -8108,7 +8313,7 @@ function renderCash() {
         </span>
       </td>
       <td style="color:var(--text2)">${line.reason || 'Non précisé'}</td>
-      <td>${user ? `${user.firstname} ${user.lastname}`.trim() : '—'}</td>
+      <td>${user ? escapeHtml(getCurrentUserName(user)) : '—'}</td>
       <td>
         ${isBoss()
           ? `<button class="btn btn-danger btn-sm" onclick="deleteCashMovement(${line.id})"><i class="ti ti-trash"></i></button>`
@@ -8237,7 +8442,7 @@ function saveCashMovement() {
     ? `Entrée cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${safeReason} <span style="color:var(--accent)">📍 ${safeLocation}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`
     : `Sortie cash de <strong>$${amount.toLocaleString('fr-FR')}</strong> — ${safeReason} <span style="color:var(--accent)">📍 ${safeLocation}</span> <span style="color:var(--text3)">(solde emplacement: $${data.cashByLocation[locationId].toLocaleString('fr-FR')})</span>`;
 
-  addLog('cash', action, `${member.firstname} ${member.lastname}`.trim(), {
+  addLog('cash', action, getCurrentUserName(member), {
     reason,
     memberId:member.id,
     locationId
@@ -8298,25 +8503,15 @@ function normalizeLogMemberName(value) {
 }
 
 function logMemberEntries() {
-  const byName = new Map();
-  const addMember = (name, active = null) => {
-    const cleanName = String(name || '').trim().replace(/\s+/g, ' ');
-    const key = normalizeLogMemberName(cleanName);
-    if (!key || key === 'systeme') return;
-    const current = byName.get(key);
-    if (!current || active === true) byName.set(key, { name:cleanName, active });
-  };
-
-  (Array.isArray(data.users) ? data.users : []).forEach(user => {
-    addMember(`${user.firstname || ''} ${user.lastname || ''}`, user.active !== false);
-  });
-
-  return [...byName.values()].sort((a, b) => alphaCompare(a.name, b.name));
+  return (Array.isArray(data.users) ? data.users : []).map(user => ({
+    key:`member:${user.id}`, id:user.id, name:getCurrentUserName(user), active:user.active !== false
+  })).sort((a, b) => alphaCompare(a.name, b.name));
 }
 
-function sameLogMember(log, memberName) {
-  if (!memberName) return true;
-  return normalizeLogMemberName(log?.user) === normalizeLogMemberName(memberName);
+function sameLogMember(log, memberKey) {
+  if (!memberKey) return true;
+  if (memberKey.startsWith('member:')) return sameId(log?.memberId, memberKey.slice(7));
+  return normalizeLogMemberName(log?.user) === normalizeLogMemberName(memberKey);
 }
 
 function refreshLogMemberOptions() {
@@ -8325,11 +8520,10 @@ function refreshLogMemberOptions() {
   const selected = select.value;
   const entries = logMemberEntries();
   select.innerHTML = '<option value="">Tous les membres</option>' + entries.map(entry =>
-    `<option value="${escapeHtml(entry.name)}">${escapeHtml(entry.name)}${entry.active === false ? ' · ancien membre' : ''}</option>`
+    `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.name)}${entry.active === false ? ' · exclu' : ''}</option>`
   ).join('');
-  if (entries.some(entry => normalizeLogMemberName(entry.name) === normalizeLogMemberName(selected))) {
-    select.value = entries.find(entry => normalizeLogMemberName(entry.name) === normalizeLogMemberName(selected)).name;
-  }
+  const previous = entries.find(entry => entry.key === selected);
+  if (previous) select.value = previous.key;
 }
 
 function refreshLogCategoryOptions() {
@@ -8448,9 +8642,9 @@ function inferredLogReason(log) {
   const memberName = normalizeLogMemberName(log?.user);
   const sameActorAndDate = entry => {
     const user = (Array.isArray(data.users) ? data.users : []).find(item => sameId(item.id, entry.userId));
-    const entryMember = user ? `${user.firstname || ''} ${user.lastname || ''}` : '';
+    const entryMember = user ? getCurrentUserName(user) : '';
     return String(entry.date || '') === String(log?.date || '')
-      && normalizeLogMemberName(entryMember) === memberName;
+      && (log?.memberId != null ? sameId(entry.userId, log.memberId) : normalizeLogMemberName(entryMember) === memberName);
   };
 
   if (log?.type === 'stock') {
@@ -8522,7 +8716,7 @@ function renderLogs() {
     const categoryCount = new Set(memberLogs.map(log => log.type || 'other')).size;
     const categoryLabel = type ? logCategoryConfig(type).label : '';
     const details = memberName
-      ? `<strong>${escapeHtml(memberName)}</strong> · ${memberLogs.length} action${memberLogs.length > 1 ? 's' : ''} · ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''}${categoryLabel ? ` · filtre <strong>${escapeHtml(categoryLabel)}</strong>` : ''}`
+      ? `<strong>${escapeHtml(logMemberEntries().find(entry => entry.key === memberName)?.name || memberName)}</strong> · ${memberLogs.length} action${memberLogs.length > 1 ? 's' : ''} · ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''}${categoryLabel ? ` · filtre <strong>${escapeHtml(categoryLabel)}</strong>` : ''}`
       : `Toutes les activités de <strong>${logMemberEntries().length} membre${logMemberEntries().length > 1 ? 's' : ''}</strong> sont affichées.`;
     status.innerHTML = `<i class="ti ti-info-circle"></i><span>${details}</span>`;
   }
@@ -8592,16 +8786,16 @@ function renderUsers() {
   const gradeBadge = { boss:'badge-amber', segundo:'badge-red', teniente:'badge-blue', soldado:'badge-green', visiteur:'badge-gray' };
 
   document.getElementById('users-tbody').innerHTML = data.users.map(u => {
-    const initials = (u.firstname[0]+(u.lastname[0]||'')).toUpperCase();
+    const initials = getCurrentUserName(u).slice(0, 1).toUpperCase();
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:10px">
-        <div class="avatar ${gradeCls[u.role]||''}">${initials}</div>
-        <div><div style="font-weight:600;font-family:var(--font-cond);font-size:14px;letter-spacing:0.03em;text-transform:uppercase">${u.firstname} ${u.lastname}</div></div>
+        <div class="avatar ${gradeCls[u.role]||''}">${escapeHtml(initials)}</div>
+        <div><div style="font-weight:600;font-family:var(--font-cond);font-size:14px;letter-spacing:0.03em;text-transform:uppercase">${escapeHtml(getCurrentUserName(u))}</div></div>
       </div></td>
-      <td style="color:var(--text2);font-size:12.5px">${u.email}</td>
+      <td style="color:var(--text2);font-size:12.5px">${escapeHtml(u.phone || '—')}</td>
       <td><span class="badge ${gradeBadge[u.role]||'badge-gray'}">${gradeLabel[u.role]||u.role}</span></td>
       <td style="color:var(--text3);font-size:12px;font-family:var(--font-cond)">${u.created}</td>
-      <td><span class="badge ${u.active?'badge-green':'badge-gray'}">${u.active?'ACTIF':'EXCLU'}</span></td>
+      <td><span class="badge ${u.active ? (needsMemberSetup(u) ? 'badge-amber' : 'badge-green') : 'badge-gray'}">${u.active ? (needsMemberSetup(u) ? 'À CONFIGURER' : 'ACTIF') : 'EXCLU'}</span></td>
       <td>${canManageMembers() && canManageTargetUser(u) ? `<div style="display:flex;gap:6px">
         <button class="btn btn-ghost btn-sm" onclick="editUser(${u.id})" title="Modifier"><i class="ti ti-edit"></i> Modifier</button>
         <button class="btn btn-ghost btn-sm" onclick="toggleUserActive(${u.id})" title="${u.active?'Exclure':'Réintégrer'}">${u.active?'<i class="ti ti-user-off"></i> Exclure':'<i class="ti ti-user-check"></i> Réintégrer'}</button>
@@ -8831,7 +9025,14 @@ function sameId(a, b) {
 
 // ===================== MODALS =====================
 function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-member-access') {
+    pendingMemberAccessId = null;
+    document.getElementById('member-access-password').value = '';
+    document.getElementById('member-access-name').textContent = '';
+  }
+}
 
 function openAddModal() {
   if (!topbarActionAllowed()) { deny(); return; }
@@ -9099,7 +9300,7 @@ function saveMvt() {
   product.locationId = locationId;
   product.loc = locationName(locationId);
 
-  const uName = `${member.firstname} ${member.lastname}`.trim();
+  const uName = getCurrentUserName(member);
   const safeProductName = escapeHtml(product.name);
   const safeLocation = escapeHtml(locationName(locationId));
   const action = currentMvtType === 'entree'
@@ -9137,8 +9338,9 @@ async function deleteMvt(id) {
 function setUserModalMode(mode) {
   const isEdit = mode === 'edit';
   document.getElementById('modal-user-title').textContent = isEdit ? 'MODIFIER UN MEMBRE' : 'RECRUTER UN MEMBRE';
-  const btn = document.querySelector('#modal-user .modal-footer .btn-primary');
-  if (btn) btn.innerHTML = isEdit ? '<i class="ti ti-check"></i> Enregistrer' : '<i class="ti ti-check"></i> Recruter';
+  document.getElementById('user-save-btn').innerHTML = `<i class="ti ti-check"></i> ${isEdit ? 'Enregistrer' : 'Créer'}`;
+  document.getElementById('user-edit-fields').style.display = isEdit ? '' : 'none';
+  document.getElementById('user-setup-pending').style.display = 'none';
 }
 
 function refreshAssignableRoles(selectedRole = 'soldado') {
@@ -9156,64 +9358,122 @@ function openUserModal() {
   if (!canRecruit()) { deny(); return; }
   data.editingUser = null;
   setUserModalMode('add');
-  ['u-firstname','u-lastname','u-email','u-pwd'].forEach(id => document.getElementById(id).value='');
+  ['u-firstname','u-phone','u-pwd'].forEach(id => document.getElementById(id).value = '');
   refreshAssignableRoles('soldado');
   openModal('modal-user');
 }
 
 function editUser(id) {
   if (!canEditMembers()) { deny(); return; }
-  const u = data.users.find(user => user.id === id);
-  if (!u) return;
-  if (!canManageTargetUser(u)) { deny('Un Segundo ne peut pas modifier un Jefe'); return; }
-  data.editingUser = id;
+  const user = data.users.find(member => sameId(member.id, id));
+  if (!user) { toast('Membre introuvable','error'); return; }
+  if (!canManageTargetUser(user)) { deny('Un Segundo ne peut pas modifier un Jefe'); return; }
+  data.editingUser = user.id;
   setUserModalMode('edit');
-  document.getElementById('u-firstname').value = u.firstname || '';
-  document.getElementById('u-lastname').value = u.lastname || '';
-  document.getElementById('u-email').value = u.email || '';
-  refreshAssignableRoles(u.role || 'soldado');
+  document.getElementById('u-firstname').value = getCurrentUserName(user);
+  document.getElementById('u-phone').value = user.phone || '';
+  refreshAssignableRoles(user.role || 'soldado');
   document.getElementById('u-pwd').value = '';
-  document.getElementById('u-pwd').placeholder = 'Laisser vide pour garder le mot de passe';
+  document.getElementById('user-setup-pending').style.display = needsMemberSetup(user) ? '' : 'none';
   openModal('modal-user');
 }
 
-function saveUser() {
-  if (data.editingUser) { if (!canEditMembers()) { deny(); return; } }
-  else if (!canRecruit()) { deny(); return; }
-  const firstname = document.getElementById('u-firstname').value.trim();
-  const lastname = document.getElementById('u-lastname').value.trim();
-  const email = document.getElementById('u-email').value.trim();
-  const role = document.getElementById('u-role').value;
-  const pwdInput = document.getElementById('u-pwd').value;
-  if (!firstname||!email) { toast('Prénom et email requis','error'); return; }
-  if (!canAssignRole(role)) { deny('Un Segundo ne peut pas attribuer le grade Jefe'); return; }
+function generateMemberTemporaryPassword() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, byte => alphabet[byte & 31]).join('');
+}
 
-  if (data.editingUser) {
-    const u = data.users.find(user => user.id === data.editingUser);
-    if (!u) return;
-    if (!canManageTargetUser(u)) { deny('Un Segundo ne peut pas modifier un Jefe'); return; }
-    const oldName = `${u.firstname} ${u.lastname}`.trim();
-    u.firstname = firstname;
-    u.lastname = lastname;
-    u.email = email;
-    u.role = role;
-    if (pwdInput) u.pwd = pwdInput;
-    const newName = `${firstname} ${lastname}`.trim();
-    addLog('user', `Informations membre modifiées : <strong>${escapeHtml(oldName)}</strong> → <strong>${escapeHtml(newName)}</strong>`, userName(), { subjectMemberId:u.id });
+function showMemberTemporaryPassword(user) {
+  if (!canEditMembers() || !canManageTargetUser(user) || !needsMemberSetup(user)) return;
+  pendingMemberAccessId = user.id;
+  document.getElementById('member-access-name').textContent = getCurrentUserName(user);
+  document.getElementById('member-access-password').value = user.pwd;
+  openModal('modal-member-access');
+}
+
+async function copyMemberTemporaryPassword() {
+  syncMemberAccessState();
+  if (pendingMemberAccessId === null) return;
+  const input = document.getElementById('member-access-password');
+  try {
+    await navigator.clipboard.writeText(input.value);
+    toast('Mot de passe copié','success');
+  } catch (error) {
+    if (pendingMemberAccessId === null) return;
+    input.focus();
+    input.select();
+    toast('Mot de passe sélectionné : copie-le pour le transmettre','info');
+  }
+}
+
+async function renewMemberTemporaryPassword() {
+  const id = data.editingUser;
+  const user = data.users.find(member => sameId(member.id, id));
+  if (!canEditMembers() || !canManageTargetUser(user)) { deny(); return; }
+  if (!needsMemberSetup(user)) { toast('Ce membre a déjà configuré son accès','info'); return; }
+  if (!(await siteConfirm(`Créer un nouveau mot de passe temporaire pour ${getCurrentUserName(user)} ?\n\nSon ancien mot de passe temporaire ne fonctionnera plus.`, 'Remplacer'))) return;
+  const freshUser = data.users.find(member => sameId(member.id, id));
+  if (!canEditMembers() || !canManageTargetUser(freshUser)) { deny(); return; }
+  if (!needsMemberSetup(freshUser)) { toast('Ce membre a déjà configuré son accès','info'); return; }
+  let password;
+  try { password = generateMemberTemporaryPassword(); }
+  catch (error) { toast('Impossible de générer un mot de passe. Réessaie.','error'); return; }
+  freshUser.pwd = password;
+  updateMemberCredentialsVersion(freshUser);
+  if (sameId(data.editingUser, id)) document.getElementById('u-pwd').value = '';
+  addLog('user', `Accès temporaire renouvelé pour <strong>${escapeHtml(getCurrentUserName(freshUser))}</strong>`, userName(), { subjectMemberId:freshUser.id });
+  showMemberTemporaryPassword(freshUser);
+}
+
+function saveUser() {
+  const isEditing = data.editingUser !== null;
+  if (isEditing ? !canEditMembers() : !canRecruit()) { deny(); return; }
+  const firstname = document.getElementById('u-firstname').value.trim();
+  const targetRole = document.getElementById('u-role').value;
+  if (!firstname) { toast('Prénom requis','error'); return; }
+  if (!canAssignRole(targetRole)) { deny('Ce grade ne peut pas être attribué'); return; }
+  let newUser = null;
+  if (isEditing) {
+    const user = data.users.find(member => sameId(member.id, data.editingUser));
+    if (!user) { toast('Ce membre a été supprimé','error'); closeModal('modal-user'); return; }
+    if (!canManageTargetUser(user)) { deny('Un Segundo ne peut pas modifier un Jefe'); return; }
+    const phoneInput = document.getElementById('u-phone').value.trim();
+    const phone = normalizedMemberPhone(phoneInput);
+    const pin = document.getElementById('u-pwd').value;
+    if (phoneInput && !phone) { toast('Numéro de téléphone invalide','error'); return; }
+    if (!phone && user.phone) { toast('Renseigne le téléphone du membre','error'); return; }
+    if (pin && !/^\d{4}$/.test(pin)) { toast('Le nouveau code doit contenir 4 chiffres','error'); return; }
+    const oldName = getCurrentUserName(user);
+    if (oldName !== firstname) user.memberNameAliases = memberNameAliases(user);
+    const credentialsChanged = (pin && pin !== user.pwd) || phone !== (user.phone || '');
+    user.firstname = firstname;
+    user.phone = phone;
+    user.role = targetRole;
+    if (pin) user.pwd = pin;
+    if (credentialsChanged) updateMemberCredentialsVersion(user);
+    addLog('user', `Informations membre modifiées : <strong>${escapeHtml(oldName)}</strong> → <strong>${escapeHtml(firstname)}</strong>`, userName(), { subjectMemberId:user.id });
+    if (sameId(data.currentUser?.id, user.id)) { data.currentUser = user; showLoggedInUser(user); }
     toast('Membre modifié','success');
   } else {
+    let password;
+    try { password = generateMemberTemporaryPassword(); }
+    catch (error) { toast('Impossible de générer un mot de passe. Réessaie.','error'); return; }
     const now = new Date();
     const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    const newUser = { id:data.nextId.user++, firstname, lastname, email, role, active:true, created:dateStr, pwd: pwdInput || '1234' };
+    newUser = { id:data.nextId.user++, firstname, phone:'', role:targetRole, active:true, created:dateStr, pwd:password, requiresSetup:true };
+    updateMemberCredentialsVersion(newUser);
     data.users.push(newUser);
-    addLog('user',`Nouveau membre recruté : <strong>${escapeHtml(firstname)} ${escapeHtml(lastname)}</strong>`, userName(), { subjectMemberId:newUser.id });
-    toast('Membre recruté','success');
+    addLog('user', `Nouveau membre recruté : <strong>${escapeHtml(firstname)}</strong>`, userName(), { subjectMemberId:newUser.id });
+    toast('Membre créé','success');
   }
-
   data.editingUser = null;
-  document.getElementById('u-pwd').placeholder = '••••••••';
+  document.getElementById('u-pwd').value = '';
   closeModal('modal-user');
   render();
+  buildLoginPage();
+  if (newUser) showMemberTemporaryPassword(newUser);
 }
 
 function toggleUserActive(id) {
@@ -9222,7 +9482,7 @@ function toggleUserActive(id) {
   if (!u) return;
   if (!canManageTargetUser(u)) { deny('Un Segundo ne peut pas exclure un Jefe'); return; }
   u.active = !u.active;
-  addLog('user',`Membre ${u.active?'réintégré':'exclu'} : <strong>${escapeHtml(u.firstname)} ${escapeHtml(u.lastname)}</strong>`, userName(), { subjectMemberId:u.id });
+  addLog('user',`Membre ${u.active?'réintégré':'exclu'} : <strong>${escapeHtml(getCurrentUserName(u))}</strong>`, userName(), { subjectMemberId:u.id });
   toast(`Membre ${u.active?'réintégré':'exclu'}`,'info');
   render();
 }
@@ -9241,7 +9501,7 @@ async function deleteUser(id) {
   if (sameId(data.editingUser, id)) {
     data.editingUser = null;
     closeModal('modal-user');
-    ['u-firstname','u-lastname','u-email','u-pwd'].forEach(fieldId => {
+    ['u-firstname','u-phone','u-pwd'].forEach(fieldId => {
       const field = document.getElementById(fieldId);
       if (field) field.value = '';
     });
@@ -9313,9 +9573,10 @@ async function deleteCat(id) {
 
 function addLog(type, action, user, details = {}) {
   const actor = String(user || 'Système').trim() || 'Système';
-  const matchedUser = (Array.isArray(data.users) ? data.users : []).find(item =>
-    normalizeLogMemberName(`${item.firstname || ''} ${item.lastname || ''}`) === normalizeLogMemberName(actor)
-  );
+  const matchesActor = item => memberNameAliases(item).some(name => normalizeLogMemberName(name) === normalizeLogMemberName(actor));
+  const connected = connectedOperationMember();
+  const matches = (Array.isArray(data.users) ? data.users : []).filter(matchesActor);
+  const matchedUser = connected && matchesActor(connected) ? connected : (matches.length === 1 ? matches[0] : null);
   data.logs.push({
     id:data.nextId.log++,
     type,
@@ -9332,7 +9593,7 @@ function addLog(type, action, user, details = {}) {
 }
 
 function userName() {
-  return data.currentUser ? `${data.currentUser.firstname} ${data.currentUser.lastname}`.trim() : 'Système';
+  return data.currentUser ? getCurrentUserName(data.currentUser) : 'Système';
 }
 
 function toast(msg, type='success') {
@@ -9377,7 +9638,7 @@ function initInterfaceMotion() {
 }
 
 document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); });
+  o.addEventListener('click', e => { if (e.target===o) closeModal(o.id); });
 });
 
 document.addEventListener('click', event => {
