@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="herencia-connected-operations-category-edit-stock-all-v23">
+<meta name="vault-build" content="herencia-member-cleanup-flight-reset-v24">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1868,6 +1868,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   width: 420px;
   max-width: calc(100vw - 24px);
 }
+#modal-confirm { z-index: 1300; }
 .confirm-message {
   font-size: 14px;
   line-height: 1.55;
@@ -4380,6 +4381,9 @@ body:not(.logged-in) #app { display: none !important; }
         <div class="game-panel-title"><i class="ti ti-trophy"></i> CLASSEMENT</div>
         <div class="game-player">Joueur : <strong id="street-flight-player">—</strong></div>
         <div class="game-board" id="street-flight-board"></div>
+        <div style="padding:8px 12px 12px">
+          <button class="btn btn-danger btn-sm" id="street-flight-reset-all" type="button" style="display:none;width:100%;justify-content:center" onclick="resetStreetFlightScores()"><i class="ti ti-refresh"></i> Réinitialiser le classement</button>
+        </div>
       </aside>
     </div>
     <div class="game-mobile-tip">Touchez l'écran pour faire monter l'hélicoptère.</div>
@@ -4764,6 +4768,9 @@ let data = {
   ],
   appointments: [],
   dashboardLayouts: {},
+  deletedMemberIds: [],
+  gameScores: [],
+  gameScoresResetAt: 0,
   currentUser: null,
   editingProduct: null,
   editingUser: null,
@@ -4823,8 +4830,135 @@ function restoreCurrentUser(previousUser) {
     data.currentUser = null;
     return;
   }
-  const freshUser = data.users.find(u => u.id === previousUser.id);
-  data.currentUser = freshUser || previousUser;
+  const freshUser = data.users.find(u => sameId(u.id, previousUser.id) && u.active !== false);
+  if (!freshUser) {
+    data.currentUser = previousUser;
+    doLogout('removed');
+    return;
+  }
+  data.currentUser = freshUser;
+}
+
+function memberReferenceText(value) {
+  const entities = { amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:' ' };
+  return String(value || '').replace(/<[^>]*>/g, ' ').replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi, (match, entity) => {
+    if (entity[0] !== '#') return entities[entity.toLowerCase()] || match;
+    const code = entity[1].toLowerCase() === 'x' ? parseInt(entity.slice(2), 16) : Number(entity.slice(1));
+    return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
+  }).replace(/\s+/g, ' ').trim();
+}
+
+function memberReferencePattern(name) {
+  const escaped = String(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'giu');
+}
+
+// Les identifiants supprimés sont conservés sans nom pour empêcher leur retour.
+// Le nettoyage s'applique aussi aux anciennes données chargées depuis la base.
+function cleanupRemovedMembers() {
+  data.deletedMemberIds = [...new Set((Array.isArray(data.deletedMemberIds) ? data.deletedMemberIds : []).map(String))];
+  const deletedIds = new Set(data.deletedMemberIds);
+  const removedNames = new Set();
+  const addRemovedName = value => {
+    const name = memberReferenceText(value);
+    if (name && !['systeme','system'].includes(normalizeLogMemberName(name))) removedNames.add(name);
+  };
+  data.users.forEach(user => {
+    if (deletedIds.has(String(user.id))) { addRemovedName(getCurrentUserName(user)); addRemovedName(user.email); }
+  });
+  data.users = data.users.filter(user => !deletedIds.has(String(user.id)));
+  const usersById = new Map(data.users.map(user => [String(user.id), user]));
+  const usersByName = new Map(data.users.map(user => [normalizeLogMemberName(getCurrentUserName(user)), user]));
+  const renamePairs = data.logs.filter(log => /^Informations membre modifi/i.test(memberReferenceText(log.action))).map(log =>
+    [...String(log.action || '').matchAll(/<strong[^>]*>([\s\S]*?)<\/strong>/gi)].map(match => memberReferenceText(match[1]))
+  ).filter(names => names.length === 2);
+
+  data.logs.forEach(log => {
+    const user = usersById.get(String(log.memberId));
+    if (user && log.user) usersByName.set(normalizeLogMemberName(log.user), user);
+  });
+  data.gameScores.forEach(score => {
+    const user = usersById.get(String(score.userId));
+    if (user && score.name) usersByName.set(normalizeLogMemberName(score.name), user);
+  });
+  // Reconstitue les anciens noms d'un compte renommé, sans confondre les IDs.
+  for (let pass = 0; pass < renamePairs.length; pass++) {
+    renamePairs.forEach(([before, after]) => {
+      const user = usersByName.get(normalizeLogMemberName(after)) || usersByName.get(normalizeLogMemberName(before));
+      if (user) { usersByName.set(normalizeLogMemberName(before), user); usersByName.set(normalizeLogMemberName(after), user); }
+    });
+  }
+  const rememberMissingId = id => {
+    if (id !== null && id !== undefined && String(id) && !usersById.has(String(id))) deletedIds.add(String(id));
+  };
+  data.logs.forEach(log => {
+    if (log.memberId != null && !usersById.has(String(log.memberId))) { rememberMissingId(log.memberId); addRemovedName(log.user); }
+    else if (log.memberId == null && log.user && !usersByName.has(normalizeLogMemberName(log.user))) addRemovedName(log.user);
+    if (/^Membre supprimé\s*:/i.test(memberReferenceText(log.action))) {
+      const match = String(log.action || '').match(/<strong[^>]*>([\s\S]*?)<\/strong>/i);
+      if (match) addRemovedName(match[1]);
+    }
+  });
+  data.gameScores.forEach(score => {
+    if (!usersById.has(String(score.userId))) { rememberMissingId(score.userId); addRemovedName(score.name); }
+  });
+  data.appointments.forEach(appointment => {
+    if (!usersById.has(String(appointment.createdBy))) {
+      rememberMissingId(appointment.createdBy); addRemovedName(appointment.creatorName);
+    }
+  });
+  for (let pass = 0; pass < renamePairs.length; pass++) {
+    const names = new Set([...removedNames].map(normalizeLogMemberName));
+    renamePairs.forEach(pair => { if (pair.some(name => names.has(normalizeLogMemberName(name)))) pair.forEach(addRemovedName); });
+  }
+  // Un homonyme toujours présent reste identifié par son propre compte.
+  const retiredNames = [...removedNames].filter(name => !usersByName.has(normalizeLogMemberName(name))).sort((a,b) => b.length - a.length);
+  const patterns = retiredNames.map(name => memberReferencePattern(normalizeLogMemberName(name)));
+  const mentionsRemovedMember = value => {
+    const text = normalizeLogMemberName(memberReferenceText(value));
+    return patterns.some(pattern => { pattern.lastIndex = 0; return pattern.test(text); });
+  };
+  const removeNames = value => {
+    let text = String(value || '');
+    retiredNames.forEach(name => { text = text.replace(memberReferencePattern(name), '$1'); });
+    if (mentionsRemovedMember(text)) return '';
+    return text.replace(/\s{2,}/g, ' ').replace(/^[\s,;·|]+|[\s,;·|]+$/g, '').trim();
+  };
+
+  data.logs = data.logs.filter(log => {
+    const actor = log.memberId != null ? usersById.get(String(log.memberId)) : usersByName.get(normalizeLogMemberName(log.user));
+    if (!actor && !['', 'systeme', 'system'].includes(normalizeLogMemberName(log.user))) return false;
+    if (log.memberId != null && !actor) return false;
+    if (log.subjectMemberId != null && !usersById.has(String(log.subjectMemberId))) return false;
+    if (/^Membre supprimé\s*:/i.test(memberReferenceText(log.action))) return false;
+    if (mentionsRemovedMember(log.action) || mentionsRemovedMember(log.reason)) return false;
+    if (actor) { log.memberId = actor.id; log.user = getCurrentUserName(actor); }
+    return true;
+  });
+  [...data.movements, ...data.cashMovements].forEach(movement => {
+    if (!usersById.has(String(movement.userId))) {
+      rememberMissingId(movement.userId);
+      movement.userId = null;
+      delete movement.userName; delete movement.memberName;
+    }
+    if (movement.reason) movement.reason = removeNames(movement.reason);
+  });
+  data.appointments.forEach(appointment => {
+    const creator = usersById.get(String(appointment.createdBy));
+    appointment.createdBy = creator ? creator.id : null;
+    appointment.creatorName = creator ? getCurrentUserName(creator) : '';
+    appointment.responses = Object.fromEntries(Object.entries(appointment.responses || {}).filter(([id]) => usersById.has(String(id))));
+    appointment.reason = removeNames(appointment.reason);
+    appointment.withWho = removeNames(appointment.withWho);
+    delete appointment.with;
+  });
+  data.dashboardLayouts = Object.fromEntries(Object.entries(data.dashboardLayouts || {}).filter(([id]) => usersById.has(String(id))));
+  data.gameScoresResetAt = Math.max(0, Number(data.gameScoresResetAt) || 0);
+  data.gameScores = data.gameScores.filter(score => usersById.has(String(score.userId)) && Number(score.resetAt || 0) === data.gameScoresResetAt)
+    .map(score => ({ ...score, name:getCurrentUserName(usersById.get(String(score.userId))) }));
+  data.deletedMemberIds = [...deletedIds];
+  const largestId = [...usersById.keys(), ...deletedIds].reduce((max, id) => Number.isFinite(Number(id)) ? Math.max(max, Number(id)) : max, 0);
+  data.nextId.user = Math.max(Number(data.nextId.user || 1), largestId + 1);
 }
 
 function normalizedProductName(name) {
@@ -5017,15 +5151,23 @@ function ensureLocationData() {
   });
   const maxAppointment = data.appointments.reduce((max, appointment) => Math.max(max, Number(appointment.id || 0)), 0);
   data.nextId.appointment = Math.max(Number(data.nextId.appointment || 1), maxAppointment + 1);
+  cleanupRemovedMembers();
 }
 
 function applySavedData(savedData) {
   if (!savedData) return;
 
   const previousUser = data.currentUser;
+  const deletedMemberIds = [...new Set([...(data.deletedMemberIds || []), ...(savedData.deletedMemberIds || [])].map(String))];
+  const previousResetAt = Number(data.gameScoresResetAt || 0);
+  const incomingResetAt = Number(savedData.gameScoresResetAt || 0);
+  const gameScores = incomingResetAt < previousResetAt ? data.gameScores : (savedData.gameScores || data.gameScores);
   data = {
     ...data,
     ...savedData,
+    deletedMemberIds,
+    gameScores,
+    gameScoresResetAt:Math.max(previousResetAt, incomingResetAt),
     currentUser: previousUser || null,
     editingProduct: null,
     editingUser: null,
@@ -5036,6 +5178,7 @@ function applySavedData(savedData) {
   consolidateMovementsByProduct();
   consolidateCashMovements();
   restoreCurrentUser(previousUser);
+  syncStreetFlightState();
 }
 
 function initSupabaseClient() {
@@ -5580,6 +5723,7 @@ function returnToPublicPortal() {
 let selectedUserId = null;
 
 function buildLoginPage() {
+  if (!data.users.some(user => sameId(user.id, selectedUserId) && user.active)) selectedUserId = null;
   const container = document.getElementById('login-user-select');
   const gradeCls = { boss:'av-boss', segundo:'av-segundo', teniente:'av-teniente', soldado:'av-soldado', visiteur:'av-visiteur' };
   const gradeLabel = { boss:'Jefe', segundo:'Segundo', teniente:'Teniente', soldado:'Soldado', visiteur:'Visiteur' };
@@ -5772,7 +5916,7 @@ function doLogin() {
 
   const user = data.users.find(u => sameId(u.id, selectedUserId));
   const pwd = document.getElementById('login-pwd').value;
-  if (!user || pwd !== user.pwd) {
+  if (!user || user.active === false || pwd !== user.pwd) {
     errEl.style.display = 'flex';
     errEl.innerHTML = '<i class="ti ti-alert-circle"></i> Mauvais mot de passe, frérot.';
     return;
@@ -5803,7 +5947,7 @@ function doLogout(reason = 'manual') {
   clearTimeout(sessionTimer);
   clearStoredSession();
 
-  if (user) {
+  if (user && reason !== 'removed' && data.users.some(member => sameId(member.id, user.id))) {
     const action = reason === 'inactivity'
       ? `Déconnexion automatique de <strong>${userName}</strong> après 5 minutes d'absence`
       : `Déconnexion de <strong>${userName}</strong>`;
@@ -5812,6 +5956,13 @@ function doLogout(reason = 'manual') {
 
   data.currentUser = null;
   selectedUserId = null;
+  data.editingUser = null;
+  document.querySelectorAll('.modal-overlay.open').forEach(modal => modal.classList.remove('open'));
+  closeSiteConfirm(false);
+  ['sidebar-name','sidebar-role','sidebar-avatar','street-flight-player'].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = '—';
+  });
   const pwd = document.getElementById('login-pwd');
   if (pwd) pwd.value = '';
   document.body.classList.remove('logged-in');
@@ -5845,6 +5996,8 @@ const streetFlight = {
   score: 0,
   spawnTimer: 0,
   cityOffset: 0,
+  roundResetAt: 0,
+  roundUserId: null,
   inputReady: false
 };
 
@@ -5870,6 +6023,8 @@ function gameCanvasSetup() {
 }
 
 function resetStreetFlight() {
+  streetFlight.roundResetAt = Number(data.gameScoresResetAt || 0);
+  streetFlight.roundUserId = connectedOperationMember()?.id ?? null;
   streetFlight.started = false;
   streetFlight.gameOver = false;
   streetFlight.lastTime = 0;
@@ -5886,7 +6041,7 @@ function resetStreetFlight() {
 }
 
 function openStreetFlightGame() {
-  if (!data.currentUser) {
+  if (!connectedOperationMember()) {
     toast('Connecte-toi pour jouer', 'error');
     return;
   }
@@ -5921,14 +6076,15 @@ function bindStreetFlightInputs() {
 
   const canvas = document.getElementById('street-flight-canvas');
   const flap = (event) => {
-    if (!streetFlight.running) return;
+    if (!streetFlight.running || document.getElementById('modal-confirm')?.classList.contains('open')) return;
     if (event) event.preventDefault();
     streetFlightFlap();
   };
 
   canvas.addEventListener('pointerdown', flap, { passive: false });
   window.addEventListener('keydown', event => {
-    if (!streetFlight.running) return;
+    if (!streetFlight.running || document.getElementById('modal-confirm')?.classList.contains('open')) return;
+    if (event.target?.closest?.('button, input, select, textarea')) return;
     if (event.code === 'Escape') {
       event.preventDefault();
       closeStreetFlightGame();
@@ -5947,6 +6103,7 @@ function bindStreetFlightInputs() {
 }
 
 function streetFlightFlap() {
+  if (!connectedOperationMember()) { closeStreetFlightGame(); return; }
   if (streetFlight.gameOver) {
     resetStreetFlight();
     return;
@@ -5981,6 +6138,7 @@ function streetFlightLoop(timestamp) {
 }
 
 function updateStreetFlight(dt) {
+  if (document.getElementById('modal-confirm')?.classList.contains('open')) return;
   const g = streetFlight;
   g.cityOffset = (g.cityOffset + dt * 45) % 220;
 
@@ -6052,16 +6210,19 @@ function finishStreetFlight() {
 }
 
 function saveStreetFlightScore(score) {
-  if (!data.currentUser) return;
+  const user = connectedOperationMember();
+  if (!user || !sameId(streetFlight.roundUserId, user.id) || streetFlight.roundResetAt !== Number(data.gameScoresResetAt || 0)) return;
+  score = Math.max(0, Math.floor(Number(score)));
+  if (!Number.isFinite(score)) return;
   if (!Array.isArray(data.gameScores)) data.gameScores = [];
 
-  const user = data.currentUser;
   let row = data.gameScores.find(s => sameId(s.userId, user.id));
   const now = new Date().toISOString();
 
   if (!row) {
     row = {
       userId: user.id,
+      resetAt: Number(data.gameScoresResetAt || 0),
       name: getCurrentUserName(user),
       bestScore: Math.max(0, score),
       lastScore: Math.max(0, score),
@@ -6070,6 +6231,7 @@ function saveStreetFlightScore(score) {
     };
     data.gameScores.push(row);
   } else {
+    row.resetAt = Number(data.gameScoresResetAt || 0);
     row.name = getCurrentUserName(user);
     row.bestScore = Math.max(Number(row.bestScore || 0), score);
     row.lastScore = score;
@@ -6081,11 +6243,41 @@ function saveStreetFlightScore(score) {
   renderStreetFlightBoard();
 }
 
+function canResetStreetFlightScores() {
+  return !!connectedOperationMember() && (isBoss() || isSegundo());
+}
+
+async function resetStreetFlightScores() {
+  if (!canResetStreetFlightScores()) { deny('Seuls le Jefe et le Segundo peuvent réinitialiser le jeu'); return; }
+  const message = 'Réinitialiser Flappy Bird / Los Santos Flight pour tout le monde ?\n\nTous les scores, records et nombres de parties seront effacés. Les parties en cours repartiront à zéro lors de la synchronisation.\n\nCette action est définitive.';
+  if (!(await siteConfirm(message, 'Réinitialiser'))) return;
+  if (!canResetStreetFlightScores()) { deny(); return; }
+  data.gameScores = [];
+  data.gameScoresResetAt = Math.max(Date.now(), Number(data.gameScoresResetAt || 0) + 1);
+  resetStreetFlight();
+  addLog('system', 'Classement Los Santos Flight réinitialisé', userName(), {
+    reason:'Tous les scores, records et nombres de parties ont été remis à zéro.'
+  });
+  render();
+  toast('Jeu et classement réinitialisés', 'success');
+}
+
+function syncStreetFlightState() {
+  if (streetFlight.running && !connectedOperationMember()) closeStreetFlightGame();
+  if (streetFlight.roundResetAt !== Number(data.gameScoresResetAt || 0)) resetStreetFlight();
+  const player = document.getElementById('street-flight-player');
+  if (player) player.textContent = connectedOperationMember() ? getCurrentUserName(connectedOperationMember()) : '—';
+  renderStreetFlightBoard();
+}
+
 function renderStreetFlightBoard() {
+  const resetButton = document.getElementById('street-flight-reset-all');
+  if (resetButton) { resetButton.style.display = canResetStreetFlightScores() ? 'inline-flex' : 'none'; resetButton.disabled = !canResetStreetFlightScores(); }
   const board = document.getElementById('street-flight-board');
   if (!board) return;
   const scores = (Array.isArray(data.gameScores) ? data.gameScores : [])
-    .slice()
+    .filter(row => data.users.some(user => sameId(user.id, row.userId)) && Number(row.resetAt || 0) === Number(data.gameScoresResetAt || 0))
+    .map(row => ({ ...row, name:getCurrentUserName(data.users.find(user => sameId(user.id, row.userId))) }))
     .sort((a, b) =>
       Number(b.bestScore || 0) - Number(a.bestScore || 0) ||
       alphaCompare(a.name, b.name)
@@ -6284,7 +6476,8 @@ function drawGameMessage(ctx, title, subtitle) {
 function role() {
   if (!data.currentUser) return null;
   const freshUser = (data.users || []).find(u => sameId(u.id, data.currentUser.id));
-  const rawRole = freshUser?.role ?? data.currentUser.role ?? '';
+  if (!freshUser || freshUser.active === false) return null;
+  const rawRole = freshUser.role ?? '';
   return String(rawRole).trim().toLowerCase();
 }
 function isBoss() { return role() === 'boss'; }
@@ -6435,6 +6628,7 @@ function render() {
   ensureLocationData(); updatePermissionsUI(); renderDashboard(); renderAgenda(); renderStock(); renderMoves(); renderCash(); renderLogs(); renderUsers(); renderCats(); renderLocations();
   if (document.getElementById('modal-mvt')?.classList.contains('open')) refreshMovementLocationChoice();
   if (document.getElementById('modal-cash')?.classList.contains('open')) updateCashModalBalance();
+  syncStreetFlightState();
 }
 
 // ===================== AGENDA =====================
@@ -6696,7 +6890,7 @@ function visibleAppointments() {
 
 function appointmentCreatorName(appointment) {
   const freshCreator = data.users.find(user => sameId(user.id, appointment.createdBy));
-  return freshCreator ? `${freshCreator.firstname} ${freshCreator.lastname}`.trim() : (appointment.creatorName || 'Ancien membre');
+  return freshCreator ? `${freshCreator.firstname} ${freshCreator.lastname}`.trim() : '';
 }
 
 function responseNames(appointment, response) {
@@ -6704,8 +6898,8 @@ function responseNames(appointment, response) {
     .filter(([, value]) => value === response)
     .map(([userId]) => {
       const user = data.users.find(candidate => sameId(candidate.id, userId));
-      return user ? `${user.firstname} ${user.lastname}`.trim() : 'Ancien membre';
-    });
+      return user ? `${user.firstname} ${user.lastname}`.trim() : '';
+    }).filter(Boolean);
 }
 
 function selectAgendaDate(dateKey, syncMonth = false) {
@@ -6803,7 +6997,7 @@ function renderAgenda() {
       </div>
       <div class="agenda-event-reason">${escapeHtml(appointment.reason)}</div>
       <div class="agenda-event-with"><i class="ti ti-users"></i> Avec : ${escapeHtml(appointment.withWho || 'Non précisé')}</div>
-      <div class="agenda-event-author">Créé par <strong>${escapeHtml(appointmentCreatorName(appointment))}</strong> · ${escapeHtml(agendaRoleLabel(appointment.createdByRole))}</div>
+      ${appointmentCreatorName(appointment) ? `<div class="agenda-event-author">Créé par <strong>${escapeHtml(appointmentCreatorName(appointment))}</strong> · ${escapeHtml(agendaRoleLabel(appointment.createdByRole))}</div>` : ''}
       <div class="agenda-reactions">
         <button class="agenda-reaction-btn present ${myResponse === 'present' ? 'active' : ''}" type="button" onclick="setAppointmentResponse('${appointment.id}','present')"><i class="ti ti-user-check"></i> Présent · ${presentNames.length}</button>
         <button class="agenda-reaction-btn absent ${myResponse === 'absent' ? 'active' : ''}" type="button" onclick="setAppointmentResponse('${appointment.id}','absent')"><i class="ti ti-user-x"></i> Non · ${absentNames.length}</button>
@@ -8116,7 +8310,6 @@ function logMemberEntries() {
   (Array.isArray(data.users) ? data.users : []).forEach(user => {
     addMember(`${user.firstname || ''} ${user.lastname || ''}`, user.active !== false);
   });
-  (Array.isArray(data.logs) ? data.logs : []).forEach(log => addMember(log.user, null));
 
   return [...byName.values()].sort((a, b) => alphaCompare(a.name, b.name));
 }
@@ -8596,6 +8789,8 @@ function siteConfirm(message, validateLabel = 'Supprimer') {
 function closeSiteConfirm(result) {
   const modal = document.getElementById('modal-confirm');
   if (modal) modal.classList.remove('open');
+  const message = document.getElementById('confirm-message');
+  if (message) message.textContent = '';
 
   if (siteConfirmResolve) {
     const resolve = siteConfirmResolve;
@@ -8613,6 +8808,8 @@ document.getElementById('modal-confirm')?.addEventListener('click', event => {
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && document.getElementById('modal-confirm')?.classList.contains('open')) {
+    event.preventDefault();
+    event.stopPropagation();
     closeSiteConfirm(false);
   }
 });
@@ -9002,13 +9199,14 @@ function saveUser() {
     u.role = role;
     if (pwdInput) u.pwd = pwdInput;
     const newName = `${firstname} ${lastname}`.trim();
-    addLog('user', `Informations membre modifiées : <strong>${oldName}</strong> → <strong>${newName}</strong>`, userName());
+    addLog('user', `Informations membre modifiées : <strong>${escapeHtml(oldName)}</strong> → <strong>${escapeHtml(newName)}</strong>`, userName(), { subjectMemberId:u.id });
     toast('Membre modifié','success');
   } else {
     const now = new Date();
     const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    data.users.push({ id:data.nextId.user++, firstname, lastname, email, role, active:true, created:dateStr, pwd: pwdInput || '1234' });
-    addLog('user',`Nouveau membre recruté : <strong>${firstname} ${lastname}</strong>`, userName());
+    const newUser = { id:data.nextId.user++, firstname, lastname, email, role, active:true, created:dateStr, pwd: pwdInput || '1234' };
+    data.users.push(newUser);
+    addLog('user',`Nouveau membre recruté : <strong>${escapeHtml(firstname)} ${escapeHtml(lastname)}</strong>`, userName(), { subjectMemberId:newUser.id });
     toast('Membre recruté','success');
   }
 
@@ -9024,7 +9222,7 @@ function toggleUserActive(id) {
   if (!u) return;
   if (!canManageTargetUser(u)) { deny('Un Segundo ne peut pas exclure un Jefe'); return; }
   u.active = !u.active;
-  addLog('user',`Membre ${u.active?'réintégré':'exclu'} : <strong>${u.firstname} ${u.lastname}</strong>`, userName());
+  addLog('user',`Membre ${u.active?'réintégré':'exclu'} : <strong>${escapeHtml(u.firstname)} ${escapeHtml(u.lastname)}</strong>`, userName(), { subjectMemberId:u.id });
   toast(`Membre ${u.active?'réintégré':'exclu'}`,'info');
   render();
 }
@@ -9033,12 +9231,26 @@ async function deleteUser(id) {
   if (!canDelete()) { deny('Seul le Jefe peut supprimer définitivement un membre'); return; }
   const u = data.users.find(user => sameId(user.id, id));
   if (!u) { toast('Membre introuvable', 'error'); return; }
-  if (!(await siteConfirm(`Exclure définitivement ${u.firstname} ${u.lastname} ?`, "Exclure"))) return;
-
-  data.users = data.users.filter(user => !sameId(user.id, id));
-  addLog('user', `Membre supprimé : <strong>${u.firstname} ${u.lastname}</strong>`, userName());
-  toast('Membre supprimé', 'info');
+  const message = `Supprimer définitivement ${getCurrentUserName(u)} ?\n\nSon profil, ses journaux, ses scores et son tableau de bord personnel seront effacés. Ses références dans les rendez-vous et les opérations seront retirées.\n\nLes quantités de stock et les soldes de cash seront conservés. Cette action est définitive.`;
+  if (!(await siteConfirm(message))) return;
+  if (!canDelete()) { deny(); return; }
+  if (!data.users.some(user => sameId(user.id, id))) { toast('Ce membre a déjà été supprimé', 'info'); return; }
+  const previousUser = data.currentUser;
+  data.deletedMemberIds = [...new Set([...(data.deletedMemberIds || []).map(String), String(id)])];
+  ensureLocationData();
+  if (sameId(data.editingUser, id)) {
+    data.editingUser = null;
+    closeModal('modal-user');
+    ['u-firstname','u-lastname','u-email','u-pwd'].forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field) field.value = '';
+    });
+  }
+  saveData();
+  restoreCurrentUser(previousUser);
   render();
+  buildLoginPage();
+  toast('Membre et références supprimés', 'info');
 }
 
 let editingCategoryId = null;
@@ -9113,7 +9325,8 @@ function addLog(type, action, user, details = {}) {
     reason:reasonIsUseful(details.reason) ? String(details.reason).trim() : '',
     memberId:details.memberId ?? matchedUser?.id ?? null,
     locationId:details.locationId ?? null,
-    entityId:details.entityId ?? null
+    entityId:details.entityId ?? null,
+    subjectMemberId:details.subjectMemberId ?? null
   });
   saveData();
 }
