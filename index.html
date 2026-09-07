@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="vault-build" content="herencia-full-visual-redesign-motion-depth-v21">
+<meta name="vault-build" content="herencia-cascade-deletions-v22">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VAULT — Gestion Interne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4387,10 +4387,10 @@ body:not(.logged-in) #app { display: none !important; }
 
 <!-- MODALE DE CONFIRMATION PERSONNALISÉE -->
 <div class="modal-overlay" id="modal-confirm">
-  <div class="modal confirm-modal">
+  <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
     <div class="modal-header">
       <i class="ti ti-alert-triangle" style="color:var(--red)"></i>
-      <span class="modal-title">CONFIRMATION</span>
+      <span class="modal-title" id="confirm-title">CONFIRMATION</span>
       <button class="modal-close" type="button" onclick="closeSiteConfirm(false)">
         <i class="ti ti-x"></i>
       </button>
@@ -4953,12 +4953,16 @@ function ensureLocationData() {
     }
   });
 
-  if (!data.locations.length) data.locations.push({ id:1, name:'Principal' });
+  // Une liste vide après suppression est volontaire. Le lieu par défaut sert
+  // uniquement à récupérer d'anciennes données qui n'avaient pas de localisation.
+  if (!data.locations.length && (data.products.length || data.movements.length || data.cashMovements.length || Number(data.cashBalance || 0) > 0)) {
+    data.locations.push({ id:1, name:'Principal' });
+  }
 
   (data.products || []).forEach(p => {
     if (!p.locationId) {
       const found = data.locations.find(l => l.name === p.loc);
-      p.locationId = found ? found.id : data.locations[0].id;
+      p.locationId = found ? found.id : data.locations[0]?.id;
     }
     const loc = data.locations.find(l => l.id == p.locationId);
     p.loc = loc ? loc.name : (p.loc || '—');
@@ -4967,19 +4971,19 @@ function ensureLocationData() {
   (data.movements || []).forEach(m => {
     if (!m.locationId) {
       const product = data.products.find(p => p.id === m.productId);
-      m.locationId = product?.locationId || data.locations[0].id;
+      m.locationId = product?.locationId || data.locations[0]?.id;
     }
   });
 
   migrateLegacyCrossLocationStocks();
   mergeDuplicateProductStocks();
 
-  if (!Object.keys(data.cashByLocation).length && Number(data.cashBalance || 0) > 0) {
+  if (!Object.keys(data.cashByLocation).length && Number(data.cashBalance || 0) > 0 && data.locations.length) {
     data.cashByLocation[data.locations[0].id] = Number(data.cashBalance || 0);
   }
 
   (data.cashMovements || []).forEach(m => {
-    if (!m.locationId) m.locationId = data.locations[0].id;
+    if (!m.locationId) m.locationId = data.locations[0]?.id;
   });
 
   data.cashBalance = Object.values(data.cashByLocation).reduce((s,v)=>s+Number(v||0),0);
@@ -7708,13 +7712,11 @@ function locationName(id) {
 }
 
 function locationOptions(selected = null) {
-  return data.locations.map(l => `<option value="${l.id}" ${String(selected)===String(l.id)?'selected':''}>${l.name}</option>`).join('');
+  return data.locations.map(l => `<option value="${l.id}" ${String(selected)===String(l.id)?'selected':''}>${l.name}</option>`).join('') || '<option value="">Aucune localisation</option>';
 }
 
 function renderStock() {
   const search = (document.getElementById('global-search')?.value || '').toLowerCase();
-  const filterCat = document.getElementById('filter-cat')?.value || '';
-  const filterLocation = document.getElementById('filter-location')?.value || '';
 
   const catSel = document.getElementById('filter-cat');
   if (catSel) {
@@ -7728,6 +7730,8 @@ function renderStock() {
     locationSel.innerHTML = '<option value="">Toutes localisations</option>' + [...data.locations].sort((a,b)=>alphaCompare(a.name,b.name)).map(l => `<option value="${l.id}" ${curLoc==l.id?'selected':''}>${l.name}</option>`).join('');
   }
 
+  const filterCat = catSel?.value || '';
+  const filterLocation = locationSel?.value || '';
   let products = data.products;
   if (filterCat) products = products.filter(p => p.cat == filterCat);
   if (filterLocation) products = products.filter(p => p.locationId == filterLocation);
@@ -7764,8 +7768,6 @@ function renderStock() {
 
 // ===================== MOUVEMENTS =====================
 function renderMoves() {
-  const catFilter = document.getElementById('filter-move-cat')?.value || '';
-  const locationFilter = document.getElementById('filter-move-location')?.value || '';
 
   const catSel = document.getElementById('filter-move-cat');
   if (catSel) {
@@ -7781,6 +7783,8 @@ function renderMoves() {
     locationSel.innerHTML = '<option value="">Toutes localisations</option>' + locations.map(l => `<option value="${l.id}" ${sameId(current,l.id)?'selected':''}>${l.name}</option>`).join('');
   }
 
+  const catFilter = catSel?.value || '';
+  const locationFilter = locationSel?.value || '';
   let moves = [...(Array.isArray(data.movements) ? data.movements : [])];
   if (catFilter) {
     moves = moves.filter(m => {
@@ -7945,6 +7949,7 @@ function openCashModal(type) {
     deny('Le grade Visiteur ne peut faire aucune entrée ni sortie de cash');
     return;
   }
+  if (!data.locations.length) { toast('Ajoute une localisation avant une opération cash', 'error'); return; }
   currentCashType = type;
   document.getElementById('modal-cash-title').textContent = type === 'entree' ? "ENTRÉE D'ARGENT" : "SORTIE D'ARGENT";
   const c = document.getElementById('cash-confirm');
@@ -7970,7 +7975,7 @@ function saveCashMovement() {
   const reason = document.getElementById('cash-reason').value.trim() || 'Non précisé';
   const locationId = parseInt(document.getElementById('cash-location').value);
   if (amount <= 0) { toast('Montant invalide','error'); return; }
-  if (!locationId) { toast('Choisis une localisation','error'); return; }
+  if (!data.locations.some(loc => sameId(loc.id, locationId))) { toast('Choisis une localisation existante','error'); return; }
 
   if (isVisiteur()) {
     deny('Le grade Visiteur ne peut faire aucune entrée ni sortie de cash');
@@ -8396,7 +8401,7 @@ function renderUsers() {
 function renderCats() {
   document.getElementById('cats-count').textContent = data.categories.length;
   document.getElementById('cats-tbody').innerHTML = data.categories.map(c => {
-    const count = data.products.filter(p => p.cat===c.id).length;
+    const count = data.products.filter(p => sameId(p.cat, c.id)).length;
     return `<tr>
       <td><div style="font-weight:600;display:flex;align-items:center;gap:8px;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em"><i class="ti ti-tag" style="color:var(--accent)"></i>${c.name}</div></td>
       <td style="color:var(--text2)">${c.desc}</td>
@@ -8416,14 +8421,13 @@ function renderLocations() {
     const cash = Number(data.cashByLocation[loc.id] || 0);
     const products = data.products.filter(p => p.locationId == loc.id);
     const stock = products.reduce((s,p) => s + Number(p.qty||0) * Number(p.price||0), 0);
-    const usedInMoves = data.movements.some(m => m.locationId == loc.id);
     return `<tr>
       <td><div style="font-weight:600;display:flex;align-items:center;gap:8px;font-family:var(--font-cond);text-transform:uppercase"><i class="ti ti-map-pin" style="color:var(--accent)"></i>${loc.name}</div></td>
       <td style="color:var(--accent);font-weight:700">$${cash.toLocaleString('fr-FR')}</td>
       <td style="color:var(--green);font-weight:700">$${stock.toLocaleString('fr-FR')}</td>
       <td style="font-family:var(--font-display);font-size:20px">$${(cash+stock).toLocaleString('fr-FR')}</td>
       <td><span class="badge badge-blue">${products.length} article${products.length>1?'s':''}</span></td>
-      <td>${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="deleteLocation(${loc.id})" ${cash>0||products.length||usedInMoves?'title="Cette localisation est utilisée"':''}><i class="ti ti-trash"></i></button>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
+      <td>${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="deleteLocation(${loc.id})" title="Supprimer la localisation et son contenu"><i class="ti ti-trash"></i></button>` : '<span class="badge badge-gray">LECTURE</span>'}</td>
     </tr>`;
   }).join('');
 }
@@ -8449,35 +8453,101 @@ function saveLocation() {
   render();
 }
 
-async function deleteLocation(id) {
-  if (!canDelete()) { deny(); return; }
-  const loc = data.locations.find(l => sameId(l.id, id));
-  if (!loc) { toast('Localisation introuvable', 'error'); return; }
-
-  const products = data.products.filter(p => sameId(p.locationId, id)).length;
-  const cashKey = Object.keys(data.cashByLocation || {}).find(key => sameId(key, id));
-  const cash = Number(cashKey !== undefined ? data.cashByLocation[cashKey] : 0);
-  const usedInMoves = data.movements.some(m => sameId(m.locationId, id));
-
-  if (products || cash > 0 || usedInMoves) {
-    toast('Impossible : localisation encore utilisée', 'error');
-    return;
-  }
-  if (data.locations.length <= 1) {
-    toast('Il faut garder au moins une localisation', 'error');
-    return;
-  }
-  if (!(await siteConfirm(`Supprimer la localisation "${loc.name}" ?`))) return;
-
-  data.locations = data.locations.filter(l => !sameId(l.id, id));
-  if (cashKey !== undefined) delete data.cashByLocation[cashKey];
-
-  addLog('system', `Localisation supprimée : <strong>${loc.name}</strong>`, userName());
-  toast('Localisation supprimée', 'info');
-  render();
+// Les trois suppressions utilisent le même périmètre pour l'avertissement,
+// l'effacement et les journaux, en conservant les données hors de ce périmètre.
+function inventoryDeletionPlan(kind, id) {
+  const collections = { location:data.locations, category:data.categories, product:data.products };
+  const target = collections[kind]?.find(item => sameId(item.id, id));
+  if (!target) return null;
+  const products = data.products.filter(product => kind === 'location'
+    ? sameId(product.locationId, id)
+    : kind === 'category' ? sameId(product.cat, id) : sameId(product.id, id));
+  const productIds = new Set(products.map(product => String(product.id)));
+  const movements = data.movements.filter(movement => productIds.has(String(movement.productId))
+    || (kind === 'location' && sameId(movement.locationId, id)));
+  const cashMovements = kind === 'location'
+    ? data.cashMovements.filter(movement => sameId(movement.locationId, id)) : [];
+  const cashEntries = kind === 'location'
+    ? Object.entries(data.cashByLocation).filter(([locationId]) => sameId(locationId, id)) : [];
+  return {
+    kind, id, target, products, movements, cashMovements, cashEntries,
+    quantity:products.reduce((sum, product) => sum + Number(product.qty || 0), 0),
+    stockValue:products.reduce((sum, product) => sum + Number(product.qty || 0) * Number(product.price || 0), 0),
+    cash:cashEntries.reduce((sum, [, amount]) => sum + Number(amount || 0), 0),
+    // Les données peuvent être actualisées pendant que la confirmation est ouverte.
+    signature:JSON.stringify({ target, products, movements, cashMovements, cashEntries })
+  };
 }
 
+function inventoryDeletionSummary(plan) {
+  const lines = [
+    `${plan.products.length} ligne(s) de stock (${plan.quantity.toLocaleString('fr-FR')} objet(s)), valeur : $${plan.stockValue.toLocaleString('fr-FR')}`,
+    `${plan.movements.length} mouvement(s) de stock lié(s)`
+  ];
+  if (plan.kind === 'location') {
+    lines.push(`$${plan.cash.toLocaleString('fr-FR')} de cash et ${plan.cashMovements.length} mouvement(s) cash`);
+  }
+  return lines;
+}
 
+async function deleteInventoryEntity(kind, id) {
+  if (!canDelete()) { deny(); return; }
+  let plan = inventoryDeletionPlan(kind, id);
+  if (!plan) { toast('Élément introuvable ou déjà supprimé', 'error'); return; }
+  let changed = false;
+
+  while (plan) {
+    const name = plan.target.name;
+    const title = kind === 'location'
+      ? `Supprimer la localisation « ${name} » et tout son contenu, toutes catégories confondues ?`
+      : kind === 'category'
+        ? `Supprimer la catégorie « ${name} » et ses articles dans toutes les localisations ?`
+        : `Supprimer l’article « ${name} » à « ${locationName(plan.target.locationId)} » et ses mouvements ?`;
+    const warning = `${changed ? 'Les données ont changé. Vérifie le nouveau contenu avant de confirmer.\n\n' : ''}${title}\n\nContenu supprimé :\n${inventoryDeletionSummary(plan).map(line => `• ${line}`).join('\n')}\n\nSuppression définitive. Les journaux d’activité sont conservés.`;
+    if (!(await siteConfirm(warning, 'Tout supprimer'))) return;
+    if (!canDelete()) { deny(); return; }
+    const currentPlan = inventoryDeletionPlan(kind, id);
+    if (!currentPlan) { toast('Cet élément a déjà été supprimé', 'info'); return; }
+    if (currentPlan.signature === plan.signature) {
+      plan = currentPlan;
+      break;
+    }
+    plan = currentPlan;
+    changed = true;
+  }
+
+  const productIds = new Set(plan.products.map(product => String(product.id)));
+  const movementIds = new Set(plan.movements.map(movement => String(movement.id)));
+  data.products = data.products.filter(product => !productIds.has(String(product.id)));
+  data.movements = data.movements.filter(movement => !movementIds.has(String(movement.id)));
+  if (kind === 'location') {
+    data.locations = data.locations.filter(location => !sameId(location.id, id));
+    data.cashMovements = data.cashMovements.filter(movement => !sameId(movement.locationId, id));
+    plan.cashEntries.forEach(([key]) => { delete data.cashByLocation[key]; });
+  } else if (kind === 'category') {
+    data.categories = data.categories.filter(category => !sameId(category.id, id));
+  }
+  // Recalcul avant la sauvegarde et la migration du cash, pour ne pas recréer
+  // le solde de la dernière localisation supprimée à partir de cashBalance.
+  data.cashBalance = Object.values(data.cashByLocation).reduce((sum, amount) => sum + Number(amount || 0), 0);
+  if (data.editingProduct != null && productIds.has(String(data.editingProduct))) {
+    data.editingProduct = null;
+    closeModal('modal-product');
+  }
+  const label = { location:'Localisation supprimée', category:'Catégorie supprimée', product:'Article supprimé' }[kind];
+  const locationLabel = kind === 'product' ? ` à ${escapeHtml(locationName(plan.target.locationId))}` : '';
+  addLog(kind === 'product' ? 'stock' : 'system', `${label} : <strong>${escapeHtml(plan.target.name)}</strong>${locationLabel}`, userName(), {
+    reason:`Contenu supprimé : ${inventoryDeletionSummary(plan).join(' ; ')}.`,
+    locationId:kind === 'location' ? id : kind === 'product' ? plan.target.locationId : null,
+    entityId:id
+  });
+  render();
+  toast(`${label} avec son contenu`, 'info');
+}
+
+async function deleteLocation(id) {
+  return deleteInventoryEntity('location', id);
+}
 
 let siteConfirmResolve = null;
 
@@ -8490,6 +8560,7 @@ function siteConfirm(message, validateLabel = 'Supprimer') {
     return Promise.resolve(false);
   }
 
+  if (siteConfirmResolve) closeSiteConfirm(false);
   messageEl.textContent = message;
   validateBtn.innerHTML = `<i class="ti ti-trash"></i> ${validateLabel}`;
   modal.classList.add('open');
@@ -8551,6 +8622,8 @@ function openAddModal() {
   if (currentSection === 'users') { openUserModal(); return; }
   if (currentSection === 'categories') { openCatModal(); return; }
   if (currentSection === 'locations') { openLocationModal(); return; }
+  if (!data.locations.length) { toast('Ajoute une localisation avant de créer un article', 'error'); return; }
+  if (!data.categories.length) { toast('Ajoute une catégorie avant de créer un article', 'error'); return; }
   data.editingProduct = null;
   document.getElementById('modal-product-title').textContent = 'AJOUTER UN ARTICLE';
   ['p-name','p-price'].forEach(id => document.getElementById(id).value = '');
@@ -8586,13 +8659,15 @@ function saveProduct() {
   const loc = locationName(locationId);
   const cat = parseInt(document.getElementById('p-cat').value);
   if (!name) { toast('Nom requis','error'); return; }
-  if (!locationId) { toast('Localisation requise','error'); return; }
+  if (!data.locations.some(location => sameId(location.id, locationId))) { toast('Choisis une localisation existante','error'); return; }
+  if (!data.categories.some(category => sameId(category.id, cat))) { toast('Choisis une catégorie existante','error'); return; }
   const productDraft = { name, cat };
   const duplicate = data.products.find(product => !sameId(product.id, data.editingProduct) && sameProductIdentity(product, productDraft) && sameId(product.locationId, locationId));
   if (duplicate) { toast(`Cet article existe déjà à ${loc}`, 'error'); return; }
 
   if (data.editingProduct) {
     const p = data.products.find(pr => pr.id === data.editingProduct);
+    if (!p) { toast('Cet article a été supprimé', 'error'); closeModal('modal-product'); return; }
     Object.assign(p, {name,price,loc,locationId,cat});
     addLog('stock',`Article modifié : <strong>${name}</strong> <span style="color:var(--accent)">📍 ${loc}</span>`, userName());
     toast('Article mis à jour','success');
@@ -8606,15 +8681,7 @@ function saveProduct() {
 }
 
 async function deleteProduct(id) {
-  if (!canDelete()) { deny(); return; }
-  const p = data.products.find(pr => sameId(pr.id, id));
-  if (!p) { toast('Article introuvable', 'error'); return; }
-  if (!(await siteConfirm(`Supprimer "${p.name}" ?`))) return;
-
-  data.products = data.products.filter(pr => !sameId(pr.id, id));
-  addLog('stock', `Article supprimé : <strong>${p.name}</strong>`, userName());
-  toast('Article supprimé', 'info');
-  render();
+  return deleteInventoryEntity('product', id);
 }
 
 let currentMvtType = 'entree';
@@ -8723,7 +8790,7 @@ function saveMvt() {
   const locationId = parseInt(document.getElementById('mvt-location').value);
   if (!productId) { toast('Choisis un article','error'); return; }
   if (qty <= 0) { toast('Quantité invalide','error'); return; }
-  if (!locationId) { toast('Choisis une localisation','error'); return; }
+  if (!data.locations.some(loc => sameId(loc.id, locationId))) { toast('Choisis une localisation existante','error'); return; }
 
   const selectedProduct = data.products.find(p => sameId(p.id, productId));
   if (!selectedProduct) { toast('Article introuvable','error'); return; }
@@ -8934,21 +9001,7 @@ function saveCat() {
 }
 
 async function deleteCat(id) {
-  if (!canDelete()) { deny(); return; }
-  const count = data.products.filter(p => sameId(p.cat, id)).length;
-  if (count > 0) {
-    toast(`Impossible : ${count} article(s) dans cette catégorie`, 'error');
-    return;
-  }
-
-  const cat = data.categories.find(c => sameId(c.id, id));
-  if (!cat) { toast('Catégorie introuvable', 'error'); return; }
-  if (!(await siteConfirm(`Supprimer la catégorie "${cat.name}" ?`))) return;
-
-  data.categories = data.categories.filter(c => !sameId(c.id, id));
-  addLog('system', `Catégorie supprimée : <strong>${cat.name}</strong>`, userName());
-  toast('Catégorie supprimée', 'info');
-  render();
+  return deleteInventoryEntity('category', id);
 }
 
 function addLog(type, action, user, details = {}) {
